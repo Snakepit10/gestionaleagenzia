@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Verifica Distinta #{{ distinta.id }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-check-circle me-2"></i>{{ titolo }} #{{ distinta.id }}
+        </h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'dettaglio_distinta' distinta.id %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Torna alla Distinta
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-cash-register me-2"></i>Verifica Distinta di Cassa
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>Operatore:</strong> {{ distinta.operatore.get_full_name|default:distinta.operatore.username }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Data:</strong> {{ distinta.data|date:"d/m/Y" }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Ora Apertura:</strong> {{ distinta.ora_inizio|time:"H:i" }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Ora Chiusura:</strong> {{ distinta.ora_fine|time:"H:i" }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Dati Contabili</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <p><strong>Cassa Iniziale:</strong></p>
+                            </div>
+                            <div class="col-6 text-end">
+                                <p>{{ distinta.cassa_iniziale|floatformat:2 }} €</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <p><strong>Entrate (Prelievi):</strong></p>
+                            </div>
+                            <div class="col-6 text-end">
+                                <p class="text-success">+ {{ distinta.totale_entrate|floatformat:2 }} €</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <p><strong>Uscite (Schedine/Ricariche):</strong></p>
+                            </div>
+                            <div class="col-6 text-end">
+                                <p class="text-danger">- {{ distinta.totale_uscite|floatformat:2 }} €</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <p><strong>Totale Bevande:</strong></p>
+                            </div>
+                            <div class="col-6 text-end">
+                                <p class="text-danger">- {{ distinta.totale_bevande|floatformat:2 }} €</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <p><strong>Saldo Terminale:</strong></p>
+                            </div>
+                            <div class="col-6 text-end">
+                                <p>{{ distinta.saldo_terminale|default:"0.00"|floatformat:2 }} €</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-6">
+                                <p><strong>Cassa Finale (Dichiarata):</strong></p>
+                            </div>
+                            <div class="col-6 text-end">
+                                <p>{{ distinta.cassa_finale|floatformat:2 }} €</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <p><strong>Differenza Cassa:</strong></p>
+                            </div>
+                            <div class="col-6 text-end">
+                                <p class="{% if distinta.differenza_cassa != 0 %}text-danger{% else %}text-success{% endif %}">
+                                    {{ distinta.differenza_cassa|floatformat:2 }} €
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Note e Approvazione</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            
+                            {% if distinta.note_verifica %}
+                            <div class="alert alert-secondary mb-4">
+                                <h6 class="alert-heading">Note dell'operatore:</h6>
+                                <p class="mb-0">{{ distinta.note_verifica }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            {{ form.note_verifica|as_crispy_field }}
+                            
+                            {% if distinta.differenza_cassa != 0 %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Attenzione!</strong> C'è una differenza di cassa di {{ distinta.differenza_cassa|floatformat:2 }} €.
+                                Verificare con l'operatore prima di approvare.
+                            </div>
+                            {% endif %}
+                            
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check-circle me-2"></i>Approva e Verifica Distinta
+                                </button>
+                                <a href="{% url 'dettaglio_distinta' distinta.id %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-2"></i>Annulla
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

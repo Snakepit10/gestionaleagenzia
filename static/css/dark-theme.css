@@ -1,0 +1,384 @@
+/* Dark Theme for Gestionale Agenzia */
+
+/* Base styles */
+:root {
+  --dark-bg: #121212;
+  --darker-bg: #0a0a0a;
+  --dark-card: #1e1e1e;
+  --dark-input: #2d2d2d;
+  --dark-border: #333;
+  --dark-text: #e0e0e0;
+  --dark-text-secondary: #aaa;
+  --primary-color: #6b7aff;
+  --success-color: #4caf50;
+  --danger-color: #f44336;
+  --warning-color: #ff9800;
+  --info-color: #03a9f4;
+  --button-hover-brightness: 1.1;
+}
+
+body {
+  background-color: var(--dark-bg);
+  color: var(--dark-text);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Navbar styling */
+.navbar {
+  background-color: var(--darker-bg) !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.navbar-brand, .nav-link {
+  color: var(--dark-text) !important;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover {
+  color: var(--primary-color) !important;
+}
+
+.navbar-dark .navbar-nav .active > .nav-link, 
+.navbar-dark .navbar-nav .nav-link.active {
+  color: var(--primary-color) !important;
+  font-weight: 500;
+}
+
+.dropdown-menu {
+  background-color: var(--dark-card);
+  border-color: var(--dark-border);
+}
+
+.dropdown-item {
+  color: var(--dark-text);
+}
+
+.dropdown-item:hover {
+  background-color: var(--dark-input);
+  color: var(--primary-color);
+}
+
+.dropdown-divider {
+  border-color: var(--dark-border);
+}
+
+/* Card styling */
+.card {
+  background-color: var(--dark-card);
+  border-color: var(--dark-border);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.card-header {
+  border-bottom-color: var(--dark-border);
+  padding: 0.8rem 1.25rem;
+}
+
+/* Keep colored headers for visibility but darken them */
+.bg-primary {
+  background-color: #304ffe !important;
+}
+
+.bg-success {
+  background-color: #2e7d32 !important;
+}
+
+.bg-danger {
+  background-color: #c62828 !important;
+}
+
+.bg-warning {
+  background-color: #ef6c00 !important;
+}
+
+.bg-info {
+  background-color: #01579b !important;
+}
+
+.bg-secondary {
+  background-color: #424242 !important;
+}
+
+.bg-light {
+  background-color: var(--dark-card) !important;
+  color: var(--dark-text) !important;
+}
+
+.text-muted {
+  color: var(--dark-text-secondary) !important;
+}
+
+/* Form controls */
+.form-control, .form-select, .form-control-plaintext {
+  background-color: var(--dark-input);
+  border-color: var(--dark-border);
+  color: var(--dark-text);
+}
+
+.form-control:focus, .form-select:focus {
+  background-color: var(--dark-input);
+  border-color: var(--primary-color);
+  color: var(--dark-text);
+  box-shadow: 0 0 0 0.25rem rgba(107, 122, 255, 0.25);
+}
+
+.form-control::placeholder {
+  color: var(--dark-text-secondary);
+}
+
+.form-label {
+  color: var(--dark-text);
+  font-weight: 500;
+}
+
+/* Input groups */
+.input-group-text {
+  background-color: var(--dark-card);
+  border-color: var(--dark-border);
+  color: var(--dark-text);
+}
+
+/* Select2 integration */
+.select2-container--bootstrap-5 .select2-selection {
+  background-color: var(--dark-input) !important;
+  border-color: var(--dark-border) !important;
+  color: var(--dark-text) !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+  color: var(--dark-text) !important;
+}
+
+.select2-container--bootstrap-5 .select2-dropdown {
+  background-color: var(--dark-card) !important;
+  border-color: var(--dark-border) !important;
+}
+
+.select2-container--bootstrap-5 .select2-results__option {
+  color: var(--dark-text) !important;
+}
+
+.select2-container--bootstrap-5 .select2-results__option--highlighted {
+  background-color: var(--primary-color) !important;
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-success {
+  background-color: var(--success-color);
+  border-color: var(--success-color);
+}
+
+.btn-danger {
+  background-color: var(--danger-color);
+  border-color: var(--danger-color);
+}
+
+.btn-warning {
+  background-color: var(--warning-color);
+  border-color: var(--warning-color);
+}
+
+.btn-info {
+  background-color: var(--info-color);
+  border-color: var(--info-color);
+}
+
+.btn:hover {
+  filter: brightness(var(--button-hover-brightness));
+}
+
+.btn-outline-primary, .btn-outline-secondary, .btn-outline-success, 
+.btn-outline-danger, .btn-outline-warning, .btn-outline-info {
+  color: var(--dark-text);
+}
+
+.btn-outline-primary:hover, .btn-outline-secondary:hover, .btn-outline-success:hover, 
+.btn-outline-danger:hover, .btn-outline-warning:hover, .btn-outline-info:hover {
+  color: var(--dark-text);
+}
+
+/* Tables */
+.table {
+  color: var(--dark-text);
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+  background-color: rgba(255, 255, 255, 0.03);
+  color: var(--dark-text);
+}
+
+.table-hover > tbody > tr:hover > * {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--dark-text);
+}
+
+.table thead th {
+  background-color: var(--darker-bg);
+  border-color: var(--dark-border);
+  color: var(--dark-text);
+}
+
+.table td, .table th {
+  border-color: var(--dark-border);
+}
+
+/* Alerts */
+.alert {
+  border-radius: 8px;
+}
+
+.alert-dismissible .btn-close {
+  color: var(--dark-text);
+}
+
+/* Badges */
+.badge {
+  font-weight: 500;
+  border-radius: 6px;
+  padding: 0.3em 0.6em;
+}
+
+/* Custom styling for movement types */
+.badge-schedina, .bg-schedina {
+  background-color: #7b0828 !important;
+  color: white !important;
+}
+
+.badge-ricarica, .bg-ricarica {
+  background-color: #ffc107 !important;
+  color: black !important;
+}
+
+.badge-prelievo, .bg-prelievo {
+  background-color: #6f42c1 !important;
+  color: white !important;
+}
+
+.badge-incasso_credito, .bg-incasso_credito {
+  background-color: #198754 !important;
+  color: white !important;
+}
+
+.badge-pagamento_debito, .bg-pagamento_debito {
+  background-color: #fd7e14 !important;
+  color: white !important;
+}
+
+/* Footer */
+footer {
+  background-color: var(--darker-bg) !important;
+  color: var(--dark-text-secondary) !important;
+  border-top: 1px solid var(--dark-border);
+}
+
+/* Dashboard widgets */
+.dashboard-stat-card {
+  transition: transform 0.3s ease;
+}
+
+.dashboard-stat-card:hover {
+  transform: translateY(-5px);
+}
+
+/* Paginator */
+.page-link {
+  background-color: var(--dark-card);
+  border-color: var(--dark-border);
+  color: var(--dark-text);
+}
+
+.page-link:hover {
+  background-color: var(--dark-input);
+  border-color: var(--dark-border);
+  color: var(--primary-color);
+}
+
+.page-item.active .page-link {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.page-item.disabled .page-link {
+  background-color: var(--dark-card);
+  border-color: var(--dark-border);
+  color: var(--dark-text-secondary);
+}
+
+/* Custom scrollbar for tables */
+.table-responsive::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+  background: var(--dark-bg);
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background-color: var(--dark-border);
+  border-radius: 20px;
+}
+
+/* Tab navigation */
+.nav-tabs {
+  border-bottom-color: var(--dark-border);
+}
+
+.nav-tabs .nav-link {
+  color: var(--dark-text);
+  border-color: transparent;
+}
+
+.nav-tabs .nav-link:hover {
+  border-color: var(--dark-border);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--primary-color);
+  background-color: var(--dark-card);
+  border-color: var(--dark-border);
+  border-bottom-color: var(--dark-card);
+  font-weight: 500;
+}
+
+/* Animation for new items */
+@keyframes highlight {
+  0% { background-color: rgba(107, 122, 255, 0.3); }
+  100% { background-color: transparent; }
+}
+
+.new-item {
+  animation: highlight 2s ease-out;
+}
+
+/* Dashboard cards */
+.overview-card {
+  transition: all 0.3s ease;
+}
+
+.overview-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.overview-card .card-value {
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+/* Movimento row highlight */
+tr.movimento-compensazione {
+  animation: highlight 2s ease-out;
+}

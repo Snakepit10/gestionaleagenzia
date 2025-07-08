@@ -1,0 +1,182 @@
+/**
+ * distinta_detail.css - Stili dedicati per la pagina di dettaglio distinta
+ * Versione: 1.1
+ *
+ * Questo file CSS è specifico per la pagina dettaglio_distinta.html
+ * e ha priorità maggiore rispetto agli stili generici definiti in style.css
+ */
+
+/* ------ STILI BASE PER LA PAGINA ------ */
+.card {
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    font-weight: 600;
+}
+
+/* ------ STILI PER I BADGE ------ */
+/* Stili badge di base con specificità aumentata */
+span.badge {
+    display: inline-block !important;
+    padding: 0.25em 0.4em !important;
+    font-size: 75% !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    vertical-align: baseline !important;
+    border-radius: 0.25rem !important;
+}
+
+/* Badge per tipo movimento con specificità aumentata */
+span.badge.badge-schedina {
+    background-color: #7b0828 !important;
+    color: white !important;
+}
+
+span.badge.badge-ricarica {
+    background-color: #ffc107 !important;
+    color: black !important;
+}
+
+span.badge.badge-prelievo {
+    background-color: #6f42c1 !important;
+    color: white !important;
+}
+
+span.badge.badge-incasso-credito {
+    background-color: #198754 !important;
+    color: white !important;
+}
+
+span.badge.badge-pagamento-debito {
+    background-color: #fd7e14 !important;
+    color: white !important;
+}
+
+/* Assicura che anche i badge di Bootstrap siano correttamente stilizzati */
+span.badge.bg-schedina {
+    background-color: #7b0828 !important;
+    color: white !important;
+}
+
+span.badge.bg-ricarica {
+    background-color: #ffc107 !important;
+    color: black !important;
+}
+
+span.badge.bg-prelievo {
+    background-color: #6f42c1 !important;
+    color: white !important;
+}
+
+span.badge.bg-incasso_credito {
+    background-color: #198754 !important;
+    color: white !important;
+}
+
+span.badge.bg-pagamento_debito {
+    background-color: #fd7e14 !important;
+    color: white !important;
+}
+
+/* ------ STILI PER I BOTTONI ------ */
+.importo-btn {
+    min-width: 60px !important;
+    flex: 1 0 22% !important;
+    color: white !important;
+    background-color: #212529 !important;
+    border-color: #212529 !important;
+}
+
+.importo-btn.active {
+    background-color: #198754 !important;
+    border-color: #198754 !important;
+    font-weight: bold !important;
+}
+
+.btn-salda-movimento,
+.btn-salda-tutti {
+    background-color: #198754 !important;
+    border-color: #198754 !important;
+    color: white !important;
+    display: inline-block !important;
+}
+
+/* ------ STILI PER LE CELLE DI IMPORTO ------ */
+.text-danger {
+    color: #dc3545 !important;
+}
+
+.text-success {
+    color: #198754 !important;
+}
+
+.fw-bold {
+    font-weight: 700 !important;
+}
+
+/* ------ STILI PER SEZIONE MOVIMENTI DA SALDARE ------ */
+.card-body-movimenti-da-saldare {
+    padding: 0 !important;
+}
+
+.card-body-movimenti-da-saldare .table {
+    margin-bottom: 0 !important;
+}
+
+.card-body-movimenti-da-saldare .text-center {
+    padding: 2rem 0 !important;
+}
+
+/* Assicura che la tabella dei movimenti da saldare abbia sempre l'aspetto corretto */
+.card-body-movimenti-da-saldare table.table th,
+.card-body-movimenti-da-saldare table.table td {
+    padding: 0.5rem !important;
+    vertical-align: middle !important;
+}
+
+/* ------ ANIMAZIONI ------ */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.pulsato {
+    animation: pulse 0.3s !important;
+}
+
+/* ------ RESPONSIVITÀ ------ */
+@media (max-width: 768px) {
+    .importo-btn {
+        min-width: 50px !important;
+        font-size: 0.875rem !important;
+    }
+}
+
+/* Assicura che la sezione Movimenti da Saldare abbia la massima priorità */
+.card.border-warning.h-100 {
+    z-index: 1 !important;
+    position: relative !important;
+}
+
+.card.border-warning.h-100 .card-header.bg-warning.text-white {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+}
+
+/* Correzione per la tabella nella sezione Movimenti da Saldare */
+.card-body-movimenti-da-saldare div[style*="max-height"] {
+    max-height: 300px !important;
+    overflow-y: auto !important;
+}
+
+/* Correzione per badge nelle tabelle principali */
+.tab-content table span.badge,
+#lista-movimenti table span.badge {
+    display: inline-block !important;
+    margin: 0 !important;
+    padding: 0.25em 0.4em !important;
+}

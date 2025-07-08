@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ titolo }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            {% if conto %}
+            <i class="fas fa-edit me-2"></i>{{ titolo }}
+            {% else %}
+            <i class="fas fa-plus-circle me-2"></i>{{ titolo }}
+            {% endif %}
+        </h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'bilancio_finanziario' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Torna al Bilancio
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    {% if conto %}
+                    <i class="fas fa-edit me-2"></i>Modifica Conto
+                    {% else %}
+                    <i class="fas fa-plus-circle me-2"></i>Nuovo Conto
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            {{ form.nome|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.tipo|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            {{ form.saldo|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            {{ form.descrizione|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            {% if conto %}
+                            <i class="fas fa-save me-2"></i>Salva Modifiche
+                            {% else %}
+                            <i class="fas fa-plus-circle me-2"></i>Crea Conto
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

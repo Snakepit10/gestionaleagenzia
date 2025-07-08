@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Elimina Movimento - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-trash me-2"></i>Elimina Movimento
+        </h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>Conferma Eliminazione
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Attenzione!</strong> Stai per eliminare definitivamente un movimento. Questa azione non può essere annullata.
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Dettagli Movimento</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Cliente:</strong> {{ movimento.cliente.cognome }} {{ movimento.cliente.nome }}</p>
+                        <p><strong>Tipo:</strong> {{ movimento.get_tipo_display }}</p>
+                        <p><strong>Importo:</strong> <span class="{% if movimento.importo < 0 %}text-danger{% else %}text-success{% endif %}">{{ movimento.importo|floatformat:2 }} €</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Data:</strong> {{ movimento.data|date:"d/m/Y H:i" }}</p>
+                        <p><strong>Distinta:</strong> #{{ movimento.distinta.id }}</p>
+                        <p><strong>Operatore:</strong> {{ movimento.creato_da.username }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <p class="text-center">Elimando questo movimento, il saldo del cliente verrà aggiornato di conseguenza.</p>
+        
+        <form method="post" class="text-center mt-4">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash me-2"></i>Conferma Eliminazione
+            </button>
+            <a href="{% if request.META.HTTP_REFERER %}{{ request.META.HTTP_REFERER }}{% else %}{% url 'lista_movimenti' %}{% endif %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-2"></i>Annulla
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}

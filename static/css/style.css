@@ -1,0 +1,148 @@
+/* Custom styles for Gestionale Agenzia */
+
+/* General Styles */
+body {
+    background-color: #f8f9fa;
+}
+
+/* Card styling */
+.card {
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    border-top-left-radius: 0.5rem !important;
+    border-top-right-radius: 0.5rem !important;
+}
+
+/* Select2 customization */
+.select2-container--bootstrap-5 .select2-selection {
+    border-radius: 0.375rem;
+}
+
+/* Custom badges */
+.badge-fido {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* Custom table styling */
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+/* Status colors */
+.status-open {
+    color: #28a745;
+}
+
+.status-closed {
+    color: #ffc107;
+}
+
+.status-verified {
+    color: #007bff;
+}
+
+/* Custom alert for fido warnings */
+.alert-fido {
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+    color: #856404;
+}
+
+/* Rating colors */
+.rating-a {
+    color: #28a745;
+}
+
+.rating-b {
+    color: #17a2b8;
+}
+
+.rating-c {
+    color: #ffc107;
+}
+
+.rating-d {
+    color: #fd7e14;
+}
+
+.rating-e {
+    color: #dc3545;
+}
+
+/* Dashboard widgets */
+.dashboard-stat-card {
+    transition: transform .2s;
+}
+
+.dashboard-stat-card:hover {
+    transform: translateY(-5px);
+}
+
+/* Custom scrollbar for tables */
+.table-responsive {
+    scrollbar-width: thin;
+    scrollbar-color: #6c757d #f8f9fa;
+}
+
+.table-responsive::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f8f9fa;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background-color: #6c757d;
+    border-radius: 20px;
+}
+
+/* Badge colorati per i tipi di movimento - non usati in dettaglio_distinta.html */
+/* Per dettaglio_distinta.html, vedere distinta_detail.css */
+/* Questi stili sono mantenuti per compatibilità con altre pagine */
+.bg-schedina {
+    background-color: #7b0828; /* bordeaux */
+}
+
+.bg-ricarica {
+    background-color: #ffc107; /* giallo */
+    color: #000;
+}
+
+.bg-prelievo {
+    background-color: #6f42c1; /* viola */
+}
+
+.bg-incasso_credito {
+    background-color: #198754; /* verde */
+}
+
+.bg-pagamento_debito {
+    background-color: #fd7e14; /* arancione */
+}
+
+/* Print styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6 !important;
+    }
+
+    .table {
+        border-collapse: collapse !important;
+    }
+
+    .table td, .table th {
+        background-color: #fff !important;
+    }
+}

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ titolo }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-plus-circle me-2"></i>{{ titolo }}
+        </h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'lista_distinte' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Torna alla Lista
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-cash-register me-2"></i>Apertura Distinta di Cassa
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Operatore:</strong> {{ user.get_full_name|default:user.username }} - 
+            <strong>Data:</strong> {% now "d/m/Y" %} - 
+            <strong>Ora:</strong> {% now "H:i" %}
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    {% if conto_cassa %}
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-coins me-2"></i>
+                        <strong>Saldo attuale in cassa:</strong> {{ conto_cassa.saldo|floatformat:2 }} €
+                    </div>
+                    {% endif %}
+
+                    {{ form.cassa_iniziale|as_crispy_field }}
+                    {{ form.prelievo_parziale|as_crispy_field }}
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-cash-register me-2"></i>Apri Distinta
+                </button>
+                <a href="{% url 'lista_distinte' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i>Annulla
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Riferimenti ai campi del form
+        var cassaInizialeInput = $('#id_cassa_iniziale');
+        var prelievoParzialeCheck = $('#id_prelievo_parziale');
+        
+        // Salva il valore massimo possibile dalla cassa
+        var maxValue = parseFloat(cassaInizialeInput.attr('data-max-value')) || 0;
+        
+        // Funzione per validare l'importo inserito
+        function validaImporto() {
+            var importo = parseFloat(cassaInizialeInput.val()) || 0;
+            
+            if (importo <= 0) {
+                showError("L'importo deve essere maggiore di zero");
+                return false;
+            }
+            
+            if (importo > maxValue) {
+                showError("L'importo (" + importo.toFixed(2) + " €) non può superare il saldo disponibile in cassa (" + maxValue.toFixed(2) + " €)");
+                return false;
+            }
+            
+            // Se il prelievo è totale e l'importo è minore del saldo disponibile, mostra un avviso
+            if (!prelievoParzialeCheck.is(':checked') && importo < maxValue) {
+                showWarning("Stai prelevando solo " + importo.toFixed(2) + " € dei " + maxValue.toFixed(2) + " € disponibili. Seleziona 'Prelievo parziale' se è intenzionale.");
+            } else {
+                // Rimuovi eventuali avvisi
+                removeMessages();
+            }
+            
+            return true;
+        }
+        
+        // Funzione per mostrare errore
+        function showError(message) {
+            removeMessages();
+            var errorDiv = $('<div class="alert alert-danger mt-2" id="cassa-error"><i class="fas fa-exclamation-triangle me-2"></i>' + message + '</div>');
+            cassaInizialeInput.after(errorDiv);
+        }
+        
+        // Funzione per mostrare avviso
+        function showWarning(message) {
+            removeMessages();
+            var warningDiv = $('<div class="alert alert-warning mt-2" id="cassa-warning"><i class="fas fa-exclamation-circle me-2"></i>' + message + '</div>');
+            cassaInizialeInput.after(warningDiv);
+        }
+        
+        // Funzione per rimuovere messaggi
+        function removeMessages() {
+            $('#cassa-error, #cassa-warning').remove();
+        }
+        
+        // Aggiorna le regole di validazione quando cambia il valore
+        cassaInizialeInput.on('input change keyup blur', validaImporto);
+        prelievoParzialeCheck.on('change', validaImporto);
+        
+        // Aggiorna il comportamento del form quando viene inviato
+        $('form').on('submit', function(e) {
+            if (!validaImporto()) {
+                e.preventDefault();
+                return false;
+            }
+            
+            // Se è selezionato "prelievo totale" ma l'importo è inferiore al massimo, chiedi conferma
+            if (!prelievoParzialeCheck.is(':checked') && parseFloat(cassaInizialeInput.val()) < maxValue) {
+                if (!confirm("Stai prelevando solo una parte della cassa disponibile senza selezionare 'Prelievo parziale'. Vuoi procedere comunque?")) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+        
+        // Se è prelievo parziale, non propone l'intero saldo
+        prelievoParzialeCheck.on('change', function() {
+            if ($(this).is(':checked')) {
+                // Se il valore attuale è uguale al massimo, imposta un valore predefinito più basso
+                var currentValue = parseFloat(cassaInizialeInput.val()) || 0;
+                if (currentValue === maxValue) {
+                    cassaInizialeInput.val((maxValue / 2).toFixed(2));
+                }
+            } else {
+                // Se non è selezionato prelievo parziale, imposta il valore massimo
+                cassaInizialeInput.val(maxValue.toFixed(2));
+            }
+            validaImporto();
+        });
+        
+        // Imposta il valore predefinito all'avvio
+        if (prelievoParzialeCheck.is(':checked')) {
+            cassaInizialeInput.val((maxValue / 2).toFixed(2));
+        } else {
+            cassaInizialeInput.val(maxValue.toFixed(2));
+        }
+        
+        // Esegui validazione all'avvio
+        validaImporto();
+    });
+</script>
+{% endblock %}

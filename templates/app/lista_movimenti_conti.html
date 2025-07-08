@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Movimenti tra Conti - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-exchange-alt me-2"></i>Movimenti tra Conti Finanziari
+        </h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'effettua_giroconto' %}" class="btn btn-primary">
+            <i class="fas fa-exchange-alt me-2"></i>Nuovo Giroconto
+        </a>
+        <a href="{% url 'bilancio_finanziario' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Torna al Bilancio
+        </a>
+    </div>
+</div>
+
+<!-- Filtri -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">
+            <i class="fas fa-filter me-2"></i>Filtri
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row">
+            <!-- Tipo movimento -->
+            <div class="col-md-3 mb-3">
+                <label for="tipo" class="form-label">Tipo Movimento</label>
+                <select name="tipo" id="tipo" class="form-select">
+                    <option value="">Tutti</option>
+                    {% for tipo_id, tipo_nome in tipi_movimento %}
+                    <option value="{{ tipo_id }}" {% if tipo_selezionato == tipo_id %}selected{% endif %}>{{ tipo_nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Conto -->
+            <div class="col-md-3 mb-3">
+                <label for="conto" class="form-label">Conto</label>
+                <select name="conto" id="conto" class="form-select select2">
+                    <option value="">Tutti</option>
+                    {% for conto in conti %}
+                    <option value="{{ conto.id }}" {% if conto_selezionato == conto.id|stringformat:'s' %}selected{% endif %}>{{ conto.nome }} ({{ conto.get_tipo_display }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Data inizio -->
+            <div class="col-md-3 mb-3">
+                <label for="data_inizio" class="form-label">Data Inizio</label>
+                <input type="date" name="data_inizio" id="data_inizio" class="form-control" value="{{ data_inizio }}">
+            </div>
+            
+            <!-- Data fine -->
+            <div class="col-md-3 mb-3">
+                <label for="data_fine" class="form-label">Data Fine</label>
+                <input type="date" name="data_fine" id="data_fine" class="form-control" value="{{ data_fine }}">
+            </div>
+            
+            <!-- Pulsanti -->
+            <div class="col-12 text-end">
+                <a href="{% url 'lista_movimenti_conti' %}" class="btn btn-outline-secondary me-2">
+                    <i class="fas fa-times me-1"></i>Reset
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search me-1"></i>Filtra
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista movimenti -->
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-list-alt me-2"></i>Lista Movimenti
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Importo</th>
+                        <th>Da</th>
+                        <th>A</th>
+                        <th>Operatore</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for movimento in page_obj %}
+                    <tr>
+                        <td>{{ movimento.data|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            {% if movimento.tipo == 'giroconto' %}
+                            <span class="badge bg-primary">{{ movimento.get_tipo_display }}</span>
+                            {% elif movimento.tipo == 'deposito' %}
+                            <span class="badge bg-success">{{ movimento.get_tipo_display }}</span>
+                            {% elif movimento.tipo == 'prelievo' %}
+                            <span class="badge bg-danger">{{ movimento.get_tipo_display }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ movimento.get_tipo_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="fw-bold">{{ movimento.importo|floatformat:2 }} €</td>
+                        <td>
+                            {% if movimento.conto_origine %}
+                            <span class="text-nowrap" title="Saldo: {{ movimento.saldo_origine_pre|floatformat:2 }} € → {{ movimento.saldo_origine_post|floatformat:2 }} €">
+                                {{ movimento.conto_origine.nome }}
+                                <i class="fas fa-info-circle text-muted"></i>
+                            </span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if movimento.conto_destinazione %}
+                            <span class="text-nowrap" title="Saldo: {{ movimento.saldo_destinazione_pre|floatformat:2 }} € → {{ movimento.saldo_destinazione_post|floatformat:2 }} €">
+                                {{ movimento.conto_destinazione.nome }}
+                                <i class="fas fa-info-circle text-muted"></i>
+                            </span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>{{ movimento.operatore.username }}</td>
+                        <td>{{ movimento.note|default:"-"|truncatechars:30 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4">
+                            <p class="text-muted mb-0">Nessun movimento trovato</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Paginazione -->
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Paginazione">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if tipo_selezionato %}&tipo={{ tipo_selezionato }}{% endif %}{% if conto_selezionato %}&conto={{ conto_selezionato }}{% endif %}{% if data_inizio %}&data_inizio={{ data_inizio }}{% endif %}{% if data_fine %}&data_fine={{ data_fine }}{% endif %}" aria-label="Prima">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if tipo_selezionato %}&tipo={{ tipo_selezionato }}{% endif %}{% if conto_selezionato %}&conto={{ conto_selezionato }}{% endif %}{% if data_inizio %}&data_inizio={{ data_inizio }}{% endif %}{% if data_fine %}&data_fine={{ data_fine }}{% endif %}" aria-label="Precedente">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% for i in page_obj.paginator.page_range %}
+                    {% if page_obj.number == i %}
+                    <li class="page-item active" aria-current="page">
+                        <span class="page-link">{{ i }}</span>
+                    </li>
+                    {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ i }}{% if tipo_selezionato %}&tipo={{ tipo_selezionato }}{% endif %}{% if conto_selezionato %}&conto={{ conto_selezionato }}{% endif %}{% if data_inizio %}&data_inizio={{ data_inizio }}{% endif %}{% if data_fine %}&data_fine={{ data_fine }}{% endif %}">{{ i }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if tipo_selezionato %}&tipo={{ tipo_selezionato }}{% endif %}{% if conto_selezionato %}&conto={{ conto_selezionato }}{% endif %}{% if data_inizio %}&data_inizio={{ data_inizio }}{% endif %}{% if data_fine %}&data_fine={{ data_fine }}{% endif %}" aria-label="Successiva">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if tipo_selezionato %}&tipo={{ tipo_selezionato }}{% endif %}{% if conto_selezionato %}&conto={{ conto_selezionato }}{% endif %}{% if data_inizio %}&data_inizio={{ data_inizio }}{% endif %}{% if data_fine %}&data_fine={{ data_fine }}{% endif %}" aria-label="Ultima">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Inizializza select2 sui campi select
+        $('.select2').select2({
+            theme: 'bootstrap-5',
+            width: '100%'
+        });
+        
+        // Aggiungi tooltip sulle celle con info saldo
+        $('[title]').tooltip();
+    });
+</script>
+{% endblock %}

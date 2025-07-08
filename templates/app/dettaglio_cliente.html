@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ cliente.nome_completo }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-user me-2"></i>{{ cliente.cognome }} {{ cliente.nome }}
+            <span class="badge bg-{% if cliente.rating == 'A' %}success{% elif cliente.rating == 'B' %}info{% elif cliente.rating == 'C' %}warning{% elif cliente.rating == 'D' %}warning text-dark{% else %}danger{% endif %}">
+                {{ cliente.get_rating_display }}
+            </span>
+        </h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'modifica_cliente' cliente.id %}" class="btn btn-warning">
+            <i class="fas fa-edit me-2"></i>Modifica
+        </a>
+        <a href="{% url 'lista_clienti' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Torna alla Lista
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Informazioni Cliente -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Informazioni Cliente
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="form-group">
+                            <label class="form-label">Nome</label>
+                            <div class="form-control-plaintext">{{ cliente.nome }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="form-group">
+                            <label class="form-label">Cognome</label>
+                            <div class="form-control-plaintext">{{ cliente.cognome }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <div class="form-control-plaintext">{{ cliente.email|default:"-" }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="form-group">
+                            <label class="form-label">Telefono</label>
+                            <div class="form-control-plaintext">{{ cliente.telefono|default:"-" }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="form-group">
+                            <label class="form-label">Saldo</label>
+                            <div class="form-control-plaintext {% if cliente.saldo < 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ cliente.saldo|floatformat:2 }} €
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="form-group">
+                            <label class="form-label">Fido Massimo</label>
+                            <div class="form-control-plaintext">{{ cliente.fido_massimo|floatformat:2 }} €</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="form-group">
+                            <label class="form-label">Saldo Disponibile</label>
+                            <div class="form-control-plaintext {% if cliente.saldo_disponibile < 0 %}text-danger{% endif %}">
+                                {{ cliente.saldo_disponibile|floatformat:2 }} €
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="form-group">
+                            <label class="form-label">Data Creazione</label>
+                            <div class="form-control-plaintext">{{ cliente.data_creazione|date:"d/m/Y" }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if cliente.note %}
+                <div class="row">
+                    <div class="col-12">
+                        <div class="form-group">
+                            <label class="form-label">Note</label>
+                            <div class="form-control-plaintext">{{ cliente.note }}</div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stato Credito -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-{% if cliente.fido_superato %}danger{% else %}success{% endif %} text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-credit-card me-2"></i>Stato Credito
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Saldo Attuale</h5>
+                                <h3 class="display-6 {% if cliente.saldo < 0 %}text-danger{% else %}text-success{% endif %}">
+                                    {{ cliente.saldo|floatformat:2 }} €
+                                </h3>
+                                {% if cliente.saldo < 0 %}
+                                <p class="text-danger mb-0">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>Cliente in debito
+                                </p>
+                                {% else %}
+                                <p class="text-success mb-0">
+                                    <i class="fas fa-check-circle me-2"></i>Cliente in credito o in regola
+                                </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Fido Massimo (Max Debito)</h5>
+                                <h3 class="display-6">{{ cliente.fido_massimo|floatformat:2 }} €</h3>
+                                {% if cliente.fido_superato %}
+                                <p class="text-danger mb-0">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>Fido superato di {{ cliente.importo_fido_superato|floatformat:2 }} €
+                                </p>
+                                {% else %}
+                                <p class="text-success mb-0">
+                                    <i class="fas fa-check-circle me-2"></i>Fido rispettato
+                                </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Azioni rapide -->
+                <div class="d-grid gap-2 mt-3">
+                    {% if user.is_superuser or perms.app.change_cliente %}
+                    <a href="{% url 'modifica_cliente' cliente.id %}" class="btn btn-warning">
+                        <i class="fas fa-edit me-2"></i>Modifica Cliente
+                    </a>
+                    {% endif %}
+                    
+                    {% if distinta_aperta %}
+                    <a href="{% url 'nuovo_movimento' %}?cliente={{ cliente.id }}" class="btn btn-primary">
+                        <i class="fas fa-plus-circle me-2"></i>Nuovo Movimento
+                    </a>
+                    {% endif %}
+                    
+                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" 
+                            data-bs-target="#comunicazioni-collapse">
+                        <i class="fas fa-envelope me-2"></i>Visualizza Comunicazioni
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ultimi Movimenti -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-exchange-alt me-2"></i>Ultimi Movimenti
+        </h5>
+        <a href="{% url 'lista_movimenti' %}?cliente={{ cliente.id }}" class="btn btn-sm btn-light">
+            <i class="fas fa-list me-2"></i>Vedi Tutti
+        </a>
+    </div>
+    <div class="card-body p-0">
+        {% if movimenti %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Importo</th>
+                        <th>Data</th>
+                        <th>Saldato</th>
+                        <th>Distinta</th>
+                        <th>Operatore</th>
+                        <th>Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for movimento in movimenti %}
+                    <tr>
+                        <td>{{ movimento.get_tipo_display }}</td>
+                        <td class="{% if movimento.importo < 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ movimento.importo|floatformat:2 }} €
+                        </td>
+                        <td>{{ movimento.data|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            {% if movimento.saldato %}
+                            <span class="badge bg-success">Saldato</span>
+                            {% else %}
+                            <span class="badge bg-warning">Non Saldato</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'dettaglio_distinta' movimento.distinta.id %}">
+                                #{{ movimento.distinta.id }}
+                            </a>
+                        </td>
+                        <td>{{ movimento.creato_da.username }}</td>
+                        <td>
+                            {% if not movimento.saldato and distinta_aperta %}
+                            <a href="{% url 'salda_movimento' movimento.id %}" class="btn btn-sm btn-success">
+                                <i class="fas fa-check"></i>
+                            </a>
+                            {% endif %}
+                            
+                            {% if perms.app.delete_movimento or user.is_superuser %}
+                            <a href="{% url 'elimina_movimento' movimento.id %}" class="btn btn-sm btn-danger">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="card-body text-center py-4">
+            <i class="fas fa-ban text-muted fa-3x mb-3"></i>
+            <p class="mb-0">Nessun movimento registrato per questo cliente</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Comunicazioni -->
+<div class="card collapse" id="comunicazioni-collapse">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-envelope me-2"></i>Comunicazioni
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        {% if comunicazioni %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Contenuto</th>
+                        <th>Data</th>
+                        <th>Operatore</th>
+                        <th>Stato</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for comunicazione in comunicazioni %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-{% if comunicazione.tipo == 'avviso' %}primary{% elif comunicazione.tipo == 'sollecito' %}danger{% else %}info{% endif %}">
+                                {{ comunicazione.get_tipo_display }}
+                            </span>
+                        </td>
+                        <td>{{ comunicazione.contenuto }}</td>
+                        <td>{{ comunicazione.data|date:"d/m/Y H:i" }}</td>
+                        <td>{{ comunicazione.operatore.username }}</td>
+                        <td>
+                            <span class="badge bg-{% if comunicazione.stato == 'letta' %}success{% else %}warning{% endif %}">
+                                {{ comunicazione.get_stato_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="card-body text-center py-4">
+            <i class="fas fa-ban text-muted fa-3x mb-3"></i>
+            <p class="mb-0">Nessuna comunicazione registrata per questo cliente</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
