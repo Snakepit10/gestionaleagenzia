@@ -11,7 +11,7 @@ Un sistema di gestione completo per il monitoraggio dei crediti, distinte di cas
 - Dashboard con statistiche e avvisi
 - Sistema di ruoli (Operatore, Manager, Amministratore)
 
-## Requisiti Tecnici 
+## Requisiti Tecnici
 
 - Python 3.9+
 - Django 4.0+
