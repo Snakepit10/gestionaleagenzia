@@ -496,6 +496,27 @@ class MovimentoConti(models.Model):
             operatore=operatore
         )
 
+    def delete(self, *args, **kwargs):
+        """Override delete to revert account balances"""
+        # Ripristina i saldi precedenti quando si elimina un movimento
+        if self.tipo == 'giroconto':
+            if self.conto_origine and self.saldo_origine_pre is not None:
+                self.conto_origine.saldo = self.saldo_origine_pre
+                self.conto_origine.save()
+            if self.conto_destinazione and self.saldo_destinazione_pre is not None:
+                self.conto_destinazione.saldo = self.saldo_destinazione_pre
+                self.conto_destinazione.save()
+        elif self.tipo == 'modifica':
+            # Per le modifiche dirette, ripristina il saldo precedente
+            if self.conto_origine and self.saldo_origine_pre is not None:
+                self.conto_origine.saldo = self.saldo_origine_pre
+                self.conto_origine.save()
+            elif self.conto_destinazione and self.saldo_destinazione_pre is not None:
+                self.conto_destinazione.saldo = self.saldo_destinazione_pre
+                self.conto_destinazione.save()
+        
+        super().delete(*args, **kwargs)
+
 
 class BilancioPeriodico(models.Model):
     data_riferimento = models.DateTimeField(default=timezone.now)

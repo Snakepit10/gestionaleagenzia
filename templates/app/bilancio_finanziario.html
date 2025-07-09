@@ -326,8 +326,11 @@
                                     <a href="{% url 'modifica_conto' conto.id %}" class="btn btn-sm btn-warning me-2" title="Modifica conto">
                                         <i class="fas fa-edit me-1"></i> Modifica
                                     </a>
-                                    <a href="{% url 'modifica_saldo' conto.id %}" class="btn btn-sm btn-success" title="Modifica saldo">
+                                    <a href="{% url 'modifica_saldo' conto.id %}" class="btn btn-sm btn-success me-2" title="Modifica saldo">
                                         <i class="fas fa-money-bill-wave me-1"></i> Saldo
+                                    </a>
+                                    <a href="{% url 'elimina_conto' conto.id %}" class="btn btn-sm btn-danger" title="Elimina conto">
+                                        <i class="fas fa-trash me-1"></i> Elimina
                                     </a>
                                 </td>
                             </tr>

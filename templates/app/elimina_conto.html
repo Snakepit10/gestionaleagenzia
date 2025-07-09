@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titolo }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>{{ titolo }}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if ha_movimenti %}
+                    <div class="alert alert-danger">
+                        <h5><i class="fas fa-ban me-2"></i>Impossibile eliminare il conto</h5>
+                        <p>Il conto <strong>"{{ conto.nome }}"</strong> non può essere eliminato perché ha <strong>{{ totale_movimenti }} movimenti</strong> associati.</p>
+                        <p class="mb-0">Prima di eliminarlo, è necessario eliminare tutti i movimenti collegati.</p>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-list me-2"></i>Movimenti associati ({{ totale_movimenti }})
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            {% if movimenti_entrata %}
+                                <h6 class="text-success">
+                                    <i class="fas fa-arrow-down me-2"></i>Movimenti in entrata ({{ movimenti_entrata.count }})
+                                </h6>
+                                <div class="table-responsive mb-3">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Data</th>
+                                                <th>Tipo</th>
+                                                <th>Importo</th>
+                                                <th>Da</th>
+                                                <th>Azioni</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for movimento in movimenti_entrata %}
+                                            <tr>
+                                                <td>{{ movimento.data|date:"d/m/Y H:i" }}</td>
+                                                <td>{{ movimento.get_tipo_display }}</td>
+                                                <td>{{ movimento.importo|floatformat:2 }} €</td>
+                                                <td>{{ movimento.conto_origine.nome|default:"-" }}</td>
+                                                <td>
+                                                    <a href="{% url 'elimina_movimento_conti' movimento.id %}" class="btn btn-sm btn-danger">
+                                                        <i class="fas fa-trash me-1"></i>Elimina
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% endif %}
+
+                            {% if movimenti_uscita %}
+                                <h6 class="text-danger">
+                                    <i class="fas fa-arrow-up me-2"></i>Movimenti in uscita ({{ movimenti_uscita.count }})
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Data</th>
+                                                <th>Tipo</th>
+                                                <th>Importo</th>
+                                                <th>A</th>
+                                                <th>Azioni</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for movimento in movimenti_uscita %}
+                                            <tr>
+                                                <td>{{ movimento.data|date:"d/m/Y H:i" }}</td>
+                                                <td>{{ movimento.get_tipo_display }}</td>
+                                                <td>{{ movimento.importo|floatformat:2 }} €</td>
+                                                <td>{{ movimento.conto_destinazione.nome|default:"-" }}</td>
+                                                <td>
+                                                    <a href="{% url 'elimina_movimento_conti' movimento.id %}" class="btn btn-sm btn-danger">
+                                                        <i class="fas fa-trash me-1"></i>Elimina
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'lista_movimenti_conti' %}?conto={{ conto.id }}" class="btn btn-info">
+                            <i class="fas fa-list me-2"></i>Vedi tutti i movimenti
+                        </a>
+                        <a href="{% url 'bilancio_finanziario' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Torna al Bilancio
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <h5><i class="fas fa-exclamation-triangle me-2"></i>Conferma eliminazione</h5>
+                        <p>Sei sicuro di voler eliminare il conto <strong>"{{ conto.nome }}"</strong>?</p>
+                        <p class="mb-0"><strong>Questa operazione non può essere annullata.</strong></p>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">Dettagli del conto da eliminare:</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Nome:</strong> {{ conto.nome }}</li>
+                                <li><strong>Tipo:</strong> {{ conto.get_tipo_display }}</li>
+                                <li><strong>Saldo attuale:</strong> 
+                                    <span class="{% if conto.saldo < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                        {{ conto.saldo|floatformat:2 }} €
+                                    </span>
+                                </li>
+                                <li><strong>Descrizione:</strong> {{ conto.descrizione|default:"Nessuna descrizione" }}</li>
+                                <li><strong>Creato il:</strong> {{ conto.data_creazione|date:"d/m/Y H:i" }}</li>
+                                <li><strong>Ultima modifica:</strong> {{ conto.data_modifica|date:"d/m/Y H:i" }}</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'bilancio_finanziario' %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Annulla
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash me-2"></i>Elimina Conto
+                            </button>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

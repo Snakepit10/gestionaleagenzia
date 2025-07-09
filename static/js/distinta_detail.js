@@ -121,6 +121,33 @@
         addBadgeDataAttributes();
     }
     
+    /**
+     * Applica gli stili corretti ai bottoni importo
+     */
+    function applyImportoButtonStyles() {
+        $('.importo-btn').each(function() {
+            const $btn = $(this);
+            
+            if ($btn.hasClass('active')) {
+                // Stili per bottone attivo
+                $btn.css({
+                    'background-color': COLORS.success,
+                    'color': 'white',
+                    'border-color': COLORS.success,
+                    'box-shadow': '0 0 0 0.2rem rgba(25, 135, 84, 0.25)'
+                });
+            } else {
+                // Stili per bottone inattivo
+                $btn.css({
+                    'background-color': '',
+                    'color': '',
+                    'border-color': '',
+                    'box-shadow': ''
+                });
+            }
+        });
+    }
+    
     // =========================================================
     // SEZIONE 3: GESTIONE MOVIMENTI CLIENTE
     // =========================================================

@@ -40,6 +40,112 @@
     </div>
 </div>
 
+<!-- Informazioni Distinta (spostato in alto) -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>Informazioni Distinta
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-2">
+                <label class="form-label">Data</label>
+                <div class="form-control-plaintext">{{ distinta.data|date:"d/m/Y" }}</div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Operatore</label>
+                <div class="form-control-plaintext">{{ distinta.operatore.get_full_name|default:distinta.operatore.username }}</div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Ora Inizio</label>
+                <div class="form-control-plaintext">{{ distinta.ora_inizio|time:"H:i" }}</div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Ora Fine</label>
+                <div class="form-control-plaintext">
+                    {% if distinta.ora_fine %}
+                    {{ distinta.ora_fine|time:"H:i" }}
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Cassa Iniziale</label>
+                <div class="form-control-plaintext">{{ distinta.cassa_iniziale|floatformat:2 }} €</div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Cassa Finale</label>
+                <div class="form-control-plaintext">
+                    {% if distinta.cassa_finale %}
+                    {{ distinta.cassa_finale|floatformat:2 }} €
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        {% if distinta.stato != 'aperta' %}
+        <div class="row g-3 mt-2">
+            <div class="col-md-2">
+                <label class="form-label">Totale Entrate</label>
+                <div class="form-control-plaintext">{{ distinta.totale_entrate|floatformat:2 }} €</div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Totale Uscite</label>
+                <div class="form-control-plaintext">{{ distinta.totale_uscite|floatformat:2 }} €</div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Totale Bevande</label>
+                <div class="form-control-plaintext">{{ distinta.totale_bevande|floatformat:2 }} €</div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Saldo Terminale</label>
+                <div class="form-control-plaintext">
+                    {% if distinta.saldo_terminale %}
+                    {{ distinta.saldo_terminale|floatformat:2 }} €
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Differenza Cassa</label>
+                <div class="form-control-plaintext {% if distinta.differenza_cassa != 0 %}text-danger{% endif %}">
+                    {% if distinta.differenza_cassa %}
+                    {{ distinta.differenza_cassa|floatformat:2 }} €
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if distinta.stato == 'verificata' %}
+            <div class="col-md-2">
+                <label class="form-label">Verificata Da</label>
+                <div class="form-control-plaintext">{{ distinta.verificata_da.get_full_name|default:distinta.verificata_da.username }}</div>
+            </div>
+        </div>
+        <div class="row g-3 mt-2">
+            <div class="col-md-3">
+                <label class="form-label">Data Verifica</label>
+                <div class="form-control-plaintext">{{ distinta.data_verifica|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% if distinta.note_verifica %}
+            <div class="col-md-9">
+                <label class="form-label">Note Verifica</label>
+                <div class="form-control-plaintext">{{ distinta.note_verifica }}</div>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="col-md-2"></div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
 {% if distinta.stato == 'aperta' and distinta.operatore == user or user.is_superuser %}
 <!-- Sezione aggiungi movimenti (sempre visibile in alto) -->
 <div class="card mb-4" id="aggiungi-movimento">
@@ -221,156 +327,6 @@
 {% endif %}
 
 <div class="row mb-4">
-    <!-- Informazioni Distinta -->
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-info-circle me-2"></i>Informazioni Distinta
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <div class="form-group">
-                            <label class="form-label">Data</label>
-                            <div class="form-control-plaintext">{{ distinta.data|date:"d/m/Y" }}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="form-group">
-                            <label class="form-label">Operatore</label>
-                            <div class="form-control-plaintext">{{ distinta.operatore.get_full_name|default:distinta.operatore.username }}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <div class="form-group">
-                            <label class="form-label">Ora Inizio</label>
-                            <div class="form-control-plaintext">{{ distinta.ora_inizio|time:"H:i" }}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="form-group">
-                            <label class="form-label">Ora Fine</label>
-                            <div class="form-control-plaintext">
-                                {% if distinta.ora_fine %}
-                                {{ distinta.ora_fine|time:"H:i" }}
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <div class="form-group">
-                            <label class="form-label">Cassa Iniziale</label>
-                            <div class="form-control-plaintext">{{ distinta.cassa_iniziale|floatformat:2 }} €</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="form-group">
-                            <label class="form-label">Cassa Finale</label>
-                            <div class="form-control-plaintext">
-                                {% if distinta.cassa_finale %}
-                                {{ distinta.cassa_finale|floatformat:2 }} €
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {% if distinta.stato != 'aperta' %}
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <div class="form-group">
-                            <label class="form-label">Totale Entrate</label>
-                            <div class="form-control-plaintext">{{ distinta.totale_entrate|floatformat:2 }} €</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="form-group">
-                            <label class="form-label">Totale Uscite</label>
-                            <div class="form-control-plaintext">{{ distinta.totale_uscite|floatformat:2 }} €</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <div class="form-group">
-                            <label class="form-label">Totale Bevande</label>
-                            <div class="form-control-plaintext">{{ distinta.totale_bevande|floatformat:2 }} €</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="form-group">
-                            <label class="form-label">Saldo Terminale</label>
-                            <div class="form-control-plaintext">
-                                {% if distinta.saldo_terminale %}
-                                {{ distinta.saldo_terminale|floatformat:2 }} €
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-12 mb-3">
-                        <div class="form-group">
-                            <label class="form-label">Differenza Cassa</label>
-                            <div class="form-control-plaintext {% if distinta.differenza_cassa != 0 %}text-danger{% endif %}">
-                                {% if distinta.differenza_cassa %}
-                                {{ distinta.differenza_cassa|floatformat:2 }} €
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-
-                {% if distinta.stato == 'verificata' %}
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <div class="form-group">
-                            <label class="form-label">Verificata Da</label>
-                            <div class="form-control-plaintext">{{ distinta.verificata_da.get_full_name|default:distinta.verificata_da.username }}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="form-group">
-                            <label class="form-label">Data Verifica</label>
-                            <div class="form-control-plaintext">{{ distinta.data_verifica|date:"d/m/Y H:i" }}</div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-
-                {% if distinta.note_verifica %}
-                <div class="row">
-                    <div class="col-12">
-                        <div class="form-group">
-                            <label class="form-label">Note</label>
-                            <div class="form-control-plaintext">{{ distinta.note_verifica }}</div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
     <!-- Riepiloghi e Azioni -->
     <div class="col-md-6">
         <div class="card mb-4">
@@ -408,8 +364,10 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Conteggio parziale della cassa -->
+    <!-- Conteggio parziale della cassa -->
+    <div class="col-md-6">
         <div class="card">
             <div class="card-header bg-info text-white">
                 <h5 class="mb-0">

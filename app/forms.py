@@ -100,7 +100,7 @@ class ChiusuraDistintaForm(forms.ModelForm):
             'cassa_finale': forms.NumberInput(attrs={'min': '0', 'step': '0.01'}),
             'totale_bevande': forms.NumberInput(attrs={'min': '0', 'step': '0.01'}),
             'saldo_terminale': forms.NumberInput(attrs={'min': '0', 'step': '0.01'}),
-            'differenza_cassa': forms.HiddenInput(),
+            'differenza_cassa': forms.NumberInput(attrs={'readonly': 'readonly', 'step': '0.01'}),
         }
 
 

@@ -944,16 +944,40 @@ def chiudi_distinta(request, pk):
             messages.success(request, f'Distinta N° {distinta.pk} chiusa con successo!')
             return redirect('lista_distinte')
     else:
+        # Recupera i movimenti della distinta per i totali
+        movimenti = distinta.movimenti.all()
+        totale_entrate = sum(m.importo for m in movimenti if m.importo > 0)
+        totale_uscite = sum(abs(m.importo) for m in movimenti if m.importo < 0)
+
+        # Assicuriamoci che totale_entrate e totale_uscite non siano None
+        totale_entrate = totale_entrate or 0
+        totale_uscite = totale_uscite or 0
+
+        # Calcola la differenza di cassa per la visualizzazione iniziale
+        if distinta.cassa_finale is not None:
+            saldo_totale = (
+                distinta.cassa_finale - totale_entrate + totale_uscite - (distinta.totale_bevande or 0)
+            )
+            differenza_cassa_calcolata = saldo_totale
+            if distinta.saldo_terminale:
+                differenza_cassa_calcolata -= distinta.saldo_terminale
+        else:
+            differenza_cassa_calcolata = 0
+
+        # Imposta il valore calcolato nella distinta per la visualizzazione
+        distinta.differenza_cassa = differenza_cassa_calcolata
+        
         form = ChiusuraDistintaForm(instance=distinta)
 
-    # Recupera i movimenti della distinta per i totali
-    movimenti = distinta.movimenti.all()
-    totale_entrate = sum(m.importo for m in movimenti if m.importo > 0)
-    totale_uscite = sum(abs(m.importo) for m in movimenti if m.importo < 0)
+    # Recupera i movimenti della distinta per i totali (se non già fatto)
+    if request.method == 'POST':
+        movimenti = distinta.movimenti.all()
+        totale_entrate = sum(m.importo for m in movimenti if m.importo > 0)
+        totale_uscite = sum(abs(m.importo) for m in movimenti if m.importo < 0)
 
-    # Assicuriamoci che totale_entrate e totale_uscite non siano None
-    totale_entrate = totale_entrate or 0
-    totale_uscite = totale_uscite or 0
+        # Assicuriamoci che totale_entrate e totale_uscite non siano None
+        totale_entrate = totale_entrate or 0
+        totale_uscite = totale_uscite or 0
 
     context = {
         'form': form,
@@ -1056,8 +1080,8 @@ def bilancio_finanziario(request):
 
     # Aggiorna il saldo del conto clienti se esiste
     try:
-        conto_clienti = ContoFinanziario.objects.get(tipo='clienti')
-        if conto_clienti.saldo != saldo_clienti_movimenti:
+        conto_clienti = ContoFinanziario.objects.filter(tipo='clienti').first()
+        if conto_clienti and conto_clienti.saldo != saldo_clienti_movimenti:
             conto_clienti.saldo = saldo_clienti_movimenti
             conto_clienti.modificato_da = request.user
             conto_clienti.save()
@@ -1212,6 +1236,39 @@ def modifica_saldo(request, pk):
     }
 
     return render(request, 'app/form_modifica_saldo.html', context)
+
+@login_required
+@user_passes_test(is_manager_or_admin)
+def elimina_conto(request, pk):
+    """Elimina un conto finanziario"""
+    conto = get_object_or_404(ContoFinanziario, pk=pk)
+    
+    if request.method == 'POST':
+        # Verifica se il conto ha dei movimenti associati
+        if conto.movimenti_entrata.exists() or conto.movimenti_uscita.exists():
+            messages.error(request, f'Impossibile eliminare "{conto.nome}": il conto ha movimenti associati.')
+            return redirect('bilancio_finanziario')
+        
+        nome_conto = conto.nome
+        conto.delete()
+        messages.success(request, f'Conto "{nome_conto}" eliminato con successo!')
+        return redirect('bilancio_finanziario')
+    
+    # Conta i movimenti associati
+    movimenti_entrata = conto.movimenti_entrata.all()
+    movimenti_uscita = conto.movimenti_uscita.all()
+    totale_movimenti = movimenti_entrata.count() + movimenti_uscita.count()
+    
+    context = {
+        'conto': conto,
+        'titolo': f'Elimina Conto: {conto.nome}',
+        'ha_movimenti': totale_movimenti > 0,
+        'movimenti_entrata': movimenti_entrata,
+        'movimenti_uscita': movimenti_uscita,
+        'totale_movimenti': totale_movimenti
+    }
+    
+    return render(request, 'app/elimina_conto.html', context)
 
 @login_required
 @user_passes_test(is_manager_or_admin)
@@ -1486,3 +1543,22 @@ def lista_movimenti_conti(request):
     }
 
     return render(request, 'app/lista_movimenti_conti.html', context)
+
+@login_required
+@user_passes_test(is_manager_or_admin)
+def elimina_movimento_conti(request, pk):
+    """Elimina un movimento tra conti"""
+    movimento = get_object_or_404(MovimentoConti, pk=pk)
+    
+    if request.method == 'POST':
+        # Il metodo delete del modello si occuperà di ripristinare i saldi
+        movimento.delete()
+        messages.success(request, f'Movimento eliminato con successo!')
+        return redirect('lista_movimenti_conti')
+    
+    context = {
+        'movimento': movimento,
+        'titolo': f'Elimina Movimento: {movimento}'
+    }
+    
+    return render(request, 'app/elimina_movimento_conti.html', context)

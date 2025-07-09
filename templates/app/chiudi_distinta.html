@@ -83,18 +83,7 @@
             
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <div class="form-group">
-                        <label class="form-label">Cassa Iniziale</label>
-                        <div class="form-control-plaintext">{{ distinta.cassa_iniziale|floatformat:2 }} €</div>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-3">
                     {{ form.cassa_finale|as_crispy_field }}
-                    <div class="mt-2 d-flex justify-content-between">
-                        <button type="button" class="btn btn-sm btn-info" id="calcolatrice-rapida-btn">
-                            <i class="fas fa-calculator me-1"></i>Calcolatrice Rapida
-                        </button>
-                    </div>
                 </div>
             </div>
             
@@ -109,13 +98,7 @@
             
             <div class="row">
                 <div class="col-md-12 mb-3">
-                    <div class="form-group">
-                        <label class="form-label">Differenza Cassa Calcolata <i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Formula: Cassa Finale - Entrate + Uscite - Bevande - Saldo Terminale"></i></label>
-                        <div class="alert alert-secondary mb-0" id="differenza-box">
-                            <span id="differenza-formula"></span>
-                            <h4 class="mt-2 mb-0" id="differenza-cassa">0,00 €</h4>
-                        </div>
-                    </div>
+                    {{ form.differenza_cassa|as_crispy_field }}
                 </div>
             </div>
             
@@ -132,268 +115,47 @@
         </form>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
-    $(document).ready(function() {
-        // Inizializza i tooltip
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        });
+function calcolaDifferenzaCassa() {
+    const totaleEntrate = parseFloat("{{ totale_entrate|default:0 }}") || 0;
+    const totaleUscite = parseFloat("{{ totale_uscite|default:0 }}") || 0;
+    
+    const cassaFinale = parseFloat(document.getElementById('id_cassa_finale').value) || 0;
+    const totaleBevande = parseFloat(document.getElementById('id_totale_bevande').value) || 0;
+    const saldoTerminale = parseFloat(document.getElementById('id_saldo_terminale').value) || 0;
+    
+    console.log('DEBUG - Valori utilizzati:');
+    console.log('- totaleEntrate:', totaleEntrate);
+    console.log('- totaleUscite:', totaleUscite);
+    console.log('- cassaFinale:', cassaFinale);
+    console.log('- totaleBevande:', totaleBevande);
+    console.log('- saldoTerminale:', saldoTerminale);
+    
+    // Formula: Cassa Finale - Entrate + Uscite - Bevande - Saldo Terminale
+    const saldoTotale = cassaFinale - totaleEntrate + totaleUscite - totaleBevande;
+    const differenza = saldoTotale - saldoTerminale;
+    
+    console.log('- saldoTotale:', saldoTotale);
+    console.log('- differenza:', differenza);
+    
+    document.getElementById('id_differenza_cassa').value = differenza.toFixed(2);
+}
 
-        // Calcola la differenza di cassa quando cambiano i valori
-        function calcolaDifferenza() {
-            try {
-                // Valori fissi
-                var cassaIniziale = {{ distinta.cassa_iniziale }};
-                var totaleEntrate = {{ totale_entrate }};
-                var totaleUscite = {{ totale_uscite }};
-
-                // Leggi valori dai campi
-                var cassaFinaleInput = $('#id_cassa_finale');
-                var bevInput = $('#id_totale_bevande');
-                var termInput = $('#id_saldo_terminale');
-
-                // Valori dai campi (con failsafe)
-                var cassaFinale = 0;
-                if (cassaFinaleInput.length && cassaFinaleInput.val() !== '') {
-                    cassaFinale = parseFloat(cassaFinaleInput.val());
-                }
-
-                var totaleBevande = 0;
-                if (bevInput.length && bevInput.val() !== '') {
-                    totaleBevande = parseFloat(bevInput.val());
-                }
-
-                var saldoTerminale = 0;
-                if (termInput.length && termInput.val() !== '') {
-                    saldoTerminale = parseFloat(termInput.val());
-                }
-
-                // Formatta numeri per visualizzazione
-                function formatNumber(num) {
-                    return num.toFixed(2).replace('.', ',') + ' €';
-                }
-
-                // Calcola il saldo totale (secondo la formula: cassa finale - riepilogo entrate + riepilogo uscite - bevande)
-                var saldoTotale = cassaFinale - totaleEntrate + totaleUscite - totaleBevande;
-
-                // Calcola la differenza di cassa (saldo totale - saldo terminale)
-                var differenza = saldoTotale;
-
-                // Sottrai il saldo terminale se presente
-                if (saldoTerminale > 0) {
-                    differenza -= saldoTerminale;
-                }
-
-                // Arrotonda a due decimali per evitare problemi di calcolo
-                differenza = Math.round(differenza * 100) / 100;
-
-                // Costruisci la formula visibile
-                var formula = '<strong>Calcolo:</strong><br>' +
-                              'Cassa Finale (' + formatNumber(cassaFinale) + ') - ' +
-                              'Entrate (' + formatNumber(totaleEntrate) + ') + ' +
-                              'Uscite (' + formatNumber(totaleUscite) + ') - ' +
-                              'Bevande (' + formatNumber(totaleBevande) + ') = ' +
-                              'Saldo Totale (' + formatNumber(saldoTotale) + ')';
-
-                if (saldoTerminale > 0) {
-                    formula += ' - Saldo Terminale (' + formatNumber(saldoTerminale) + ')';
-                }
-
-                formula += ' = <strong>' + formatNumber(differenza) + '</strong>';
-
-                // Aggiorna i campi
-                $('#differenza-formula').html(formula);
-                $('#differenza-cassa').text(formatNumber(differenza));
-
-                // Aggiorna il campo hidden del form
-                var hiddenField = $('#id_differenza_cassa');
-                if (hiddenField.length) {
-                    hiddenField.val(differenza.toFixed(2));
-                }
-
-                // Applica stile in base alla differenza
-                if (Math.abs(differenza) < 0.01) {
-                    // Zero o quasi
-                    $('#differenza-cassa').removeClass('text-danger text-warning').addClass('text-success');
-                    $('#differenza-box').removeClass('alert-danger alert-warning alert-secondary').addClass('alert-success');
-                } else if (Math.abs(differenza) <= 5) {
-                    // Differenza piccola
-                    $('#differenza-cassa').removeClass('text-success text-danger').addClass('text-warning');
-                    $('#differenza-box').removeClass('alert-danger alert-success alert-secondary').addClass('alert-warning');
-                } else {
-                    // Differenza grande
-                    $('#differenza-cassa').removeClass('text-success text-warning').addClass('text-danger');
-                    $('#differenza-box').removeClass('alert-warning alert-success alert-secondary').addClass('alert-danger');
-                }
-            } catch (error) {
-                console.error("Errore nel calcolo della differenza:", error);
-
-                // In caso di errore, mantieni un valore di base
-                $('#differenza-formula').html('<span class="text-danger">Errore nel calcolo. Verifica i valori inseriti.</span>');
-                $('#differenza-cassa').text('0,00 €');
-                $('#differenza-box').removeClass('alert-success alert-warning').addClass('alert-danger');
-
-                // Comunque aggiorna il campo hidden
-                var hiddenField = $('#id_differenza_cassa');
-                if (hiddenField.length) {
-                    hiddenField.val("0.00");
-                }
-            }
-        }
-
-        // Attacca la funzione ai campi rilevanti con più eventi
-        $('#id_cassa_finale, #id_totale_bevande, #id_saldo_terminale').on('input change keyup blur', calcolaDifferenza);
-
-        // Ricalcola periodicamente per sicurezza
-        setInterval(calcolaDifferenza, 1000);
-
-        // Calcola subito all'avvio
-        setTimeout(calcolaDifferenza, 100);
-        calcolaDifferenza();
-
-        // Aggiunge funzionalità al pulsante "Calcolatrice Rapida"
-        $('#calcolatrice-rapida-btn').on('click', function() {
-            // Crea il modal della calcolatrice
-            const modalHTML = `
-                <div class="modal fade" id="calcolatriceRapidaModal" tabindex="-1" aria-labelledby="calcolatriceRapidaModalLabel" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header bg-info text-white">
-                                <h5 class="modal-title" id="calcolatriceRapidaModalLabel">
-                                    <i class="fas fa-calculator me-2"></i>Calcolo Rapido Cassa
-                                </h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    <strong>Formula:</strong> Cassa = Saldo Terminale + Entrate - Uscite + Bevande
-                                </div>
-
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Saldo Terminale (€)</label>
-                                        <input type="number" id="calc_saldo_terminale" class="form-control" value="0" step="0.01" min="0">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Bevande (€)</label>
-                                        <input type="number" id="calc_bevande" class="form-control" value="0" step="0.01" min="0">
-                                    </div>
-                                </div>
-
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Entrate</label>
-                                        <div class="form-control-plaintext">${formatNumber({{ totale_entrate }})} €</div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Uscite</label>
-                                        <div class="form-control-plaintext">${formatNumber({{ totale_uscite }})} €</div>
-                                    </div>
-                                </div>
-
-                                <div class="card bg-light mt-3">
-                                    <div class="card-body text-center">
-                                        <h5 class="text-primary">Risultato conteggio</h5>
-                                        <h3 class="mb-0 text-primary" id="calc_risultato">0,00 €</h3>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
-                                <button type="button" class="btn btn-primary" id="applica_calcolo">
-                                    <i class="fas fa-check me-2"></i>Usa Questo Valore
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // Aggiungi il modal al body se non esiste già
-            if (!$('#calcolatriceRapidaModal').length) {
-                $('body').append(modalHTML);
-            }
-
-            // Funzione per calcolare il risultato
-            function calcolaRisultato() {
-                const saldoTerminale = parseFloat($('#calc_saldo_terminale').val()) || 0;
-                const bevande = parseFloat($('#calc_bevande').val()) || 0;
-                const totaleEntrate = {{ totale_entrate }};
-                const totaleUscite = {{ totale_uscite }};
-
-                // Calcola secondo la formula: Cassa = Saldo Terminale + Entrate - Uscite + Bevande
-                const risultato = saldoTerminale + totaleEntrate - totaleUscite + bevande;
-
-                // Aggiorna il risultato
-                $('#calc_risultato').text(formatNumber(risultato) + ' €');
-
-                return risultato;
-            }
-
-            // Inizializza il modal quando viene mostrato
-            $('#calcolatriceRapidaModal').on('shown.bs.modal', function() {
-                // Imposta i valori iniziali dai campi del form principale
-                $('#calc_saldo_terminale').val($('#id_saldo_terminale').val() || 0);
-                $('#calc_bevande').val($('#id_totale_bevande').val() || 0);
-
-                // Calcola il risultato iniziale
-                calcolaRisultato();
-
-                // Aggiungi event listener per i campi
-                $('#calc_saldo_terminale, #calc_bevande').on('input', calcolaRisultato);
-
-                // Aggiungi event listener per il pulsante "Usa Questo Valore"
-                $('#applica_calcolo').off('click').on('click', function() {
-                    const valoreCassa = calcolaRisultato();
-
-                    // Imposta il valore nel campo cassa finale
-                    $('#id_cassa_finale').val(valoreCassa.toFixed(2));
-
-                    // Imposta anche i valori degli altri campi
-                    $('#id_saldo_terminale').val($('#calc_saldo_terminale').val());
-                    $('#id_totale_bevande').val($('#calc_bevande').val());
-
-                    // Chiudi il modal
-                    $('#calcolatriceRapidaModal').modal('hide');
-
-                    // Ricalcola la differenza di cassa
-                    calcolaDifferenza();
-                });
-            });
-
-            // Mostra il modal
-            const modal = new bootstrap.Modal(document.getElementById('calcolatriceRapidaModal'));
-            modal.show();
-        });
-
-        // Controlla se c'è un valore di cassa salvato in sessionStorage
-        if (sessionStorage.getItem('valoreCassaCalcolato')) {
-            const valoreSalvato = sessionStorage.getItem('valoreCassaCalcolato');
-
-            // Imposta il valore nel campo cassa finale
-            $('#id_cassa_finale').val(valoreSalvato);
-
-            // Mostra un messaggio per indicare che il valore è stato impostato dal calcolo precedente
-            const alertHtml = `
-                <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
-                    <i class="fas fa-check-circle me-2"></i>
-                    Valore cassa finale impostato automaticamente dal conteggio precedente (${valoreSalvato} €)
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            `;
-            $('#chiusura-form').before(alertHtml);
-
-            // Rimuovi il valore dalla sessionStorage per evitare che venga usato in futuro
-            sessionStorage.removeItem('valoreCassaCalcolato');
-
-            // Innesca il calcolo della differenza con il nuovo valore
-            calcolaDifferenza();
+// Calcola quando la pagina si carica
+document.addEventListener('DOMContentLoaded', function() {
+    calcolaDifferenzaCassa();
+    
+    // Aggiungi event listener ai campi che influenzano il calcolo
+    const campi = ['id_cassa_finale', 'id_totale_bevande', 'id_saldo_terminale'];
+    campi.forEach(function(id) {
+        const campo = document.getElementById(id);
+        if (campo) {
+            campo.addEventListener('input', calcolaDifferenzaCassa);
+            campo.addEventListener('change', calcolaDifferenzaCassa);
         }
     });
+});
 </script>
 {% endblock %}
+
