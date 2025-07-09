@@ -146,6 +146,9 @@ class DistintaCassa(models.Model):
         self.verificata_da = utente
         self.data_verifica = timezone.now()
         self.save()
+        
+        # Aggiorna automaticamente il saldo della cassa dopo la verifica
+        ContoFinanziario.aggiorna_saldo_cassa_da_distinte()
     
     @property
     def get_movimenti(self):
@@ -367,6 +370,52 @@ class ContoFinanziario(models.Model):
         """Calcola il saldo totale per un tipo specifico di conto"""
         from django.db.models import Sum
         return cls.objects.filter(tipo=tipo).aggregate(total=Sum('saldo'))['total'] or 0
+
+    @classmethod
+    def aggiorna_saldo_cassa_da_distinte(cls):
+        """Aggiorna il saldo della cassa principale basandosi sui movimenti delle distinte verificate"""
+        try:
+            conto_cassa = cls.objects.get(tipo='cassa', nome='Cassa Principale')
+            
+            # Calcola il saldo della cassa dalle distinte verificate
+            from django.db.models import Sum
+            
+            # Somma tutte le entrate dalle distinte verificate
+            totale_entrate = DistintaCassa.objects.filter(stato='verificata').aggregate(
+                total=Sum('totale_entrate')
+            )['total'] or 0
+            
+            # Sottrai tutte le uscite dalle distinte verificate
+            totale_uscite = DistintaCassa.objects.filter(stato='verificata').aggregate(
+                total=Sum('totale_uscite')
+            )['total'] or 0
+            
+            # Sottrai le bevande dalle distinte verificate
+            totale_bevande = DistintaCassa.objects.filter(stato='verificata').aggregate(
+                total=Sum('totale_bevande')
+            )['total'] or 0
+            
+            # Somma le casse iniziali e finali
+            casse_iniziali = DistintaCassa.objects.filter(stato='verificata').aggregate(
+                total=Sum('cassa_iniziale')
+            )['total'] or 0
+            
+            casse_finali = DistintaCassa.objects.filter(stato='verificata').aggregate(
+                total=Sum('cassa_finale')
+            )['total'] or 0
+            
+            # Calcola il saldo aggiornato
+            # Formula: entrate - uscite - bevande + (cassa finale - cassa iniziale)
+            nuovo_saldo = totale_entrate - totale_uscite - totale_bevande + (casse_finali - casse_iniziali)
+            
+            # Aggiorna il saldo del conto cassa
+            conto_cassa.saldo = nuovo_saldo
+            conto_cassa.save()
+            
+            return nuovo_saldo
+            
+        except cls.DoesNotExist:
+            return 0
 
     @classmethod
     def crea_conti_default(cls, user):

@@ -47,12 +47,46 @@ def dashboard(request):
     # Recupera i clienti con fido superato (saldo negativo che supera il fido massimo in valore assoluto)
     clienti_fido_superato = Cliente.objects.filter(saldo__lt=0).filter(saldo__lt=-F('fido_massimo'))
 
+    # Recupera i clienti con saldo negativo in ritardo da più di 3 giorni
+    from datetime import timedelta
+    data_limite = timezone.now() - timedelta(days=3)
+    
+    clienti_in_ritardo = []
+    for cliente in Cliente.objects.filter(saldo__lt=0):
+        # Trova l'ultimo movimento non saldato del cliente
+        ultimo_movimento = cliente.movimenti.filter(saldato=False).order_by('-data').first()
+        if ultimo_movimento:
+            giorni_ritardo = (timezone.now() - ultimo_movimento.data).days
+            if giorni_ritardo > 3:
+                clienti_in_ritardo.append({
+                    'cliente': cliente,
+                    'ultimo_movimento': ultimo_movimento,
+                    'giorni_ritardo': giorni_ritardo
+                })
+
     # Recupera le distinte in attesa di verifica
     distinte_da_verificare = DistintaCassa.objects.filter(stato='chiusa')
 
     # Recupera statistiche generali
     totale_clienti = Cliente.objects.count()
     saldo_complessivo = Cliente.calcola_saldo_complessivo()
+    
+    # Aggiorna automaticamente il saldo della cassa dalle distinte e recupera il valore
+    try:
+        # Prima aggiorna il saldo della cassa basandosi sulle distinte verificate
+        ContoFinanziario.aggiorna_saldo_cassa_da_distinte()
+        
+        # Poi recupera il saldo aggiornato
+        conto_cassa = ContoFinanziario.objects.get(tipo='cassa', nome='Cassa Principale')
+        saldo_cassa_agenzia = conto_cassa.saldo
+    except ContoFinanziario.DoesNotExist:
+        # Se il conto non esiste, crealo automaticamente
+        ContoFinanziario.crea_conti_default(request.user)
+        try:
+            conto_cassa = ContoFinanziario.objects.get(tipo='cassa', nome='Cassa Principale')
+            saldo_cassa_agenzia = conto_cassa.saldo
+        except ContoFinanziario.DoesNotExist:
+            saldo_cassa_agenzia = 0
 
     # Recupera l'ultima distinta aperta dall'operatore corrente
     try:
@@ -63,16 +97,14 @@ def dashboard(request):
     except DistintaCassa.DoesNotExist:
         distinta_corrente = None
 
-    # Form per la registrazione rapida di un movimento
-    form_movimento = MovimentoForm(distinta=distinta_corrente) if distinta_corrente else None
-
     context = {
         'clienti_fido_superato': clienti_fido_superato,
+        'clienti_in_ritardo': clienti_in_ritardo,
         'distinte_da_verificare': distinte_da_verificare,
         'totale_clienti': totale_clienti,
         'saldo_complessivo': saldo_complessivo,
+        'saldo_cassa_agenzia': saldo_cassa_agenzia,
         'distinta_corrente': distinta_corrente,
-        'form_movimento': form_movimento,
     }
 
     return render(request, 'app/dashboard.html', context)

@@ -36,7 +36,7 @@
                             <i class="fas fa-home me-1"></i>Home
                         </a>
                     </li>
-                    {% if user.is_superuser %}
+                    {% if user.is_superuser or 'Manager' in user.groups.all|join:"|" or 'Amministratore' in user.groups.all|join:"|" %}
                     <li class="nav-item">
                         <a class="nav-link {% if '/dashboard/' in request.path %}active{% endif %}" href="{% url 'dashboard' %}">
                             <i class="fas fa-tachometer-alt me-1"></i>Dashboard
@@ -58,7 +58,7 @@
                             <i class="fas fa-cash-register me-1"></i>Distinte
                         </a>
                     </li>
-                    {% if user.is_superuser %}
+                    {% if user.is_superuser or 'Amministratore' in user.groups.all|join:"|" %}
                     <li class="nav-item">
                         <a class="nav-link {% if '/bilancio/' in request.path %}active{% endif %}" href="{% url 'bilancio_finanziario' %}">
                             <i class="fas fa-balance-scale me-1"></i>Bilancio
