@@ -77,13 +77,13 @@ def dashboard(request):
         ContoFinanziario.aggiorna_saldo_cassa_da_distinte()
         
         # Poi recupera il saldo aggiornato
-        conto_cassa = ContoFinanziario.objects.get(tipo='cassa', nome='Cassa Principale')
+        conto_cassa = ContoFinanziario.objects.get(tipo='cassa', nome='Cassa Agenzia')
         saldo_cassa_agenzia = conto_cassa.saldo
     except ContoFinanziario.DoesNotExist:
         # Se il conto non esiste, crealo automaticamente
         ContoFinanziario.crea_conti_default(request.user)
         try:
-            conto_cassa = ContoFinanziario.objects.get(tipo='cassa', nome='Cassa Principale')
+            conto_cassa = ContoFinanziario.objects.get(tipo='cassa', nome='Cassa Agenzia')
             saldo_cassa_agenzia = conto_cassa.saldo
         except ContoFinanziario.DoesNotExist:
             saldo_cassa_agenzia = 0
@@ -1110,14 +1110,15 @@ def bilancio_finanziario(request):
     # Calcola il saldo attuale dei clienti
     saldo_clienti_movimenti = Cliente.calcola_saldo_complessivo()
 
-    # Aggiorna il saldo del conto clienti se esiste
+    # Aggiorna il saldo del conto clienti se esiste (invertendo il segno per il bilancio)
     try:
         conto_clienti = ContoFinanziario.objects.filter(tipo='clienti').first()
-        if conto_clienti and conto_clienti.saldo != saldo_clienti_movimenti:
-            conto_clienti.saldo = saldo_clienti_movimenti
+        saldo_clienti_bilancio = -saldo_clienti_movimenti  # Inverto il segno per il bilancio
+        if conto_clienti and conto_clienti.saldo != saldo_clienti_bilancio:
+            conto_clienti.saldo = saldo_clienti_bilancio
             conto_clienti.modificato_da = request.user
             conto_clienti.save()
-            messages.info(request, f'Saldo clienti aggiornato automaticamente: {saldo_clienti_movimenti} €')
+            messages.info(request, f'Saldo clienti aggiornato automaticamente: {saldo_clienti_bilancio} €')
     except ContoFinanziario.DoesNotExist:
         pass
 
@@ -1142,7 +1143,7 @@ def bilancio_finanziario(request):
 
     # Calcola nuovamente la differenza (che dovrebbe essere zero dopo l'aggiornamento)
     saldo_clienti_conti = saldi_per_tipo.get('clienti', 0)
-    differenza_saldi = saldo_clienti_conti - saldo_clienti_movimenti
+    differenza_saldi = saldo_clienti_conti - (-saldo_clienti_movimenti)  # Confronto con il saldo invertito
 
     # Form per creare un nuovo bilancio
     if request.method == 'POST':

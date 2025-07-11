@@ -36,11 +36,11 @@
                      style="width: 45px; height: 45px; background-color: rgba(76, 175, 80, 0.2);">
                     <i class="fas fa-wallet fa-lg" style="color: #4caf50;"></i>
                 </div>
-                <h6 class="card-title fw-bold mb-1">Saldo Totale</h6>
+                <h6 class="card-title fw-bold mb-1">Saldo Clienti</h6>
                 <div class="card-value h6 mb-1 {% if saldo_complessivo < 0 %}text-danger{% else %}text-success{% endif %}">
                     {{ saldo_complessivo|floatformat:2 }} €
                 </div>
-                <div class="text-muted small">Bilancio</div>
+                <div class="text-muted small">Crediti/Debiti</div>
             </div>
         </div>
     </div>

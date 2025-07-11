@@ -373,46 +373,25 @@ class ContoFinanziario(models.Model):
 
     @classmethod
     def aggiorna_saldo_cassa_da_distinte(cls):
-        """Aggiorna il saldo della cassa principale basandosi sui movimenti delle distinte verificate"""
+        """Aggiorna il saldo della cassa agenzia con il valore della cassa finale dell'ultima distinta chiusa"""
         try:
-            conto_cassa = cls.objects.get(tipo='cassa', nome='Cassa Principale')
+            conto_cassa = cls.objects.get(tipo='cassa', nome='Cassa Agenzia')
             
-            # Calcola il saldo della cassa dalle distinte verificate
-            from django.db.models import Sum
+            # Trova l'ultima distinta chiusa
+            ultima_distinta = DistintaCassa.objects.filter(stato='chiusa').order_by('-data', '-ora_inizio').first()
             
-            # Somma tutte le entrate dalle distinte verificate
-            totale_entrate = DistintaCassa.objects.filter(stato='verificata').aggregate(
-                total=Sum('totale_entrate')
-            )['total'] or 0
-            
-            # Sottrai tutte le uscite dalle distinte verificate
-            totale_uscite = DistintaCassa.objects.filter(stato='verificata').aggregate(
-                total=Sum('totale_uscite')
-            )['total'] or 0
-            
-            # Sottrai le bevande dalle distinte verificate
-            totale_bevande = DistintaCassa.objects.filter(stato='verificata').aggregate(
-                total=Sum('totale_bevande')
-            )['total'] or 0
-            
-            # Somma le casse iniziali e finali
-            casse_iniziali = DistintaCassa.objects.filter(stato='verificata').aggregate(
-                total=Sum('cassa_iniziale')
-            )['total'] or 0
-            
-            casse_finali = DistintaCassa.objects.filter(stato='verificata').aggregate(
-                total=Sum('cassa_finale')
-            )['total'] or 0
-            
-            # Calcola il saldo aggiornato
-            # Formula: entrate - uscite - bevande + (cassa finale - cassa iniziale)
-            nuovo_saldo = totale_entrate - totale_uscite - totale_bevande + (casse_finali - casse_iniziali)
-            
-            # Aggiorna il saldo del conto cassa
-            conto_cassa.saldo = nuovo_saldo
-            conto_cassa.save()
-            
-            return nuovo_saldo
+            if ultima_distinta:
+                # Usa la cassa finale dell'ultima distinta chiusa
+                nuovo_saldo = ultima_distinta.cassa_finale
+                
+                # Aggiorna il saldo del conto cassa
+                conto_cassa.saldo = nuovo_saldo
+                conto_cassa.save()
+                
+                return nuovo_saldo
+            else:
+                # Se non ci sono distinte chiuse, mantieni il saldo attuale
+                return conto_cassa.saldo
             
         except cls.DoesNotExist:
             return 0
@@ -421,7 +400,7 @@ class ContoFinanziario(models.Model):
     def crea_conti_default(cls, user):
         """Crea i conti predefiniti se non esistono"""
         conti_default = [
-            ('Cassa Principale', 'cassa', 'Contante fisico presente in agenzia'),
+            ('Cassa Agenzia', 'cassa', 'Contante fisico presente in agenzia'),
             ('Conto Corrente Principale', 'banca', 'Conto corrente aziendale principale'),
             ('Conto Gioco Online', 'online', 'Saldo disponibile su piattaforme di gioco online'),
             ('Saldo Clienti', 'clienti', 'Crediti/debiti verso clienti calcolato automaticamente'),
