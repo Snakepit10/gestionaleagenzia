@@ -1,0 +1,14 @@
+[phases.build]
+cmds = [
+    "python -m pip install --upgrade pip",
+    "python -m pip install -r requirements.txt",
+    "python manage.py collectstatic --noinput"
+]
+
+[phases.deploy]
+cmds = [
+    "python manage.py migrate --database=default --run-syncdb"
+]
+
+[variables]
+PYTHONPATH = "/app"

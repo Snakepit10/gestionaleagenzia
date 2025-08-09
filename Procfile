@@ -1,0 +1,2 @@
+web: gunicorn agenzia.wsgi --log-file -
+release: python manage.py migrate && python manage.py migrate --database=goldbet_db && python manage.py migrate --database=better_db && python manage.py setup_agenzie --create-agenzie --create-users

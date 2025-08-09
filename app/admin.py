@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Cliente, Movimento, DistintaCassa, Comunicazione
+from .models import Cliente, Movimento, DistintaCassa, Comunicazione, Agenzia, ProfiloUtente
 
 
 @admin.register(Cliente)
@@ -87,3 +87,37 @@ class ComunicazioneAdmin(admin.ModelAdmin):
     search_fields = ('cliente__cognome', 'cliente__nome', 'contenuto')
     date_hierarchy = 'data'
     readonly_fields = ('data',)
+
+
+@admin.register(Agenzia)
+class AgenziaAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'codice', 'database_name', 'attiva', 'data_creazione')
+    list_filter = ('attiva', 'data_creazione')
+    search_fields = ('nome', 'codice')
+    readonly_fields = ('data_creazione',)
+    
+    fieldsets = (
+        ('Informazioni Agenzia', {
+            'fields': ('nome', 'codice', 'database_name', 'attiva')
+        }),
+        ('Date', {
+            'fields': ('data_creazione',)
+        }),
+    )
+
+
+@admin.register(ProfiloUtente)
+class ProfiloUtenteAdmin(admin.ModelAdmin):
+    list_display = ('user', 'agenzia', 'get_user_email')
+    list_filter = ('agenzia',)
+    search_fields = ('user__username', 'user__first_name', 'user__last_name', 'agenzia__nome')
+    
+    def get_user_email(self, obj):
+        return obj.user.email
+    get_user_email.short_description = 'Email'
+    
+    fieldsets = (
+        ('Associazione', {
+            'fields': ('user', 'agenzia')
+        }),
+    )

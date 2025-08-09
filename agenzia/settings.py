@@ -4,17 +4,18 @@ Django settings for agenzia project.
 
 import os
 from pathlib import Path
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-uy#$pv0*6(msa98a^&3a-0kn0h1#v8=pq+v%=4)e%8uh48x-1v'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-uy#$pv0*6(msa98a^&3a-0kn0h1#v8=pq+v%=4)e%8uh48x-1v')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.1.84']
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost,192.168.1.84').split(',')
 
 # Application definition
 
@@ -32,10 +33,12 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Per servire file statici su Railway
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'agenzia.middleware.AgenziaMiddleware',  # Il nostro middleware per multi-tenancy
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -63,12 +66,44 @@ WSGI_APPLICATION = 'agenzia.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
+# Database principale per modelli condivisi (User, Agenzia, ProfiloUtente, etc.)
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f'sqlite:///{BASE_DIR}/db.sqlite3',
+        conn_max_age=600,
+        conn_health_checks=True,
+    ),
 }
+
+# Database per le agenzie - PostgreSQL su Railway
+if os.environ.get('GOLDBET_DATABASE_URL'):
+    DATABASES['goldbet_db'] = dj_database_url.parse(
+        os.environ.get('GOLDBET_DATABASE_URL'),
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+else:
+    # Database locale SQLite per sviluppo
+    DATABASES['goldbet_db'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db_goldbet.sqlite3',
+    }
+
+if os.environ.get('BETTER_DATABASE_URL'):
+    DATABASES['better_db'] = dj_database_url.parse(
+        os.environ.get('BETTER_DATABASE_URL'),
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+else:
+    # Database locale SQLite per sviluppo
+    DATABASES['better_db'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db_better.sqlite3',
+    }
+
+# Router per database multi-tenant
+DATABASE_ROUTERS = ['agenzia.routers.AgenziaRouter']
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
@@ -106,6 +141,10 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
+
+# Per Railway deployment
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field

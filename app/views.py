@@ -17,6 +17,16 @@ from .forms import (ClienteForm, MovimentoForm, DistintaCassaForm, ChiusuraDisti
                    ContoFinanziarioForm, ModificaSaldoForm, BilancioPeriodoForm, GirocontoForm)
 
 
+# Funzione di utilità per ottenere il database dell'utente
+def get_user_database(user):
+    """Ottieni il database associato all'agenzia dell'utente"""
+    try:
+        profilo = user.profiloutente
+        return profilo.agenzia.database_name if profilo and profilo.agenzia else 'default'
+    except:
+        return 'default'
+
+
 # Funzioni di utilità per i controlli di autorizzazione
 def is_manager_or_admin(user):
     """Verifica se l'utente è un manager o un amministratore"""
@@ -40,12 +50,16 @@ def dashboard(request):
             request.user.groups.filter(name__in=['Manager', 'Amministratore']).exists()):
         messages.error(request, 'Non sei autorizzato ad accedere alla dashboard.')
         return redirect('home')
+    
+    # Ottieni il database dell'agenzia dell'utente
+    user_db = get_user_database(request.user)
+    
     # Assicuriamoci che tutti i saldi siano aggiornati
-    for cliente in Cliente.objects.all():
+    for cliente in Cliente.objects.using(user_db).all():
         cliente.aggiorna_saldo()
 
     # Recupera i clienti con fido superato (saldo negativo che supera il fido massimo in valore assoluto)
-    clienti_fido_superato = Cliente.objects.filter(saldo__lt=0).filter(saldo__lt=-F('fido_massimo'))
+    clienti_fido_superato = Cliente.objects.using(user_db).filter(saldo__lt=0).filter(saldo__lt=-F('fido_massimo'))
 
     # Recupera i clienti con saldo negativo in ritardo da più di 3 giorni
     from datetime import timedelta
@@ -113,11 +127,14 @@ def dashboard(request):
 # Gestione Clienti
 @login_required
 def lista_clienti(request):
+    # Ottieni il database dell'agenzia dell'utente
+    user_db = get_user_database(request.user)
+    
     # Aggiorna i saldi di tutti i clienti
-    for cliente in Cliente.objects.all():
+    for cliente in Cliente.objects.using(user_db).all():
         cliente.aggiorna_saldo()
 
-    clienti = Cliente.objects.all()
+    clienti = Cliente.objects.using(user_db).all()
 
     # Filtraggio clienti
     filtro_nome = request.GET.get('nome', '')
@@ -147,7 +164,8 @@ def lista_clienti(request):
 
 @login_required
 def dettaglio_cliente(request, pk):
-    cliente = get_object_or_404(Cliente, pk=pk)
+    user_db = get_user_database(request.user)
+    cliente = get_object_or_404(Cliente.objects.using(user_db), pk=pk)
 
     # Aggiorna il saldo del cliente
     cliente.aggiorna_saldo()
@@ -159,7 +177,7 @@ def dettaglio_cliente(request, pk):
     comunicazioni = cliente.comunicazioni.all().order_by('-data')[:10]
 
     # Verifica se c'è una distinta aperta per la funzionalità saldo
-    distinta_aperta = DistintaCassa.objects.filter(
+    distinta_aperta = DistintaCassa.objects.using(user_db).filter(
         operatore=request.user,
         stato='aperta'
     ).exists()
@@ -180,7 +198,15 @@ def nuovo_cliente(request):
         if form.is_valid():
             cliente = form.save(commit=False)
             cliente.creato_da = request.user
-            cliente.save()
+            
+            # Determina il database corretto in base all'agenzia dell'utente
+            try:
+                profilo = request.user.profiloutente
+                db_name = profilo.agenzia.database_name if profilo and profilo.agenzia else 'default'
+            except:
+                db_name = 'default'
+                
+            cliente.save(using=db_name)
             messages.success(request, f'Cliente {cliente.nome_completo} creato con successo!')
             return redirect('dettaglio_cliente', pk=cliente.pk)
     else:
@@ -209,14 +235,17 @@ def modifica_cliente(request, pk):
 # Gestione Movimenti
 @login_required
 def lista_movimenti(request):
+    # Ottieni il database dell'agenzia dell'utente
+    user_db = get_user_database(request.user)
+    
     # Aggiorna i saldi di tutti i clienti prima di mostrare i movimenti
-    for cliente in Cliente.objects.all():
+    for cliente in Cliente.objects.using(user_db).all():
         cliente.aggiorna_saldo()
 
-    movimenti = Movimento.objects.all()
+    movimenti = Movimento.objects.using(user_db).all()
 
     # Verifica se c'è una distinta aperta (per la funzionalità saldo)
-    distinta_aperta = DistintaCassa.objects.filter(
+    distinta_aperta = DistintaCassa.objects.using(user_db).filter(
         operatore=request.user,
         stato='aperta'
     ).exists()
@@ -268,9 +297,10 @@ def lista_movimenti(request):
 
 @login_required
 def nuovo_movimento(request):
+    user_db = get_user_database(request.user)
     # Verifica se esiste una distinta aperta
     try:
-        distinta = DistintaCassa.objects.filter(
+        distinta = DistintaCassa.objects.using(user_db).filter(
             operatore=request.user,
             stato='aperta'
         ).latest('data', 'ora_inizio')
@@ -671,7 +701,8 @@ def elimina_movimento(request, pk):
 # Gestione Distinte di Cassa
 @login_required
 def lista_distinte(request):
-    distinte = DistintaCassa.objects.all()
+    user_db = get_user_database(request.user)
+    distinte = DistintaCassa.objects.using(user_db).all()
     
     # Prepara il form di filtro
     form_filtro = FiltroDistinteForm(request.GET)

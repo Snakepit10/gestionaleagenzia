@@ -7,6 +7,36 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 
 
+class Agenzia(models.Model):
+    """Modello per rappresentare le agenzie (goldbet, better, etc.)"""
+    nome = models.CharField(max_length=100, unique=True)
+    codice = models.CharField(max_length=20, unique=True, help_text="Codice agenzia per il database")
+    database_name = models.CharField(max_length=100, help_text="Nome del database per questa agenzia")
+    attiva = models.BooleanField(default=True)
+    data_creazione = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Agenzia"
+        verbose_name_plural = "Agenzie"
+        ordering = ['nome']
+    
+    def __str__(self):
+        return self.nome
+
+
+class ProfiloUtente(models.Model):
+    """Estende il modello User per collegarlo a un'agenzia"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    agenzia = models.ForeignKey(Agenzia, on_delete=models.CASCADE, related_name='utenti')
+    
+    class Meta:
+        verbose_name = "Profilo Utente"
+        verbose_name_plural = "Profili Utente"
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.agenzia.nome}"
+
+
 class Cliente(models.Model):
     RATING_CHOICES = [
         ('A', 'Eccellente'),
