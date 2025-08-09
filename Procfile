@@ -1,1 +1,1 @@
-web: bash start.sh
+web: gunicorn agenzia.wsgi --bind 0.0.0.0:$PORT --log-file -
