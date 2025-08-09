@@ -1,1 +1,1 @@
-web: gunicorn agenzia.wsgi:application --bind 0.0.0.0:$PORT --log-file - --access-logfile -
+web: python manage.py collectstatic --noinput && gunicorn agenzia.wsgi --bind 0.0.0.0:$PORT --workers 2 --log-level info
