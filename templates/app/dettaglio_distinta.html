@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
+{% load tz %}
 
 {% block title %}Distinta #{{ distinta.id }} - Gestionale Agenzia{% endblock %}
 
@@ -59,13 +60,13 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">Ora Inizio</label>
-                <div class="form-control-plaintext">{{ distinta.ora_inizio|time:"H:i" }}</div>
+                <div class="form-control-plaintext">{{ distinta.ora_inizio|localtime|time:"H:i" }}</div>
             </div>
             <div class="col-md-2">
                 <label class="form-label">Ora Fine</label>
                 <div class="form-control-plaintext">
                     {% if distinta.ora_fine %}
-                    {{ distinta.ora_fine|time:"H:i" }}
+                    {{ distinta.ora_fine|localtime|time:"H:i" }}
                     {% else %}
                     <span class="text-muted">-</span>
                     {% endif %}
@@ -520,6 +521,10 @@
                                     </a>
                                     {% endif %}
 
+                                    <a href="{% url 'dettaglio_movimento' movimento.id %}" class="btn btn-sm btn-info" title="Visualizza Dettagli">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    
                                     {% if distinta.stato == 'aperta' and distinta.operatore == user or user.is_superuser %}
                                     <a href="{% url 'modifica_movimento' movimento.id %}" class="btn btn-sm btn-warning" title="Modifica">
                                         <i class="fas fa-edit"></i>
@@ -603,6 +608,10 @@
                                     </a>
                                     {% endif %}
 
+                                    <a href="{% url 'dettaglio_movimento' movimento.id %}" class="btn btn-sm btn-info" title="Visualizza Dettagli">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    
                                     {% if distinta.stato == 'aperta' and distinta.operatore == user or user.is_superuser %}
                                     <a href="{% url 'modifica_movimento' movimento.id %}" class="btn btn-sm btn-warning" title="Modifica">
                                         <i class="fas fa-edit"></i>

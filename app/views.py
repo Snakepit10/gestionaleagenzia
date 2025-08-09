@@ -515,6 +515,32 @@ def salda_movimento(request, pk):
     return redirect('dettaglio_distinta', pk=distinta.pk)
 
 @login_required
+def dettaglio_movimento(request, pk):
+    """View per visualizzare i dettagli di un movimento (sola lettura)"""
+    movimento = get_object_or_404(Movimento, pk=pk)
+    
+    # Verifica autorizzazioni base - l'utente deve poter vedere la distinta
+    if movimento.distinta.operatore != request.user and not request.user.is_superuser:
+        messages.error(request, 'Non sei autorizzato a visualizzare questo movimento.')
+        return redirect('home')
+    
+    # Recupera i log delle attività relativi a questo movimento
+    from django.contrib.contenttypes.models import ContentType
+    movimento_content_type = ContentType.objects.get_for_model(Movimento)
+    logs = ActivityLog.objects.filter(
+        content_type=movimento_content_type,
+        object_id=movimento.id
+    ).order_by('-timestamp')
+    
+    context = {
+        'movimento': movimento,
+        'logs': logs,
+        'titolo': f'Dettaglio Movimento #{movimento.id}'
+    }
+    
+    return render(request, 'app/dettaglio_movimento.html', context)
+
+@login_required
 def modifica_movimento(request, pk):
     movimento = get_object_or_404(Movimento, pk=pk)
 
@@ -528,18 +554,18 @@ def modifica_movimento(request, pk):
         return redirect('dettaglio_distinta', pk=movimento.distinta.pk)
 
     if request.method == 'POST':
+        # Raccoglie i dati prima della modifica per il log (prima di processare il form)
+        movimento_before = {
+            'tipo': movimento.get_tipo_display(),
+            'importo': str(abs(movimento.importo)),
+            'cliente': movimento.cliente.nome_completo,
+            'distinta': movimento.distinta.id,
+            'note': movimento.note if movimento.note else '',
+            'saldato': movimento.saldato
+        }
+        
         form = MovimentoForm(request.POST, instance=movimento, distinta=movimento.distinta)
         if form.is_valid():
-            # Raccoglie i dati prima della modifica per il log
-            movimento_before = {
-                'tipo': movimento.get_tipo_display(),
-                'importo': str(abs(movimento.importo)),
-                'cliente': movimento.cliente.nome_completo,
-                'distinta': movimento.distinta.id,
-                'note': movimento.note if movimento.note else '',
-                'saldato': movimento.saldato
-            }
-
             # Salva il movimento aggiornato
             movimento = form.save(commit=False)
             movimento.modificato_da = request.user

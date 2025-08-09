@@ -230,14 +230,18 @@
                         </td>
                         <td>{{ movimento.creato_da.username }}</td>
                         <td>
+                            <a href="{% url 'dettaglio_movimento' movimento.id %}" class="btn btn-sm btn-info" title="Visualizza Dettagli">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            
                             {% if not movimento.saldato and distinta_aperta %}
-                            <a href="{% url 'salda_movimento' movimento.id %}" class="btn btn-sm btn-success">
+                            <a href="{% url 'salda_movimento' movimento.id %}" class="btn btn-sm btn-success" title="Salda">
                                 <i class="fas fa-check"></i>
                             </a>
                             {% endif %}
                             
                             {% if perms.app.delete_movimento or user.is_superuser %}
-                            <a href="{% url 'elimina_movimento' movimento.id %}" class="btn btn-sm btn-danger">
+                            <a href="{% url 'elimina_movimento' movimento.id %}" class="btn btn-sm btn-danger" title="Elimina">
                                 <i class="fas fa-trash"></i>
                             </a>
                             {% endif %}

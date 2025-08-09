@@ -106,9 +106,14 @@
                             </a>
                             {% endif %}
 
+                            <a href="{% url 'dettaglio_movimento' movimento.id %}" class="btn btn-sm btn-info" title="Visualizza Dettagli">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            {% if movimento.distinta.stato == 'aperta' %}
                             <a href="{% url 'modifica_movimento' movimento.id %}" class="btn btn-sm btn-warning" title="Modifica">
                                 <i class="fas fa-edit"></i>
                             </a>
+                            {% endif %}
 
                             {% if perms.app.delete_movimento or user.is_superuser %}
                             <a href="{% url 'elimina_movimento' movimento.id %}" class="btn btn-sm btn-danger" title="Elimina">
