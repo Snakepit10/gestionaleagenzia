@@ -1,2 +1,1 @@
-release: python manage.py wait_for_db && python manage.py migrate && python manage.py migrate --database=goldbet_db && python manage.py migrate --database=better_db && python manage.py setup_agenzie --create-agenzie --create-users
-web: gunicorn agenzia.wsgi --log-file -
+web: python manage.py wait_for_db && python manage.py migrate && python manage.py migrate --database=goldbet_db && python manage.py migrate --database=better_db && python manage.py setup_agenzie --create-agenzie --create-users && gunicorn agenzia.wsgi --log-file -
