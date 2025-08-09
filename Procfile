@@ -1,1 +1,1 @@
-web: python manage.py collectstatic --noinput && gunicorn agenzia.wsgi --bind 0.0.0.0:$PORT --workers 2 --log-level info
+web: gunicorn agenzia.wsgi --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-level debug --access-logfile -
