@@ -508,7 +508,7 @@ def salda_movimento(request, pk):
             tipo_compensazione = "pagamento_debito"
 
         # Trova il movimento di compensazione appena creato
-        movimento_compensazione = Movimento.objects.filter(
+        movimento_compensazione = db.get_queryset(Movimento).filter(
             movimento_origine=movimento,
             distinta=distinta
         ).first()
@@ -576,7 +576,7 @@ def dettaglio_movimento(request, pk):
     # Recupera i log delle attività relativi a questo movimento
     from django.contrib.contenttypes.models import ContentType
     movimento_content_type = ContentType.objects.get_for_model(Movimento)
-    logs = ActivityLog.objects.filter(
+    logs = db.get_queryset(ActivityLog).filter(
         content_type=movimento_content_type,
         object_id=movimento.id
     ).order_by('-timestamp')
@@ -776,7 +776,9 @@ def lista_distinte(request):
 
 @login_required
 def dettaglio_distinta(request, pk):
-    distinta = get_object_or_404(DistintaCassa, pk=pk)
+    # Usa il nuovo DatabaseManager
+    db = DatabaseManager(request.user)
+    distinta = db.get_object_or_404(DistintaCassa, pk=pk)
 
     # Verifica se l'utente può modificare la distinta
     can_edit = (
@@ -820,8 +822,8 @@ def dettaglio_distinta(request, pk):
         cliente_id = request.GET.get('cliente')
         if cliente_id:
             try:
-                cliente_selezionato = Cliente.objects.get(pk=cliente_id)
-                movimenti_da_saldare = Movimento.objects.filter(
+                cliente_selezionato = db.get_queryset(Cliente).get(pk=cliente_id)
+                movimenti_da_saldare = db.get_queryset(Movimento).filter(
                     cliente=cliente_selezionato,
                     saldato=False
                 ).order_by('-data')
@@ -856,8 +858,11 @@ def dettaglio_distinta(request, pk):
 
 @login_required
 def nuova_distinta(request):
+    # Usa il nuovo DatabaseManager
+    db = DatabaseManager(request.user)
+    
     # Verifica se l'utente ha già una distinta aperta
-    distinta_aperta = DistintaCassa.objects.filter(
+    distinta_aperta = db.get_queryset(DistintaCassa).filter(
         operatore=request.user,
         stato='aperta'
     ).exists()
@@ -868,7 +873,7 @@ def nuova_distinta(request):
 
     # Ottieni il conto cassa
     try:
-        conto_cassa = ContoFinanziario.objects.filter(tipo='cassa').first()
+        conto_cassa = db.get_queryset(ContoFinanziario).filter(tipo='cassa').first()
         if not conto_cassa:
             messages.warning(request, 'Nessun conto cassa trovato nel bilancio. Contatta l\'amministratore.')
             return redirect('lista_distinte')
@@ -950,7 +955,7 @@ def chiudi_distinta(request, pk):
 
     # Ottieni il conto cassa
     try:
-        conto_cassa = ContoFinanziario.objects.filter(tipo='cassa').first()
+        conto_cassa = db.get_queryset(ContoFinanziario).filter(tipo='cassa').first()
         if not conto_cassa:
             messages.warning(request, 'Nessun conto cassa trovato nel bilancio. La distinta sarà chiusa, ma il saldo della cassa non sarà aggiornato.')
     except:
@@ -1190,8 +1195,12 @@ def bilancio_finanziario(request):
         messages.error(request, 'Non sei autorizzato ad accedere alla pagina del bilancio.')
         return redirect('dashboard')
     """Vista principale per il bilancio finanziario"""
+    
+    # Usa il nuovo DatabaseManager
+    db = DatabaseManager(request.user)
+    
     # Controlla se esistono i conti predefiniti, altrimenti li crea
-    if ContoFinanziario.objects.count() == 0:
+    if db.get_queryset(ContoFinanziario).count() == 0:
         try:
             ContoFinanziario.crea_conti_default(request.user)
             messages.success(request, 'Conti finanziari predefiniti creati con successo.')
@@ -1203,7 +1212,7 @@ def bilancio_finanziario(request):
 
     # Aggiorna il saldo del conto clienti se esiste (invertendo il segno per il bilancio)
     try:
-        conto_clienti = ContoFinanziario.objects.filter(tipo='clienti').first()
+        conto_clienti = db.get_queryset(ContoFinanziario).filter(tipo='clienti').first()
         saldo_clienti_bilancio = -saldo_clienti_movimenti  # Inverto il segno per il bilancio
         if conto_clienti and conto_clienti.saldo != saldo_clienti_bilancio:
             conto_clienti.saldo = saldo_clienti_bilancio
@@ -1214,7 +1223,7 @@ def bilancio_finanziario(request):
         pass
 
     # Ottieni tutti i conti finanziari (dopo l'aggiornamento)
-    conti = ContoFinanziario.objects.all()
+    conti = db.get_queryset(ContoFinanziario)
 
     # Raggruppa i conti per tipo
     conti_per_tipo = {}
@@ -1222,7 +1231,7 @@ def bilancio_finanziario(request):
         conti_per_tipo[tipo] = conti.filter(tipo=tipo)
 
     # Ottieni gli ultimi bilanci periodici
-    bilanci = BilancioPeriodico.objects.all()[:10]
+    bilanci = db.get_queryset(BilancioPeriodico).all()[:10]
 
     # Calcola il saldo totale
     saldo_totale = ContoFinanziario.calcola_saldo_totale()
@@ -1398,11 +1407,13 @@ def elimina_conto(request, pk):
 @user_passes_test(is_manager_or_admin)
 def dettaglio_bilancio(request, pk):
     """Visualizza i dettagli di un bilancio periodico"""
-    bilancio = get_object_or_404(BilancioPeriodico, pk=pk)
+    # Usa il nuovo DatabaseManager
+    db = DatabaseManager(request.user)
+    bilancio = db.get_object_or_404(BilancioPeriodico, pk=pk)
 
     # Verifica se esiste un bilancio precedente per il confronto
     try:
-        bilancio_precedente = BilancioPeriodico.objects.filter(
+        bilancio_precedente = db.get_queryset(BilancioPeriodico).filter(
             data_riferimento__lt=bilancio.data_riferimento
         ).latest('data_riferimento')
 
@@ -1439,8 +1450,10 @@ def dettaglio_bilancio(request, pk):
 def lista_logs(request):
     """Vista per visualizzare i log di attività"""
     from django.contrib.contenttypes.models import ContentType
-
-    logs = ActivityLog.objects.all()
+    
+    # Usa il nuovo DatabaseManager
+    db = DatabaseManager(request.user)
+    logs = db.get_queryset(ActivityLog).all()
 
     # Filtraggio per tipo di azione
     action = request.GET.get('action', '')
@@ -1485,7 +1498,7 @@ def lista_logs(request):
 
     # Lista di tipi di contenuto per il filtro
     content_types = ContentType.objects.filter(
-        id__in=ActivityLog.objects.values_list('content_type_id', flat=True).distinct()
+        id__in = db.get_queryset(ActivityLog).values_list('content_type_id', flat=True).distinct()
     )
 
     context = {
@@ -1541,14 +1554,17 @@ def dettaglio_log(request, pk):
 @login_required
 def get_movimenti_cliente(request):
     """API per ottenere i movimenti non saldati di un cliente specifico"""
+    # Usa il nuovo DatabaseManager
+    db = DatabaseManager(request.user)
+    
     cliente_id = request.GET.get('cliente_id')
 
     if not cliente_id:
         return JsonResponse({'error': 'Cliente non specificato'}, status=400)
 
     try:
-        cliente = Cliente.objects.get(pk=cliente_id)
-        movimenti = Movimento.objects.filter(
+        cliente = db.get_queryset(Cliente).get(pk=cliente_id)
+        movimenti = db.get_queryset(Movimento).filter(
             cliente=cliente,
             saldato=False
         ).order_by('-data')
@@ -1625,7 +1641,9 @@ def effettua_giroconto(request):
 @user_passes_test(is_manager_or_admin)
 def lista_movimenti_conti(request):
     """Visualizza la lista dei movimenti tra conti"""
-    movimenti = MovimentoConti.objects.all()
+    # Usa il nuovo DatabaseManager
+    db = DatabaseManager(request.user)
+    movimenti = db.get_queryset(MovimentoConti)
 
     # Filtraggio per tipo di movimento
     tipo = request.GET.get('tipo', '')
@@ -1654,7 +1672,7 @@ def lista_movimenti_conti(request):
     page_obj = paginator.get_page(page_number)
 
     # Lista dei conti per il filtro
-    conti = ContoFinanziario.objects.all()
+    conti = db.get_queryset(ContoFinanziario)
 
     context = {
         'page_obj': page_obj,
