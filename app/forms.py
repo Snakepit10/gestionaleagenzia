@@ -28,7 +28,14 @@ class MovimentoForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         distinta = kwargs.pop('distinta', None)
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+
+        # Imposta la queryset dei clienti dal database corretto
+        if user:
+            from .database_utils import DatabaseManager
+            db = DatabaseManager(user)
+            self.fields['cliente'].queryset = db.get_queryset(Cliente)
 
         # Personalizza il campo cliente con ricerca avanzata
         self.fields['cliente'].widget.attrs.update({
@@ -60,19 +67,25 @@ class DistintaCassaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.user = user
 
-        # Ottieni il saldo del conto cassa
+        # Ottieni il saldo del conto cassa dal database dell'utente
         try:
             from .models import ContoFinanziario
-            conto_cassa = ContoFinanziario.objects.filter(tipo='cassa').first()
-            if conto_cassa:
-                self.fields['cassa_iniziale'].help_text = f"Saldo disponibile in cassa: {conto_cassa.saldo} €"
-                self.fields['cassa_iniziale'].initial = conto_cassa.saldo
-                # Imposta l'attributo data-max-value per il campo cassa_iniziale
-                self.fields['cassa_iniziale'].widget.attrs.update({'data-max-value': conto_cassa.saldo})
+            from .database_utils import DatabaseManager
+            
+            if user:
+                db = DatabaseManager(user)
+                conto_cassa = db.get_queryset(ContoFinanziario).filter(tipo='cassa').first()
+                if conto_cassa:
+                    self.fields['cassa_iniziale'].help_text = f"Saldo disponibile in cassa: {conto_cassa.saldo} €"
+                    self.fields['cassa_iniziale'].initial = conto_cassa.saldo
+                    # Imposta l'attributo data-max-value per il campo cassa_iniziale
+                    self.fields['cassa_iniziale'].widget.attrs.update({'data-max-value': conto_cassa.saldo})
+                else:
+                    self.fields['cassa_iniziale'].help_text = "Nessun conto cassa trovato nel bilancio"
             else:
-                self.fields['cassa_iniziale'].help_text = "Nessun conto cassa trovato nel bilancio"
-        except:
-            self.fields['cassa_iniziale'].help_text = "Errore nel recupero del saldo cassa"
+                self.fields['cassa_iniziale'].help_text = "Utente non specificato"
+        except Exception as e:
+            self.fields['cassa_iniziale'].help_text = f"Errore nel recupero del saldo cassa: {str(e)}"
 
     def clean_cassa_iniziale(self):
         cassa_iniziale = self.cleaned_data.get('cassa_iniziale')
@@ -83,9 +96,15 @@ class DistintaCassaForm(forms.ModelForm):
 
         try:
             from .models import ContoFinanziario
-            conto_cassa = ContoFinanziario.objects.filter(tipo='cassa').first()
-            if conto_cassa and cassa_iniziale > conto_cassa.saldo:
-                raise forms.ValidationError(f"Il valore immesso ({cassa_iniziale} €) supera il saldo disponibile in cassa ({conto_cassa.saldo} €).")
+            from .database_utils import DatabaseManager
+            
+            if self.user:
+                db = DatabaseManager(self.user)
+                conto_cassa = db.get_queryset(ContoFinanziario).filter(tipo='cassa').first()
+                if conto_cassa and cassa_iniziale > conto_cassa.saldo:
+                    raise forms.ValidationError(f"Il valore immesso ({cassa_iniziale} €) supera il saldo disponibile in cassa ({conto_cassa.saldo} €).")
+        except forms.ValidationError:
+            raise
         except:
             pass
 
@@ -124,7 +143,7 @@ class ComunicazioneForm(forms.ModelForm):
 
 class FiltroMovimentiForm(forms.Form):
     cliente = forms.ModelChoiceField(
-        queryset=Cliente.objects.all(),
+        queryset=Cliente.objects.none(),  # Inizialmente vuoto
         required=False,
         widget=forms.Select(attrs={'class': 'select2'})
     )
@@ -144,6 +163,15 @@ class FiltroMovimentiForm(forms.Form):
         choices=[('', 'Tutti'), ('True', 'Saldato'), ('False', 'Non Saldato')],
         required=False
     )
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if user:
+            from .database_utils import DatabaseManager
+            db = DatabaseManager(user)
+            self.fields['cliente'].queryset = db.get_queryset(Cliente)
 
 
 class FiltroDistinteForm(forms.Form):
@@ -162,6 +190,7 @@ class FiltroDistinteForm(forms.Form):
     )
     
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)  # Rimuovi user ma non lo usi
         super().__init__(*args, **kwargs)
         from django.contrib.auth.models import User
         operatori = User.objects.filter(
@@ -192,12 +221,12 @@ class ModificaSaldoForm(forms.Form):
 
 class GirocontoForm(forms.Form):
     conto_origine = forms.ModelChoiceField(
-        queryset=ContoFinanziario.objects.all(),
+        queryset=ContoFinanziario.objects.none(),
         label="Conto di Origine",
         widget=forms.Select(attrs={'class': 'form-select select2'})
     )
     conto_destinazione = forms.ModelChoiceField(
-        queryset=ContoFinanziario.objects.all(),
+        queryset=ContoFinanziario.objects.none(),
         label="Conto di Destinazione",
         widget=forms.Select(attrs={'class': 'form-select select2'})
     )
@@ -211,6 +240,17 @@ class GirocontoForm(forms.Form):
         widget=forms.Textarea(attrs={'rows': 2}),
         required=False
     )
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if user:
+            from .database_utils import DatabaseManager
+            db = DatabaseManager(user)
+            conti = db.get_queryset(ContoFinanziario)
+            self.fields['conto_origine'].queryset = conti
+            self.fields['conto_destinazione'].queryset = conti
 
     def clean(self):
         cleaned_data = super().clean()

@@ -23,10 +23,8 @@ def verifica_distinta(request, pk):
             }
             
             distinta = form.save(commit=False)
-            distinta.stato = 'verificata'
-            distinta.verificata_da = request.user
-            distinta.data_verifica = timezone.now()
-            distinta.save()
+            # Use the model's verifica method for consistency  
+            distinta.verifica(request.user)
             
             # Dati dopo la verifica per il log
             distinta_after = {

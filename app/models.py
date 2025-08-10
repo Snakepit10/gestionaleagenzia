@@ -61,18 +61,29 @@ class Cliente(MultiDatabaseMixin, models.Model):
     modificato_da = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='clienti_modificati')
 
     @classmethod
-    def calcola_saldo_complessivo(cls):
+    def calcola_saldo_complessivo(cls, user):
         """Calcola il saldo complessivo di tutti i clienti"""
         from django.db.models import Sum
-        return cls.objects.aggregate(total=Sum('saldo'))['total'] or 0
+        from .database_utils import DatabaseManager
+        
+        db = DatabaseManager(user)
+        return db.get_queryset(cls).aggregate(total=Sum('saldo'))['total'] or 0
 
-    def aggiorna_saldo(self):
+    def aggiorna_saldo(self, user=None):
         """Ricalcola il saldo del cliente in base ai movimenti non saldati"""
         from django.db.models import Sum
-        # Il MultiDatabaseMixin si occupa automaticamente del database corretto
-        movimenti_sum = self.movimenti.filter(saldato=False).aggregate(Sum('importo'))['importo__sum']
-        self.saldo = movimenti_sum if movimenti_sum is not None else 0
-        self.save(update_fields=['saldo'])
+        from .database_utils import DatabaseManager
+        
+        if user:
+            db = DatabaseManager(user)
+            movimenti_sum = db.get_queryset(Movimento).filter(cliente=self, saldato=False).aggregate(Sum('importo'))['importo__sum']
+            self.saldo = movimenti_sum if movimenti_sum is not None else 0
+            db.save_object(self, update_fields=['saldo'])
+        else:
+            # Fallback per compatibilità - usa il MultiDatabaseMixin
+            movimenti_sum = self.movimenti.filter(saldato=False).aggregate(Sum('importo'))['importo__sum']
+            self.saldo = movimenti_sum if movimenti_sum is not None else 0
+            self.save(update_fields=['saldo'])
     
     class Meta:
         verbose_name = "Cliente"
@@ -135,7 +146,7 @@ class DistintaCassa(MultiDatabaseMixin, models.Model):
     
     operatore = models.ForeignKey(User, on_delete=models.PROTECT, related_name='distinte_create')
     data = models.DateField(default=timezone.now)
-    ora_inizio = models.TimeField(default=timezone.now)
+    ora_inizio = models.TimeField(default=lambda: timezone.localtime(timezone.now()).time())
     ora_fine = models.TimeField(null=True, blank=True)
     cassa_iniziale = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     cassa_finale = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
@@ -157,8 +168,10 @@ class DistintaCassa(MultiDatabaseMixin, models.Model):
     def __str__(self):
         return f"Distinta {self.pk} - {self.data} - {self.operatore.username}"
     
-    def chiudi(self):
-        self.ora_fine = timezone.now().time()
+    def chiudi(self, user=None):
+        from .database_utils import DatabaseManager
+        
+        self.ora_fine = timezone.localtime(timezone.now()).time()
         self.stato = 'chiusa'
 
         # Calcola saldo totale secondo la formula: cassa finale - entrate + uscite - bevande
@@ -171,16 +184,24 @@ class DistintaCassa(MultiDatabaseMixin, models.Model):
         if self.saldo_terminale:
             self.differenza_cassa -= self.saldo_terminale
 
-        self.save()
+        if user:
+            db = DatabaseManager(user)
+            db.save_object(self)
+        else:
+            self.save()
     
     def verifica(self, utente):
+        from .database_utils import DatabaseManager
+        
         self.stato = 'verificata'
-        self.verificata_da = utente
+        self.verificata_da_id = utente.id
         self.data_verifica = timezone.now()
-        self.save()
+        
+        db = DatabaseManager(utente)
+        db.save_object(self)
         
         # Aggiorna automaticamente il saldo della cassa dopo la verifica
-        ContoFinanziario.aggiorna_saldo_cassa_da_distinte()
+        ContoFinanziario.aggiorna_saldo_cassa_da_distinte(user=utente)
     
     @property
     def get_movimenti(self):
@@ -223,7 +244,8 @@ class Movimento(MultiDatabaseMixin, models.Model):
         # Se non è un nuovo record, salva il vecchio importo per aggiornare il saldo
         if not nuovo_record:
             try:
-                vecchio_movimento = Movimento.objects.get(pk=self.pk)
+                # Usa il MultiDatabaseMixin per ottenere la query dal database corretto
+                vecchio_movimento = self.__class__.objects.using(self._state.db).get(pk=self.pk)
                 vecchio_importo = vecchio_movimento.importo
             except Movimento.DoesNotExist:
                 vecchio_importo = 0
@@ -251,7 +273,10 @@ class Movimento(MultiDatabaseMixin, models.Model):
         # Ottieni la distinta corrente dell'utente
         from django.utils import timezone
         try:
-            distinta_corrente = DistintaCassa.objects.filter(
+            # Usa il database corretto basato sull'utente
+            from .database_utils import DatabaseManager
+            db = DatabaseManager(utente)
+            distinta_corrente = db.get_queryset(DistintaCassa).filter(
                 operatore=utente,
                 stato='aperta'
             ).latest('data', 'ora_inizio')
@@ -297,35 +322,36 @@ class Movimento(MultiDatabaseMixin, models.Model):
             tipo=tipo_movimento,  # Modifichiamo il tipo per ottenere il segno corretto
             importo=importo_da_salvare,
             distinta=distinta_corrente,
-            creato_da=utente,
-            modificato_da=utente,
+            creato_da_id=utente.id,
+            modificato_da_id=utente.id,
             movimento_origine=self,  # Riferimento al movimento originale
             saldato=True,  # Il movimento di compensazione è già saldato
             note=note_movimento  # Ora possiamo salvare la nota
         )
 
-        # Salviamo il movimento usando il metodo save normale che gestirà il segno corretto
-        movimento_opposto.save()
+        # Salviamo il movimento usando il database manager
+        db.save_object(movimento_opposto)
 
         # Marchiamo questo movimento come saldato
         self.saldato = True
-        self.modificato_da = utente
+        self.modificato_da_id = utente.id
 
-        # Salviamo il record senza trigger il metodo save() normale
-        # per evitare che il saldo venga aggiornato due volte
-        from django.db import models
-        models.Model.save(self)
+        # Salviamo il record usando il database corretto
+        db.save_object(self)
 
         # Aggiorna il saldo del cliente manualmente
-        self.cliente.aggiorna_saldo()
+        self.cliente.aggiorna_saldo(user=utente)
 
         return True
 
-    def delete(self, *args, **kwargs):
+    def delete(self, user=None, *args, **kwargs):
         """Override delete to update cliente's saldo after deletion"""
         cliente = self.cliente
         super().delete(*args, **kwargs)
-        cliente.aggiorna_saldo()
+        if user:
+            cliente.aggiorna_saldo(user=user)
+        else:
+            cliente.aggiorna_saldo()
 
 
 class Comunicazione(MultiDatabaseMixin, models.Model):
@@ -355,9 +381,15 @@ class Comunicazione(MultiDatabaseMixin, models.Model):
     def __str__(self):
         return f"{self.get_tipo_display()} - {self.cliente} - {self.data.strftime('%d/%m/%Y')}"
 
-    def marca_come_letta(self):
+    def marca_come_letta(self, user=None):
+        from .database_utils import DatabaseManager
+        
         self.stato = 'letta'
-        self.save()
+        if user:
+            db = DatabaseManager(user)
+            db.save_object(self)
+        else:
+            self.save()
 
 
 class ContoFinanziario(MultiDatabaseMixin, models.Model):
@@ -392,25 +424,35 @@ class ContoFinanziario(MultiDatabaseMixin, models.Model):
         return f"{self.nome} ({self.get_tipo_display()})"
 
     @classmethod
-    def calcola_saldo_totale(cls):
+    def calcola_saldo_totale(cls, user):
         """Calcola il saldo totale di tutti i conti finanziari"""
         from django.db.models import Sum
-        return cls.objects.aggregate(total=Sum('saldo'))['total'] or 0
+        from .database_utils import DatabaseManager
+        
+        db = DatabaseManager(user)
+        return db.get_queryset(cls).aggregate(total=Sum('saldo'))['total'] or 0
 
     @classmethod
-    def calcola_saldo_per_tipo(cls, tipo):
+    def calcola_saldo_per_tipo(cls, user, tipo):
         """Calcola il saldo totale per un tipo specifico di conto"""
         from django.db.models import Sum
-        return cls.objects.filter(tipo=tipo).aggregate(total=Sum('saldo'))['total'] or 0
+        from .database_utils import DatabaseManager
+        
+        db = DatabaseManager(user)
+        return db.get_queryset(cls).filter(tipo=tipo).aggregate(total=Sum('saldo'))['total'] or 0
 
     @classmethod
-    def aggiorna_saldo_cassa_da_distinte(cls):
+    def aggiorna_saldo_cassa_da_distinte(cls, user):
         """Aggiorna il saldo della cassa agenzia con il valore della cassa finale dell'ultima distinta chiusa"""
+        from .database_utils import DatabaseManager
+        
+        db = DatabaseManager(user)
+        
         try:
-            conto_cassa = cls.objects.get(tipo='cassa', nome='Cassa Agenzia')
+            conto_cassa = db.get_queryset(cls).get(tipo='cassa', nome='Cassa Agenzia')
             
-            # Trova l'ultima distinta chiusa
-            ultima_distinta = DistintaCassa.objects.filter(stato='chiusa').order_by('-data', '-ora_inizio').first()
+            # Trova l'ultima distinta chiusa nel database dell'utente
+            ultima_distinta = db.get_queryset(DistintaCassa).filter(stato='chiusa').order_by('-data', '-ora_inizio').first()
             
             if ultima_distinta:
                 # Usa la cassa finale dell'ultima distinta chiusa
@@ -418,7 +460,7 @@ class ContoFinanziario(MultiDatabaseMixin, models.Model):
                 
                 # Aggiorna il saldo del conto cassa
                 conto_cassa.saldo = nuovo_saldo
-                conto_cassa.save()
+                db.save_object(conto_cassa)
                 
                 return nuovo_saldo
             else:
@@ -430,7 +472,12 @@ class ContoFinanziario(MultiDatabaseMixin, models.Model):
 
     @classmethod
     def crea_conti_default(cls, user):
-        """Crea i conti predefiniti se non esistono"""
+        """Crea i conti predefiniti se non esistono nel database dell'agenzia"""
+        from .database_utils import DatabaseManager
+        
+        # Usa il DatabaseManager per il database corretto
+        db = DatabaseManager(user)
+        
         conti_default = [
             ('Cassa Agenzia', 'cassa', 'Contante fisico presente in agenzia'),
             ('Conto Corrente Principale', 'banca', 'Conto corrente aziendale principale'),
@@ -443,32 +490,34 @@ class ContoFinanziario(MultiDatabaseMixin, models.Model):
             ('Versamenti Soci', 'versamenti', 'Versamenti effettuati dai soci')
         ]
 
-        # Ottieni il saldo totale dei clienti
-        saldo_clienti = Cliente.calcola_saldo_complessivo()
+        # Ottieni il saldo totale dei clienti dal database dell'agenzia
+        saldo_clienti = Cliente.calcola_saldo_complessivo(user)
 
         for nome, tipo, descrizione in conti_default:
-            # Imposta i defaults con riferimenti utente (ora funziona grazie al router aggiornato)
-            defaults = {
-                'descrizione': descrizione,
-                'creato_da': user,
-                'modificato_da': user
-            }
-
-            # Se è il conto clienti, imposta il saldo automaticamente
-            if tipo == 'clienti':
-                defaults['saldo'] = saldo_clienti
-
-            # Crea o aggiorna il conto
-            conto, created = cls.objects.get_or_create(
-                nome=nome,
-                tipo=tipo,
-                defaults=defaults
-            )
+            # Controlla se il conto esiste già nel database dell'agenzia
+            conto_esistente = db.get_queryset(cls).filter(nome=nome, tipo=tipo).first()
+            
+            if not conto_esistente:
+                # Crea il nuovo conto nel database dell'agenzia
+                conto = cls(
+                    nome=nome,
+                    tipo=tipo,
+                    descrizione=descrizione,
+                    creato_da_id=user.id,
+                    modificato_da_id=user.id,
+                    saldo=saldo_clienti if tipo == 'clienti' else 0
+                )
+                db.save_object(conto)
+                print(f"Creato conto {nome} nel database {db.user_db}")
+                created = True
+            else:
+                conto = conto_esistente
+                created = False
 
             # Se il conto clienti esiste già, aggiorna comunque il saldo
             if not created and tipo == 'clienti':
                 conto.saldo = saldo_clienti
-                conto.save()
+                db.save_object(conto)
 
 
 class MovimentoConti(MultiDatabaseMixin, models.Model):
@@ -509,9 +558,12 @@ class MovimentoConti(MultiDatabaseMixin, models.Model):
     @classmethod
     def registra_modifica_diretta(cls, conto, importo_precedente, importo_nuovo, operatore, note=None):
         """Registra una modifica diretta del saldo di un conto"""
+        from .database_utils import DatabaseManager
+        
+        db = DatabaseManager(operatore)
         differenza = importo_nuovo - importo_precedente
 
-        return cls.objects.create(
+        movimento = cls(
             tipo='modifica',
             importo=abs(differenza),
             conto_origine=conto if differenza < 0 else None,
@@ -521,15 +573,22 @@ class MovimentoConti(MultiDatabaseMixin, models.Model):
             saldo_destinazione_pre=importo_precedente if differenza >= 0 else None,
             saldo_destinazione_post=importo_nuovo if differenza >= 0 else None,
             note=note,
-            operatore=operatore
+            operatore_id=operatore.id
         )
+        
+        db.save_object(movimento)
+        return movimento
 
     @classmethod
     def registra_giroconto(cls, conto_origine, conto_destinazione, importo, operatore, note=None):
         """Registra un giroconto tra due conti"""
+        from .database_utils import DatabaseManager
+        
         if importo <= 0:
             raise ValueError("L'importo deve essere positivo")
 
+        db = DatabaseManager(operatore)
+        
         # Salva i saldi precedenti
         saldo_origine_pre = conto_origine.saldo
         saldo_destinazione_pre = conto_destinazione.saldo
@@ -538,12 +597,12 @@ class MovimentoConti(MultiDatabaseMixin, models.Model):
         conto_origine.saldo -= importo
         conto_destinazione.saldo += importo
 
-        # Salva i conti
-        conto_origine.save()
-        conto_destinazione.save()
+        # Salva i conti nel database corretto
+        db.save_object(conto_origine)
+        db.save_object(conto_destinazione)
 
         # Registra il movimento
-        return cls.objects.create(
+        movimento = cls(
             tipo='giroconto',
             importo=importo,
             conto_origine=conto_origine,
@@ -553,27 +612,52 @@ class MovimentoConti(MultiDatabaseMixin, models.Model):
             saldo_destinazione_pre=saldo_destinazione_pre,
             saldo_destinazione_post=conto_destinazione.saldo,
             note=note,
-            operatore=operatore
+            operatore_id=operatore.id
         )
+        
+        db.save_object(movimento)
+        return movimento
 
-    def delete(self, *args, **kwargs):
+    def delete(self, user=None, *args, **kwargs):
         """Override delete to revert account balances"""
+        from .database_utils import DatabaseManager
+        
         # Ripristina i saldi precedenti quando si elimina un movimento
-        if self.tipo == 'giroconto':
-            if self.conto_origine and self.saldo_origine_pre is not None:
-                self.conto_origine.saldo = self.saldo_origine_pre
-                self.conto_origine.save()
-            if self.conto_destinazione and self.saldo_destinazione_pre is not None:
-                self.conto_destinazione.saldo = self.saldo_destinazione_pre
-                self.conto_destinazione.save()
-        elif self.tipo == 'modifica':
-            # Per le modifiche dirette, ripristina il saldo precedente
-            if self.conto_origine and self.saldo_origine_pre is not None:
-                self.conto_origine.saldo = self.saldo_origine_pre
-                self.conto_origine.save()
-            elif self.conto_destinazione and self.saldo_destinazione_pre is not None:
-                self.conto_destinazione.saldo = self.saldo_destinazione_pre
-                self.conto_destinazione.save()
+        if user:
+            db = DatabaseManager(user)
+            
+            if self.tipo == 'giroconto':
+                if self.conto_origine and self.saldo_origine_pre is not None:
+                    self.conto_origine.saldo = self.saldo_origine_pre
+                    db.save_object(self.conto_origine)
+                if self.conto_destinazione and self.saldo_destinazione_pre is not None:
+                    self.conto_destinazione.saldo = self.saldo_destinazione_pre
+                    db.save_object(self.conto_destinazione)
+            elif self.tipo == 'modifica':
+                # Per le modifiche dirette, ripristina il saldo precedente
+                if self.conto_origine and self.saldo_origine_pre is not None:
+                    self.conto_origine.saldo = self.saldo_origine_pre
+                    db.save_object(self.conto_origine)
+                elif self.conto_destinazione and self.saldo_destinazione_pre is not None:
+                    self.conto_destinazione.saldo = self.saldo_destinazione_pre
+                    db.save_object(self.conto_destinazione)
+        else:
+            # Fallback per compatibilità
+            if self.tipo == 'giroconto':
+                if self.conto_origine and self.saldo_origine_pre is not None:
+                    self.conto_origine.saldo = self.saldo_origine_pre
+                    self.conto_origine.save()
+                if self.conto_destinazione and self.saldo_destinazione_pre is not None:
+                    self.conto_destinazione.saldo = self.saldo_destinazione_pre
+                    self.conto_destinazione.save()
+            elif self.tipo == 'modifica':
+                # Per le modifiche dirette, ripristina il saldo precedente
+                if self.conto_origine and self.saldo_origine_pre is not None:
+                    self.conto_origine.saldo = self.saldo_origine_pre
+                    self.conto_origine.save()
+                elif self.conto_destinazione and self.saldo_destinazione_pre is not None:
+                    self.conto_destinazione.saldo = self.saldo_destinazione_pre
+                    self.conto_destinazione.save()
         
         super().delete(*args, **kwargs)
 
@@ -602,13 +686,22 @@ class BilancioPeriodico(MultiDatabaseMixin, models.Model):
     def __str__(self):
         return f"Bilancio del {self.data_riferimento.strftime('%d/%m/%Y %H:%M')}"
 
-    @property
-    def differenza_precedente(self):
+    def differenza_precedente(self, user=None):
         """Calcola la differenza rispetto al bilancio precedente"""
+        from decimal import Decimal
+        from .database_utils import DatabaseManager
+        
         try:
-            precedente = BilancioPeriodico.objects.filter(
-                data_riferimento__lt=self.data_riferimento
-            ).latest('data_riferimento')
+            if user:
+                db = DatabaseManager(user)
+                precedente = db.get_queryset(BilancioPeriodico).filter(
+                    data_riferimento__lt=self.data_riferimento
+                ).latest('data_riferimento')
+            else:
+                # Fallback per compatibilità
+                precedente = BilancioPeriodico.objects.filter(
+                    data_riferimento__lt=self.data_riferimento
+                ).latest('data_riferimento')
             return self.saldo_totale - precedente.saldo_totale
         except BilancioPeriodico.DoesNotExist:
             return Decimal('0.00')
@@ -627,19 +720,22 @@ class BilancioPeriodico(MultiDatabaseMixin, models.Model):
     @classmethod
     def crea_bilancio(cls, user, note=None):
         """Crea un nuovo bilancio con i saldi correnti"""
+        from .database_utils import DatabaseManager
+        
         # Calcola i saldi per ogni tipo di conto
         saldi = {}
         for tipo, _ in ContoFinanziario.TIPO_CHOICES:
-            saldi[f'saldo_{tipo}'] = ContoFinanziario.calcola_saldo_per_tipo(tipo)
+            saldi[f'saldo_{tipo}'] = ContoFinanziario.calcola_saldo_per_tipo(user, tipo)
 
         # Calcola il saldo totale
-        saldo_totale = ContoFinanziario.calcola_saldo_totale()
+        saldo_totale = ContoFinanziario.calcola_saldo_totale(user)
 
         # Aggiorna anche con il saldo clienti dal modello Cliente
-        saldo_clienti_model = Cliente.calcola_saldo_complessivo()
+        saldo_clienti_model = Cliente.calcola_saldo_complessivo(user)
 
-        # Crea il nuovo bilancio
-        return cls.objects.create(
+        # Crea il nuovo bilancio nel database dell'utente
+        db = DatabaseManager(user)
+        bilancio = cls(
             saldo_totale=saldo_totale,
             saldo_clienti=saldi['saldo_clienti'] or saldo_clienti_model,  # Usa uno dei due valori
             saldo_online=saldi['saldo_online'],
@@ -652,8 +748,11 @@ class BilancioPeriodico(MultiDatabaseMixin, models.Model):
             saldo_versamenti=saldi['saldo_versamenti'],
             saldo_altro=saldi.get('saldo_altro', 0),
             note=note,
-            creato_da=user
+            creato_da_id=user.id
         )
+        
+        db.save_object(bilancio)
+        return bilancio
 
 
 class ActivityLog(MultiDatabaseMixin, models.Model):
@@ -735,6 +834,9 @@ class ActivityLog(MultiDatabaseMixin, models.Model):
                 description = f"Riapertura di {obj._meta.verbose_name} #{obj.pk}"
 
         # Crea e salva il log
+        from .database_utils import DatabaseManager
+        from django.contrib.contenttypes.models import ContentType
+        
         log = cls(
             user=user,
             action=action,
@@ -744,6 +846,9 @@ class ActivityLog(MultiDatabaseMixin, models.Model):
             content_type=ContentType.objects.get_for_model(obj),
             object_id=obj.pk
         )
-        log.save()
+        
+        # Usa DatabaseManager per salvare nel database corretto
+        db = DatabaseManager(user)
+        db.save_object(log)
 
         return log

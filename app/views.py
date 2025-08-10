@@ -57,7 +57,7 @@ def dashboard(request):
     
     # Assicuriamoci che tutti i saldi siano aggiornati
     for cliente in db.get_queryset(Cliente):
-        cliente.aggiorna_saldo()
+        cliente.aggiorna_saldo(user=request.user)
 
     # Recupera i clienti con fido superato (saldo negativo che supera il fido massimo in valore assoluto)
     clienti_fido_superato = db.get_queryset(Cliente).filter(saldo__lt=0).filter(saldo__lt=-F('fido_massimo'))
@@ -84,12 +84,12 @@ def dashboard(request):
 
     # Recupera statistiche generali
     totale_clienti = db.get_queryset(Cliente).count()
-    saldo_complessivo = Cliente.calcola_saldo_complessivo()
+    saldo_complessivo = Cliente.calcola_saldo_complessivo(request.user)
     
     # Aggiorna automaticamente il saldo della cassa dalle distinte e recupera il valore
     try:
         # Prima aggiorna il saldo della cassa basandosi sulle distinte verificate
-        ContoFinanziario.aggiorna_saldo_cassa_da_distinte()
+        ContoFinanziario.aggiorna_saldo_cassa_da_distinte(request.user)
         
         # Poi recupera il saldo aggiornato
         conto_cassa = db.get_queryset(ContoFinanziario).get(tipo='cassa', nome='Cassa Agenzia')
@@ -134,7 +134,7 @@ def lista_clienti(request):
     
     # Aggiorna i saldi di tutti i clienti
     for cliente in db.get_queryset(Cliente):
-        cliente.aggiorna_saldo()
+        cliente.aggiorna_saldo(user=request.user)
 
     clienti = db.get_queryset(Cliente)
 
@@ -171,10 +171,23 @@ def dettaglio_cliente(request, pk):
     cliente = db.get_object_or_404(Cliente, pk=pk)
 
     # Aggiorna il saldo del cliente
-    cliente.aggiorna_saldo()
+    cliente.aggiorna_saldo(user=request.user)
 
-    # Recupera i movimenti del cliente
-    movimenti = cliente.movimenti.all().order_by('-data')[:20]
+    # Recupera i movimenti del cliente con saldo progressivo
+    # Prima otteniamo tutti i movimenti in ordine cronologico crescente per calcolare il saldo progressivo
+    tutti_movimenti = cliente.movimenti.all().order_by('data', 'id')
+    
+    # Calcola il saldo progressivo per ogni movimento
+    movimenti_con_saldo = []
+    saldo_progressivo = 0
+    
+    for movimento in tutti_movimenti:
+        saldo_progressivo += movimento.importo
+        movimento.saldo_progressivo = saldo_progressivo
+        movimenti_con_saldo.append(movimento)
+    
+    # Prende gli ultimi 20 movimenti in ordine cronologico decrescente
+    movimenti = list(reversed(movimenti_con_saldo[-20:]))
 
     # Recupera le comunicazioni del cliente
     comunicazioni = cliente.comunicazioni.all().order_by('-data')[:10]
@@ -200,7 +213,7 @@ def nuovo_cliente(request):
         form = ClienteForm(request.POST, user=request.user)
         if form.is_valid():
             cliente = form.save(commit=False)
-            cliente.creato_da = request.user
+            cliente.creato_da_id = request.user.id
             
             # Determina il database corretto in base all'agenzia dell'utente
             try:
@@ -219,14 +232,15 @@ def nuovo_cliente(request):
 
 @login_required
 def modifica_cliente(request, pk):
-    cliente = get_object_or_404(Cliente, pk=pk)
+    db = DatabaseManager(request.user)
+    cliente = get_object_or_404(db.get_queryset(Cliente), pk=pk)
     
     if request.method == 'POST':
         form = ClienteForm(request.POST, instance=cliente, user=request.user)
         if form.is_valid():
             cliente = form.save(commit=False)
-            cliente.modificato_da = request.user
-            cliente.save()
+            cliente.modificato_da_id = request.user.id
+            db.save_object(cliente)
             messages.success(request, f'Cliente {cliente.nome_completo} aggiornato con successo!')
             return redirect('dettaglio_cliente', pk=cliente.pk)
     else:
@@ -243,7 +257,7 @@ def lista_movimenti(request):
     
     # Aggiorna i saldi di tutti i clienti prima di mostrare i movimenti
     for cliente in db.get_queryset(Cliente):
-        cliente.aggiorna_saldo()
+        cliente.aggiorna_saldo(user=request.user)
 
     # Ottieni tutti i movimenti con relazioni precaricate
     movimenti = db.get_queryset(
@@ -258,7 +272,7 @@ def lista_movimenti(request):
     ).exists()
 
     # Prepara il form di filtro
-    form_filtro = FiltroMovimentiForm(request.GET)
+    form_filtro = FiltroMovimentiForm(request.GET, user=request.user)
     
     # Applica i filtri se il form è valido
     if form_filtro.is_valid():
@@ -304,10 +318,11 @@ def lista_movimenti(request):
 
 @login_required
 def nuovo_movimento(request):
+    db = DatabaseManager(request.user)
     user_db = get_user_database(request.user)
     # Verifica se esiste una distinta aperta
     try:
-        distinta = DistintaCassa.objects.using(user_db).filter(
+        distinta = db.get_queryset(DistintaCassa).filter(
             operatore=request.user,
             stato='aperta'
         ).latest('data', 'ora_inizio')
@@ -319,18 +334,18 @@ def nuovo_movimento(request):
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     if request.method == 'POST':
-        form = MovimentoForm(request.POST, distinta=distinta)
+        form = MovimentoForm(request.POST, distinta=distinta, user=request.user)
         if form.is_valid():
             movimento = form.save(commit=False)
             movimento.distinta = distinta
-            movimento.creato_da = request.user
+            movimento.creato_da_id = request.user.id
 
             # Salva la nota dal campo manuale
             if request.POST.get('note'):
                 movimento.note = request.POST.get('note')
 
             # Salva il movimento
-            movimento.save()
+            db.save_object(movimento)
 
             # Registra l'azione nei log
             # Crea un dizionario con i dati del movimento per il log
@@ -352,7 +367,7 @@ def nuovo_movimento(request):
 
             # Aggiorna il saldo del cliente
             cliente = movimento.cliente
-            cliente.aggiorna_saldo()
+            cliente.aggiorna_saldo(user=request.user)
 
             success_message = f'Movimento {movimento.get_tipo_display()} di {abs(movimento.importo)} € per {movimento.cliente} registrato!'
 
@@ -402,7 +417,7 @@ def nuovo_movimento(request):
                 # Redirect alla pagina della distinta con parametro per aprire il form
                 return redirect(reverse('dettaglio_distinta', args=[distinta.pk]) + '?apri_form=1')
     else:
-        form = MovimentoForm(distinta=distinta)
+        form = MovimentoForm(distinta=distinta, user=request.user)
 
     context = {
         'form': form,
@@ -619,11 +634,11 @@ def modifica_movimento(request, pk):
             'saldato': movimento.saldato
         }
         
-        form = MovimentoForm(request.POST, instance=movimento, distinta=movimento.distinta)
+        form = MovimentoForm(request.POST, instance=movimento, distinta=movimento.distinta, user=request.user)
         if form.is_valid():
             # Salva il movimento aggiornato
             movimento = form.save(commit=False)
-            movimento.modificato_da = request.user
+            movimento.modificato_da_id = request.user.id
 
             # Imposta manualmente l'importo con il segno corretto per non modificarlo nel save
             from decimal import Decimal
@@ -639,7 +654,7 @@ def modifica_movimento(request, pk):
             if form.cleaned_data.get('note'):
                 movimento.note = form.cleaned_data['note']
 
-            movimento.save()
+            db.save_object(movimento)
 
             # Raccoglie i dati dopo la modifica per il log
             movimento_after = {
@@ -669,7 +684,7 @@ def modifica_movimento(request, pk):
     else:
         # Per il form, usiamo l'importo in valore assoluto
         movimento.importo = abs(movimento.importo)
-        form = MovimentoForm(instance=movimento, distinta=movimento.distinta)
+        form = MovimentoForm(instance=movimento, distinta=movimento.distinta, user=request.user)
 
     context = {
         'form': form,
@@ -718,7 +733,7 @@ def elimina_movimento(request, pk):
         )
 
         # Elimina il movimento (il metodo delete già aggiorna il saldo considerando solo i movimenti non saldati)
-        movimento.delete()
+        movimento.delete(user=request.user)
         messages.success(request, 'Movimento eliminato con successo!')
         return redirect('lista_movimenti')
     
@@ -732,11 +747,12 @@ def elimina_movimento(request, pk):
 # Gestione Distinte di Cassa
 @login_required
 def lista_distinte(request):
+    db = DatabaseManager(request.user)
     user_db = get_user_database(request.user)
-    distinte = DistintaCassa.objects.using(user_db).all()
+    distinte = db.get_queryset(DistintaCassa).all()
     
     # Prepara il form di filtro
-    form_filtro = FiltroDistinteForm(request.GET)
+    form_filtro = FiltroDistinteForm(request.GET, user=request.user)
     
     # Applica i filtri se il form è valido
     if form_filtro.is_valid():
@@ -816,7 +832,7 @@ def dettaglio_distinta(request, pk):
     cliente_selezionato = None
 
     if distinta.stato == 'aperta' and (distinta.operatore == request.user or is_admin(request.user)):
-        form_movimento = MovimentoForm(distinta=distinta)
+        form_movimento = MovimentoForm(distinta=distinta, user=request.user)
 
         # Gestisci la selezione del cliente per vedere i movimenti da saldare
         cliente_id = request.GET.get('cliente')
@@ -885,9 +901,9 @@ def nuova_distinta(request):
         form = DistintaCassaForm(request.POST, user=request.user)
         if form.is_valid():
             distinta = form.save(commit=False)
-            distinta.operatore = request.user
+            distinta.operatore_id = request.user.id
             distinta.data = timezone.now().date()
-            distinta.ora_inizio = timezone.now().time()
+            distinta.ora_inizio = timezone.localtime(timezone.now()).time()
             distinta.stato = 'aperta'
 
             # Recupera i dati dal form
@@ -901,13 +917,13 @@ def nuova_distinta(request):
 
             # Salva il valore della cassa iniziale
             distinta.cassa_iniziale = cassa_iniziale
-            distinta.save()
+            db.save_object(distinta)
 
             # Aggiorna il saldo del conto cassa
             saldo_precedente = conto_cassa.saldo
             conto_cassa.saldo -= cassa_iniziale
-            conto_cassa.modificato_da = request.user
-            conto_cassa.save()
+            conto_cassa.modificato_da_id = request.user.id
+            db.save_object(conto_cassa)
 
             # Registra il movimento nel registro movimenti conti
             MovimentoConti.registra_modifica_diretta(
@@ -943,7 +959,8 @@ def nuova_distinta(request):
 
 @login_required
 def chiudi_distinta(request, pk):
-    distinta = get_object_or_404(DistintaCassa, pk=pk)
+    db = DatabaseManager(request.user)
+    distinta = get_object_or_404(db.get_queryset(DistintaCassa), pk=pk)
 
     # Verifica autorizzazioni
     if distinta.operatore != request.user and not is_admin(request.user):
@@ -966,7 +983,7 @@ def chiudi_distinta(request, pk):
         form = ChiusuraDistintaForm(request.POST, instance=distinta)
         if form.is_valid():
             distinta = form.save(commit=False)
-            distinta.ora_fine = timezone.now().time()
+            distinta.ora_fine = timezone.localtime(timezone.now()).time()
             distinta.stato = 'chiusa'
 
             # Calcola la differenza di cassa
@@ -1020,14 +1037,14 @@ def chiudi_distinta(request, pk):
             }
 
             # Salva la distinta chiusa
-            distinta.save()
+            db.save_object(distinta)
 
             # Aggiorna il saldo del conto cassa con il valore della cassa finale
             if conto_cassa:
                 saldo_precedente = conto_cassa.saldo
                 conto_cassa.saldo += distinta.cassa_finale
-                conto_cassa.modificato_da = request.user
-                conto_cassa.save()
+                conto_cassa.modificato_da_id = request.user.id
+                db.save_object(conto_cassa)
 
                 # Registra il movimento nel registro movimenti conti
                 MovimentoConti.registra_modifica_diretta(
@@ -1118,7 +1135,8 @@ def chiudi_distinta(request, pk):
 @login_required
 @user_passes_test(is_manager_or_admin)
 def verifica_distinta(request, pk):
-    distinta = get_object_or_404(DistintaCassa, pk=pk)
+    db = DatabaseManager(request.user)
+    distinta = get_object_or_404(db.get_queryset(DistintaCassa), pk=pk)
 
     if distinta.stato != 'chiusa':
         messages.error(request, 'Questa distinta non può essere verificata.')
@@ -1128,10 +1146,8 @@ def verifica_distinta(request, pk):
         form = VerificaDistintaForm(request.POST, instance=distinta)
         if form.is_valid():
             distinta = form.save(commit=False)
-            distinta.stato = 'verificata'
-            distinta.verificata_da = request.user
-            distinta.data_verifica = timezone.now()
-            distinta.save()
+            # Use the model's verifica method for consistency
+            distinta.verifica(request.user)
 
             messages.success(request, f'Distinta N° {distinta.pk} verificata con successo!')
             return redirect('lista_distinte')
@@ -1149,7 +1165,8 @@ def verifica_distinta(request, pk):
 
 @login_required
 def riapri_distinta(request, pk):
-    distinta = get_object_or_404(DistintaCassa, pk=pk)
+    db = DatabaseManager(request.user)
+    distinta = get_object_or_404(db.get_queryset(DistintaCassa), pk=pk)
 
     # Verifica autorizzazioni
     can_reopen = False
@@ -1174,7 +1191,7 @@ def riapri_distinta(request, pk):
         # Riapri la distinta
         distinta.stato = 'aperta'
         distinta.ora_fine = None
-        distinta.save()
+        db.save_object(distinta)
 
         messages.success(request, f'Distinta N° {distinta.pk} riaperta con successo!')
         return redirect('dettaglio_distinta', pk=distinta.pk)
@@ -1208,7 +1225,7 @@ def bilancio_finanziario(request):
             messages.error(request, f'Errore nella creazione dei conti predefiniti: {str(e)}. Contatta l\'amministratore.')
 
     # Calcola il saldo attuale dei clienti
-    saldo_clienti_movimenti = Cliente.calcola_saldo_complessivo()
+    saldo_clienti_movimenti = Cliente.calcola_saldo_complessivo(request.user)
 
     # Aggiorna il saldo del conto clienti se esiste (invertendo il segno per il bilancio)
     try:
@@ -1216,8 +1233,8 @@ def bilancio_finanziario(request):
         saldo_clienti_bilancio = -saldo_clienti_movimenti  # Inverto il segno per il bilancio
         if conto_clienti and conto_clienti.saldo != saldo_clienti_bilancio:
             conto_clienti.saldo = saldo_clienti_bilancio
-            conto_clienti.modificato_da = request.user
-            conto_clienti.save()
+            conto_clienti.modificato_da_id = request.user.id
+            db.save_object(conto_clienti)
             messages.info(request, f'Saldo clienti aggiornato automaticamente: {saldo_clienti_bilancio} €')
     except ContoFinanziario.DoesNotExist:
         pass
@@ -1234,12 +1251,12 @@ def bilancio_finanziario(request):
     bilanci = db.get_queryset(BilancioPeriodico).all()[:10]
 
     # Calcola il saldo totale
-    saldo_totale = ContoFinanziario.calcola_saldo_totale()
+    saldo_totale = ContoFinanziario.calcola_saldo_totale(request.user)
 
     # Calcola saldi per tipo
     saldi_per_tipo = {}
     for tipo, nome in ContoFinanziario.TIPO_CHOICES:
-        saldi_per_tipo[tipo] = ContoFinanziario.calcola_saldo_per_tipo(tipo)
+        saldi_per_tipo[tipo] = ContoFinanziario.calcola_saldo_per_tipo(request.user, tipo)
 
     # Calcola nuovamente la differenza (che dovrebbe essere zero dopo l'aggiornamento)
     saldo_clienti_conti = saldi_per_tipo.get('clienti', 0)
@@ -1278,9 +1295,9 @@ def nuovo_conto(request):
         form = ContoFinanziarioForm(request.POST)
         if form.is_valid():
             conto = form.save(commit=False)
-            conto.creato_da = request.user
-            conto.modificato_da = request.user
-            conto.save()
+            conto.creato_da_id = request.user.id
+            conto.modificato_da_id = request.user.id
+            db.save_object(conto)
             messages.success(request, f'Conto "{conto.nome}" creato con successo!')
             return redirect('bilancio_finanziario')
     else:
@@ -1297,14 +1314,15 @@ def nuovo_conto(request):
 @user_passes_test(is_manager_or_admin)
 def modifica_conto(request, pk):
     """Modifica un conto finanziario esistente"""
-    conto = get_object_or_404(ContoFinanziario, pk=pk)
+    db = DatabaseManager(request.user)
+    conto = get_object_or_404(db.get_queryset(ContoFinanziario), pk=pk)
 
     if request.method == 'POST':
         form = ContoFinanziarioForm(request.POST, instance=conto)
         if form.is_valid():
             conto = form.save(commit=False)
-            conto.modificato_da = request.user
-            conto.save()
+            conto.modificato_da_id = request.user.id
+            db.save_object(conto)
             messages.success(request, f'Conto "{conto.nome}" aggiornato con successo!')
             return redirect('bilancio_finanziario')
     else:
@@ -1322,7 +1340,8 @@ def modifica_conto(request, pk):
 @user_passes_test(is_manager_or_admin)
 def modifica_saldo(request, pk):
     """Modifica il saldo di un conto finanziario"""
-    conto = get_object_or_404(ContoFinanziario, pk=pk)
+    db = DatabaseManager(request.user)
+    conto = get_object_or_404(db.get_queryset(ContoFinanziario), pk=pk)
 
     if request.method == 'POST':
         form = ModificaSaldoForm(request.POST)
@@ -1345,8 +1364,8 @@ def modifica_saldo(request, pk):
                 conto.saldo = importo
                 msg_op = f'impostato il saldo di {importo}€ per'
 
-            conto.modificato_da = request.user
-            conto.save()
+            conto.modificato_da_id = request.user.id
+            db.save_object(conto)
 
             # Registra il movimento nel database
             MovimentoConti.registra_modifica_diretta(
@@ -1374,7 +1393,8 @@ def modifica_saldo(request, pk):
 @user_passes_test(is_manager_or_admin)
 def elimina_conto(request, pk):
     """Elimina un conto finanziario"""
-    conto = get_object_or_404(ContoFinanziario, pk=pk)
+    db = DatabaseManager(request.user)
+    conto = get_object_or_404(db.get_queryset(ContoFinanziario), pk=pk)
     
     if request.method == 'POST':
         # Verifica se il conto ha dei movimenti associati
@@ -1493,13 +1513,14 @@ def lista_logs(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    # Lista di utenti per il filtro
-    users = User.objects.filter(activity_logs__isnull=False).distinct()
+    # Lista di utenti per il filtro - forza valutazione per evitare cross-database query
+    user_ids = list(db.get_queryset(ActivityLog).values_list('user_id', flat=True).distinct())
+    users = User.objects.filter(id__in=user_ids)
 
     # Lista di tipi di contenuto per il filtro
-    content_types = ContentType.objects.filter(
-        id__in = db.get_queryset(ActivityLog).values_list('content_type_id', flat=True).distinct()
-    )
+    # Forza la valutazione della query per evitare subquery cross-database
+    content_type_ids = list(db.get_queryset(ActivityLog).values_list('content_type_id', flat=True).distinct())
+    content_types = ContentType.objects.filter(id__in=content_type_ids)
 
     context = {
         'page_obj': page_obj,
@@ -1522,7 +1543,8 @@ def lista_logs(request):
 @user_passes_test(is_manager_or_admin)
 def dettaglio_log(request, pk):
     """Vista per visualizzare il dettaglio di un log"""
-    log = get_object_or_404(ActivityLog, pk=pk)
+    db = DatabaseManager(request.user)
+    log = get_object_or_404(db.get_queryset(ActivityLog), pk=pk)
 
     # Formatta i dati JSON per una migliore visualizzazione
     import json
@@ -1601,7 +1623,7 @@ def get_movimenti_cliente(request):
 def effettua_giroconto(request):
     """Effettua un giroconto tra due conti finanziari"""
     if request.method == 'POST':
-        form = GirocontoForm(request.POST)
+        form = GirocontoForm(request.POST, user=request.user)
         if form.is_valid():
             conto_origine = form.cleaned_data.get('conto_origine')
             conto_destinazione = form.cleaned_data.get('conto_destinazione')
@@ -1627,7 +1649,7 @@ def effettua_giroconto(request):
                 messages.error(request, str(e))
                 return redirect('effettua_giroconto')
     else:
-        form = GirocontoForm()
+        form = GirocontoForm(user=request.user)
 
     context = {
         'form': form,
@@ -1690,11 +1712,12 @@ def lista_movimenti_conti(request):
 @user_passes_test(is_manager_or_admin)
 def elimina_movimento_conti(request, pk):
     """Elimina un movimento tra conti"""
-    movimento = get_object_or_404(MovimentoConti, pk=pk)
+    db = DatabaseManager(request.user)
+    movimento = get_object_or_404(db.get_queryset(MovimentoConti), pk=pk)
     
     if request.method == 'POST':
         # Il metodo delete del modello si occuperà di ripristinare i saldi
-        movimento.delete()
+        movimento.delete(user=request.user)
         messages.success(request, f'Movimento eliminato con successo!')
         return redirect('lista_movimenti_conti')
     

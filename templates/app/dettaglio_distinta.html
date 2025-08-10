@@ -60,13 +60,19 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">Ora Inizio</label>
-                <div class="form-control-plaintext">{{ distinta.ora_inizio|localtime|time:"H:i" }}</div>
+                <div class="form-control-plaintext">
+                    {% if distinta.ora_inizio %}
+                        {{ distinta.ora_inizio|time:"H:i" }}
+                    {% else %}
+                        <span class="text-muted">Non disponibile</span>
+                    {% endif %}
+                </div>
             </div>
             <div class="col-md-2">
                 <label class="form-label">Ora Fine</label>
                 <div class="form-control-plaintext">
                     {% if distinta.ora_fine %}
-                    {{ distinta.ora_fine|localtime|time:"H:i" }}
+                    {{ distinta.ora_fine|time:"H:i" }}
                     {% else %}
                     <span class="text-muted">-</span>
                     {% endif %}

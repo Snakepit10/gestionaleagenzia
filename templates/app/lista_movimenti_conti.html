@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
+{% load app_filters %}
 
 {% block title %}Movimenti tra Conti - Gestionale Agenzia{% endblock %}
 
@@ -121,7 +122,15 @@
                                 <i class="fas fa-info-circle text-muted"></i>
                             </span>
                             {% else %}
-                            -
+                                {% with distinta_num=movimento.note|extract_distinta_number %}
+                                    {% if distinta_num and "Versamento" in movimento.note|default:"" %}
+                                        <a href="{% url 'dettaglio_distinta' distinta_num %}" class="badge bg-info text-decoration-none" title="Movimento da Distinta">
+                                            Distinta #{{ distinta_num }}
+                                        </a>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                {% endwith %}
                             {% endif %}
                         </td>
                         <td>
@@ -131,7 +140,15 @@
                                 <i class="fas fa-info-circle text-muted"></i>
                             </span>
                             {% else %}
-                            -
+                                {% with distinta_num=movimento.note|extract_distinta_number %}
+                                    {% if distinta_num and "Prelievo" in movimento.note|default:"" %}
+                                        <a href="{% url 'dettaglio_distinta' distinta_num %}" class="badge bg-info text-decoration-none" title="Movimento per Distinta">
+                                            Distinta #{{ distinta_num }}
+                                        </a>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                {% endwith %}
                             {% endif %}
                         </td>
                         <td>{{ movimento.operatore.username }}</td>

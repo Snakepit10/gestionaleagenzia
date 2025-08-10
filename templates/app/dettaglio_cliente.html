@@ -204,7 +204,9 @@
                         <th>Data</th>
                         <th>Saldato</th>
                         <th>Distinta</th>
-                        <th>Operatore</th>
+                        <th>Creato da</th>
+                        <th>Ultima modifica</th>
+                        <th>Saldo</th>
                         <th>Azioni</th>
                     </tr>
                 </thead>
@@ -232,7 +234,21 @@
                                 #{{ movimento.distinta.id }}
                             {% endif %}
                         </td>
-                        <td>{{ movimento.creato_da.username }}</td>
+                        <td>
+                            {{ movimento.creato_da.username|default:"-" }}
+                            <br><small class="text-muted">{{ movimento.data_creazione|date:"d/m H:i" }}</small>
+                        </td>
+                        <td>
+                            {% if movimento.modificato_da %}
+                                {{ movimento.modificato_da.username }}
+                                <br><small class="text-muted">{{ movimento.data_modifica|date:"d/m H:i" }}</small>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="fw-bold {% if movimento.saldo_progressivo < 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ movimento.saldo_progressivo|floatformat:2 }} €
+                        </td>
                         <td>
                             <a href="{% url 'dettaglio_movimento' movimento.id %}" class="btn btn-sm btn-info" title="Visualizza Dettagli">
                                 <i class="fas fa-eye"></i>

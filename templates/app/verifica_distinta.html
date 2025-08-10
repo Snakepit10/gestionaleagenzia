@@ -34,10 +34,10 @@
                     <strong>Data:</strong> {{ distinta.data|date:"d/m/Y" }}
                 </div>
                 <div class="col-md-3">
-                    <strong>Ora Apertura:</strong> {{ distinta.ora_inizio|localtime|time:"H:i" }}
+                    <strong>Ora Apertura:</strong> {{ distinta.ora_inizio|time:"H:i" }}
                 </div>
                 <div class="col-md-3">
-                    <strong>Ora Chiusura:</strong> {{ distinta.ora_fine|localtime|time:"H:i" }}
+                    <strong>Ora Chiusura:</strong> {{ distinta.ora_fine|time:"H:i" }}
                 </div>
             </div>
         </div>
