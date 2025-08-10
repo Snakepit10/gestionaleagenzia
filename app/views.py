@@ -95,11 +95,12 @@ def dashboard(request):
         saldo_cassa_agenzia = conto_cassa.saldo
     except ContoFinanziario.DoesNotExist:
         # Se il conto non esiste, crealo automaticamente
-        ContoFinanziario.crea_conti_default(request.user)
         try:
+            ContoFinanziario.crea_conti_default(request.user)
             conto_cassa = ContoFinanziario.objects.get(tipo='cassa', nome='Cassa Agenzia')
             saldo_cassa_agenzia = conto_cassa.saldo
-        except ContoFinanziario.DoesNotExist:
+        except Exception as e:
+            messages.error(request, f'Errore nella creazione dei conti predefiniti: {str(e)}. Contatta l\'amministratore.')
             saldo_cassa_agenzia = 0
 
     # Recupera l'ultima distinta aperta dall'operatore corrente
