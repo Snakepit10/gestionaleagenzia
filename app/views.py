@@ -52,22 +52,22 @@ def dashboard(request):
         messages.error(request, 'Non sei autorizzato ad accedere alla dashboard.')
         return redirect('home')
     
-    # Ottieni il database dell'agenzia dell'utente
-    user_db = get_user_database(request.user)
+    # Usa il nuovo DatabaseManager
+    db = DatabaseManager(request.user)
     
     # Assicuriamoci che tutti i saldi siano aggiornati
-    for cliente in Cliente.objects.using(user_db).all():
-        cliente.aggiorna_saldo(using=user_db)
+    for cliente in db.get_queryset(Cliente):
+        cliente.aggiorna_saldo()
 
     # Recupera i clienti con fido superato (saldo negativo che supera il fido massimo in valore assoluto)
-    clienti_fido_superato = Cliente.objects.using(user_db).filter(saldo__lt=0).filter(saldo__lt=-F('fido_massimo'))
+    clienti_fido_superato = db.get_queryset(Cliente).filter(saldo__lt=0).filter(saldo__lt=-F('fido_massimo'))
 
     # Recupera i clienti con saldo negativo in ritardo da più di 3 giorni
     from datetime import timedelta
     data_limite = timezone.now() - timedelta(days=3)
     
     clienti_in_ritardo = []
-    for cliente in Cliente.objects.filter(saldo__lt=0):
+    for cliente in db.get_queryset(Cliente).filter(saldo__lt=0):
         # Trova l'ultimo movimento non saldato del cliente
         ultimo_movimento = cliente.movimenti.filter(saldato=False).order_by('-data').first()
         if ultimo_movimento:
@@ -80,10 +80,10 @@ def dashboard(request):
                 })
 
     # Recupera le distinte in attesa di verifica
-    distinte_da_verificare = DistintaCassa.objects.filter(stato='chiusa')
+    distinte_da_verificare = db.get_queryset(DistintaCassa).filter(stato='chiusa')
 
     # Recupera statistiche generali
-    totale_clienti = Cliente.objects.count()
+    totale_clienti = db.get_queryset(Cliente).count()
     saldo_complessivo = Cliente.calcola_saldo_complessivo()
     
     # Aggiorna automaticamente il saldo della cassa dalle distinte e recupera il valore
@@ -92,13 +92,13 @@ def dashboard(request):
         ContoFinanziario.aggiorna_saldo_cassa_da_distinte()
         
         # Poi recupera il saldo aggiornato
-        conto_cassa = ContoFinanziario.objects.get(tipo='cassa', nome='Cassa Agenzia')
+        conto_cassa = db.get_queryset(ContoFinanziario).get(tipo='cassa', nome='Cassa Agenzia')
         saldo_cassa_agenzia = conto_cassa.saldo
     except ContoFinanziario.DoesNotExist:
         # Se il conto non esiste, crealo automaticamente
         try:
             ContoFinanziario.crea_conti_default(request.user)
-            conto_cassa = ContoFinanziario.objects.get(tipo='cassa', nome='Cassa Agenzia')
+            conto_cassa = db.get_queryset(ContoFinanziario).get(tipo='cassa', nome='Cassa Agenzia')
             saldo_cassa_agenzia = conto_cassa.saldo
         except Exception as e:
             messages.error(request, f'Errore nella creazione dei conti predefiniti: {str(e)}. Contatta l\'amministratore.')
@@ -106,7 +106,7 @@ def dashboard(request):
 
     # Recupera l'ultima distinta aperta dall'operatore corrente
     try:
-        distinta_corrente = DistintaCassa.objects.filter(
+        distinta_corrente = db.get_queryset(DistintaCassa).filter(
             operatore=request.user,
             stato='aperta'
         ).latest('data', 'ora_inizio')
@@ -129,14 +129,14 @@ def dashboard(request):
 # Gestione Clienti
 @login_required
 def lista_clienti(request):
-    # Ottieni il database dell'agenzia dell'utente
-    user_db = get_user_database(request.user)
+    # Usa il nuovo DatabaseManager
+    db = DatabaseManager(request.user)
     
     # Aggiorna i saldi di tutti i clienti
-    for cliente in Cliente.objects.using(user_db).all():
-        cliente.aggiorna_saldo(using=user_db)
+    for cliente in db.get_queryset(Cliente):
+        cliente.aggiorna_saldo()
 
-    clienti = Cliente.objects.using(user_db).all()
+    clienti = db.get_queryset(Cliente)
 
     # Filtraggio clienti
     filtro_nome = request.GET.get('nome', '')
@@ -166,11 +166,12 @@ def lista_clienti(request):
 
 @login_required
 def dettaglio_cliente(request, pk):
-    user_db = get_user_database(request.user)
-    cliente = get_object_or_404(Cliente.objects.using(user_db), pk=pk)
+    # Usa il nuovo DatabaseManager
+    db = DatabaseManager(request.user)
+    cliente = db.get_object_or_404(Cliente, pk=pk)
 
     # Aggiorna il saldo del cliente
-    cliente.aggiorna_saldo(using=user_db)
+    cliente.aggiorna_saldo()
 
     # Recupera i movimenti del cliente
     movimenti = cliente.movimenti.all().order_by('-data')[:20]
@@ -179,7 +180,7 @@ def dettaglio_cliente(request, pk):
     comunicazioni = cliente.comunicazioni.all().order_by('-data')[:10]
 
     # Verifica se c'è una distinta aperta per la funzionalità saldo
-    distinta_aperta = DistintaCassa.objects.using(user_db).filter(
+    distinta_aperta = db.get_queryset(DistintaCassa).filter(
         operatore=request.user,
         stato='aperta'
     ).exists()
@@ -351,7 +352,7 @@ def nuovo_movimento(request):
 
             # Aggiorna il saldo del cliente
             cliente = movimento.cliente
-            cliente.aggiorna_saldo(using=user_db)
+            cliente.aggiorna_saldo()
 
             success_message = f'Movimento {movimento.get_tipo_display()} di {abs(movimento.importo)} € per {movimento.cliente} registrato!'
 
