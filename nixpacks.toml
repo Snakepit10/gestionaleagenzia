@@ -5,5 +5,13 @@ cmds = [
     "python manage.py collectstatic --noinput"
 ]
 
+[phases.deploy]
+cmds = [
+    "python manage.py migrate --noinput",
+    "python manage.py migrate --database=goldbet_db --noinput",
+    "python manage.py migrate --database=better_db --noinput",
+    "python manage.py setup_agenzie --create-agenzie --create-users"
+]
+
 [start]
 cmd = "gunicorn agenzia.wsgi --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-level info"
