@@ -3,3 +3,11 @@ cmds = [
     "python -m pip install --upgrade pip",
     "python -m pip install -r requirements.txt"
 ]
+
+[phases.setup]
+cmds = [
+    "python manage.py collectstatic --noinput"
+]
+
+[start]
+cmd = "gunicorn agenzia.wsgi --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-level info"
