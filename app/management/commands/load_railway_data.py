@@ -53,6 +53,26 @@ class Command(BaseCommand):
             self.stdout.write(f"🔄 Caricando dati in {db_name} da {filename}...")
             
             try:
+                # Prova a correggere l'encoding del file
+                self.stdout.write(f"🔧 Correggendo encoding del file...")
+                with open(filepath, 'rb') as f:
+                    content = f.read()
+                
+                # Prova diversi encoding
+                for encoding in ['utf-8', 'latin-1', 'cp1252']:
+                    try:
+                        decoded_content = content.decode(encoding)
+                        # Risalva con UTF-8
+                        temp_filepath = f"{filepath}.utf8"
+                        with open(temp_filepath, 'w', encoding='utf-8') as f:
+                            f.write(decoded_content)
+                        
+                        self.stdout.write(f"✅ File corretto con encoding {encoding}")
+                        filepath = temp_filepath
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                
                 # Carica i dati nel database specifico
                 management.call_command(
                     'loaddata',

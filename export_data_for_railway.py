@@ -23,8 +23,8 @@ def export_database_data():
         output_file = f"railway_data_{db_name}.json"
         
         try:
-            # Esporta tutti i dati del database
-            with open(output_file, 'w') as f:
+            # Esporta tutti i dati del database con encoding UTF-8 esplicito
+            with open(output_file, 'w', encoding='utf-8') as f:
                 management.call_command(
                     'dumpdata',
                     '--database', db_name,
@@ -33,7 +33,7 @@ def export_database_data():
                     '--indent', '2',
                     stdout=f
                 )
-            print(f"✅ Dati esportati in {output_file}")
+            print(f"✅ Dati esportati in {output_file} con encoding UTF-8")
             
         except Exception as e:
             print(f"❌ Errore esportando {db_name}: {e}")
