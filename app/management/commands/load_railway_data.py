@@ -53,37 +53,50 @@ class Command(BaseCommand):
             self.stdout.write(f"🔄 Caricando dati in {db_name} da {filename}...")
             
             try:
-                # Prova a correggere l'encoding del file
-                self.stdout.write(f"🔧 Correggendo encoding del file...")
-                with open(filepath, 'rb') as f:
-                    content = f.read()
+                # Gestione corretta dell'encoding con JSON
+                self.stdout.write(f"🔧 Correggendo encoding del file JSON...")
                 
-                # Prova diversi encoding
+                import json
+                import codecs
+                
+                # Prova diversi encoding per leggere il file
+                data = None
+                successful_encoding = None
+                
                 for encoding in ['utf-8', 'latin-1', 'cp1252']:
                     try:
-                        decoded_content = content.decode(encoding)
-                        # Risalva con UTF-8 mantenendo estensione .json
-                        temp_filepath = f"{filepath}.tmp"
-                        with open(temp_filepath, 'w', encoding='utf-8') as f:
-                            f.write(decoded_content)
-                        
-                        # Rinomina mantenendo l'estensione originale
-                        import os
-                        import shutil
-                        shutil.move(temp_filepath, filepath)
-                        
-                        self.stdout.write(f"✅ File corretto con encoding {encoding}")
+                        with codecs.open(filepath, 'r', encoding=encoding) as f:
+                            data = json.load(f)
+                        successful_encoding = encoding
+                        self.stdout.write(f"✅ File letto correttamente con encoding {encoding}")
                         break
-                    except UnicodeDecodeError:
+                    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+                        self.stdout.write(f"⚠️ Encoding {encoding} fallito: {e}")
                         continue
                 
-                # Carica i dati nel database specifico
+                if data is None:
+                    raise Exception("Impossibile leggere il file con nessun encoding")
+                
+                # Salva il file con UTF-8 corretto
+                temp_filepath = filepath.replace('.json', '_clean.json')
+                with open(temp_filepath, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                
+                self.stdout.write(f"✅ File risalvato con UTF-8: {temp_filepath}")
+                
+                # Carica i dati nel database specifico con formato esplicito
                 management.call_command(
                     'loaddata',
-                    filepath,
-                    '--database', db_name,
+                    temp_filepath,
+                    format='json',  # Specifica esplicitamente il formato
+                    database=db_name,
                     verbosity=2
                 )
+                
+                # Pulisci il file temporaneo
+                import os
+                os.remove(temp_filepath)
+                
                 self.stdout.write(f"✅ Dati caricati con successo in {db_name}")
                 
             except Exception as e:
