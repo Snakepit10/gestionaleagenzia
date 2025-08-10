@@ -1161,8 +1161,11 @@ def bilancio_finanziario(request):
     """Vista principale per il bilancio finanziario"""
     # Controlla se esistono i conti predefiniti, altrimenti li crea
     if ContoFinanziario.objects.count() == 0:
-        ContoFinanziario.crea_conti_default(request.user)
-        messages.success(request, 'Conti finanziari predefiniti creati con successo.')
+        try:
+            ContoFinanziario.crea_conti_default(request.user)
+            messages.success(request, 'Conti finanziari predefiniti creati con successo.')
+        except Exception as e:
+            messages.error(request, f'Errore nella creazione dei conti predefiniti: {str(e)}. Contatta l\'amministratore.')
 
     # Calcola il saldo attuale dei clienti
     saldo_clienti_movimenti = Cliente.calcola_saldo_complessivo()
