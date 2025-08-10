@@ -98,9 +98,13 @@
                             {% endif %}
                         </td>
                         <td>
-                            <a href="{% url 'dettaglio_distinta' movimento.distinta.id %}">
+                            {% if movimento.distinta.id %}
+                                <a href="{% url 'dettaglio_distinta' movimento.distinta.id %}">
+                                    #{{ movimento.distinta.id }}
+                                </a>
+                            {% else %}
                                 #{{ movimento.distinta.id }}
-                            </a>
+                            {% endif %}
                         </td>
                         <td>{{ movimento.creato_da.username }}</td>
                         <td>
