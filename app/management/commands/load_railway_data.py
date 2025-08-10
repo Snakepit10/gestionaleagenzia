@@ -62,13 +62,17 @@ class Command(BaseCommand):
                 for encoding in ['utf-8', 'latin-1', 'cp1252']:
                     try:
                         decoded_content = content.decode(encoding)
-                        # Risalva con UTF-8
-                        temp_filepath = f"{filepath}.utf8"
+                        # Risalva con UTF-8 mantenendo estensione .json
+                        temp_filepath = f"{filepath}.tmp"
                         with open(temp_filepath, 'w', encoding='utf-8') as f:
                             f.write(decoded_content)
                         
+                        # Rinomina mantenendo l'estensione originale
+                        import os
+                        import shutil
+                        shutil.move(temp_filepath, filepath)
+                        
                         self.stdout.write(f"✅ File corretto con encoding {encoding}")
-                        filepath = temp_filepath
                         break
                     except UnicodeDecodeError:
                         continue
