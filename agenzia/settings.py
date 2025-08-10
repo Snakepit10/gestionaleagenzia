@@ -105,8 +105,7 @@ else:
         'NAME': BASE_DIR / 'db_better.sqlite3',
     }
 
-# Router per database multi-tenant
-DATABASE_ROUTERS = ['agenzia.routers.AgenziaRouter']
+# Niente router automatico - gestiamo manualmente il database routing
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators

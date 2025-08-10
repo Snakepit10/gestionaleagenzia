@@ -5,6 +5,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from .database_utils import MultiDatabaseMixin
 
 
 class Agenzia(models.Model):
@@ -37,7 +38,7 @@ class ProfiloUtente(models.Model):
         return f"{self.user.username} - {self.agenzia.nome}"
 
 
-class Cliente(models.Model):
+class Cliente(MultiDatabaseMixin, models.Model):
     RATING_CHOICES = [
         ('A', 'Eccellente'),
         ('B', 'Buono'),
@@ -65,12 +66,13 @@ class Cliente(models.Model):
         from django.db.models import Sum
         return cls.objects.aggregate(total=Sum('saldo'))['total'] or 0
 
-    def aggiorna_saldo(self, using=None):
+    def aggiorna_saldo(self):
         """Ricalcola il saldo del cliente in base ai movimenti non saldati"""
         from django.db.models import Sum
+        # Il MultiDatabaseMixin si occupa automaticamente del database corretto
         movimenti_sum = self.movimenti.filter(saldato=False).aggregate(Sum('importo'))['importo__sum']
         self.saldo = movimenti_sum if movimenti_sum is not None else 0
-        self.save(update_fields=['saldo'], using=using)
+        self.save(update_fields=['saldo'])
     
     class Meta:
         verbose_name = "Cliente"
@@ -124,7 +126,7 @@ class Cliente(models.Model):
         return f"{self.cognome} {self.nome}"
 
 
-class DistintaCassa(models.Model):
+class DistintaCassa(MultiDatabaseMixin, models.Model):
     STATO_CHOICES = [
         ('aperta', 'Aperta'),
         ('chiusa', 'Chiusa'),
@@ -185,7 +187,7 @@ class DistintaCassa(models.Model):
         return self.movimenti.all()
 
 
-class Movimento(models.Model):
+class Movimento(MultiDatabaseMixin, models.Model):
     TIPO_CHOICES = [
         ('schedina', 'Schedina'),
         ('ricarica', 'Ricarica'),
@@ -236,9 +238,7 @@ class Movimento(models.Model):
         super().save(*args, **kwargs)
 
         # Aggiorniamo il saldo usando il metodo di ricalcolo completo
-        # Usa lo stesso database dell'oggetto corrente
-        using_db = kwargs.get('using') or self._state.db
-        self.cliente.aggiorna_saldo(using=using_db)
+        self.cliente.aggiorna_saldo()
     
     def salda(self, utente):
         """
@@ -317,21 +317,18 @@ class Movimento(models.Model):
         models.Model.save(self)
 
         # Aggiorna il saldo del cliente manualmente
-        # Usa lo stesso database dell'oggetto corrente
-        using_db = self._state.db
-        self.cliente.aggiorna_saldo(using=using_db)
+        self.cliente.aggiorna_saldo()
 
         return True
 
     def delete(self, *args, **kwargs):
         """Override delete to update cliente's saldo after deletion"""
         cliente = self.cliente
-        using_db = kwargs.get('using') or self._state.db
         super().delete(*args, **kwargs)
-        cliente.aggiorna_saldo(using=using_db)
+        cliente.aggiorna_saldo()
 
 
-class Comunicazione(models.Model):
+class Comunicazione(MultiDatabaseMixin, models.Model):
     TIPO_CHOICES = [
         ('avviso', 'Avviso'),
         ('sollecito', 'Sollecito'),
@@ -363,7 +360,7 @@ class Comunicazione(models.Model):
         self.save()
 
 
-class ContoFinanziario(models.Model):
+class ContoFinanziario(MultiDatabaseMixin, models.Model):
     TIPO_CHOICES = [
         ('cassa', 'Cassa'),
         ('banca', 'Conto Bancario'),
@@ -474,7 +471,7 @@ class ContoFinanziario(models.Model):
                 conto.save()
 
 
-class MovimentoConti(models.Model):
+class MovimentoConti(MultiDatabaseMixin, models.Model):
     TIPO_CHOICES = [
         ('deposito', 'Deposito'),
         ('prelievo', 'Prelievo'),
@@ -581,7 +578,7 @@ class MovimentoConti(models.Model):
         super().delete(*args, **kwargs)
 
 
-class BilancioPeriodico(models.Model):
+class BilancioPeriodico(MultiDatabaseMixin, models.Model):
     data_riferimento = models.DateTimeField(default=timezone.now)
     saldo_totale = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     saldo_clienti = models.DecimalField(max_digits=15, decimal_places=2, default=0)
@@ -659,7 +656,7 @@ class BilancioPeriodico(models.Model):
         )
 
 
-class ActivityLog(models.Model):
+class ActivityLog(MultiDatabaseMixin, models.Model):
     """
     Modello per registrare le attività e modifiche effettuate ai movimenti e alle distinte.
     Utilizza il sistema di contenttypes di Django per relazioni generiche.

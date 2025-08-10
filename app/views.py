@@ -12,6 +12,7 @@ from .models import (
     Cliente, Movimento, DistintaCassa, Comunicazione,
     ContoFinanziario, BilancioPeriodico, MovimentoConti, ActivityLog
 )
+from .database_utils import DatabaseManager, get_user_database, sync_user_to_agency_db
 from .forms import (ClienteForm, MovimentoForm, DistintaCassaForm, ChiusuraDistintaForm,
                    VerificaDistintaForm, ComunicazioneForm, FiltroMovimentiForm, FiltroDistinteForm,
                    ContoFinanziarioForm, ModificaSaldoForm, BilancioPeriodoForm, GirocontoForm)
@@ -236,17 +237,21 @@ def modifica_cliente(request, pk):
 # Gestione Movimenti
 @login_required
 def lista_movimenti(request):
-    # Ottieni il database dell'agenzia dell'utente
-    user_db = get_user_database(request.user)
+    # Usa il nuovo DatabaseManager per gestire tutto
+    db = DatabaseManager(request.user)
     
     # Aggiorna i saldi di tutti i clienti prima di mostrare i movimenti
-    for cliente in Cliente.objects.using(user_db).all():
-        cliente.aggiorna_saldo(using=user_db)
+    for cliente in db.get_queryset(Cliente):
+        cliente.aggiorna_saldo()
 
-    movimenti = Movimento.objects.using(user_db).select_related('cliente', 'distinta').filter(cliente__isnull=False, distinta__isnull=False)
+    # Ottieni tutti i movimenti con relazioni precaricate
+    movimenti = db.get_queryset(
+        Movimento, 
+        select_related=['cliente', 'distinta', 'creato_da']
+    )
 
     # Verifica se c'è una distinta aperta (per la funzionalità saldo)
-    distinta_aperta = DistintaCassa.objects.using(user_db).filter(
+    distinta_aperta = db.get_queryset(DistintaCassa).filter(
         operatore=request.user,
         stato='aperta'
     ).exists()
@@ -408,14 +413,18 @@ def nuovo_movimento(request):
 
 @login_required
 def salda_movimento(request, pk):
-    # Ottieni il database dell'agenzia dell'utente
-    user_db = get_user_database(request.user)
-    movimento = get_object_or_404(Movimento.objects.using(user_db).select_related('distinta', 'cliente'), pk=pk)
+    # Usa il nuovo DatabaseManager
+    db = DatabaseManager(request.user)
+    movimento = db.get_object_or_404(
+        Movimento,
+        select_related=['distinta', 'cliente'],
+        pk=pk
+    )
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     # Verifica se esiste una distinta aperta
     try:
-        distinta = DistintaCassa.objects.using(user_db).filter(
+        distinta = db.get_queryset(DistintaCassa).filter(
             operatore=request.user,
             stato='aperta'
         ).latest('data', 'ora_inizio')
@@ -550,9 +559,13 @@ def salda_movimento(request, pk):
 @login_required
 def dettaglio_movimento(request, pk):
     """View per visualizzare i dettagli di un movimento (sola lettura)"""
-    # Ottieni il database dell'agenzia dell'utente
-    user_db = get_user_database(request.user)
-    movimento = get_object_or_404(Movimento.objects.using(user_db).select_related('distinta', 'cliente'), pk=pk)
+    # Usa il nuovo DatabaseManager
+    db = DatabaseManager(request.user)
+    movimento = db.get_object_or_404(
+        Movimento, 
+        select_related=['distinta', 'cliente', 'creato_da'],
+        pk=pk
+    )
     
     # Verifica autorizzazioni base - l'utente deve poter vedere la distinta
     if movimento.distinta.operatore != request.user and not request.user.is_superuser:
@@ -577,9 +590,13 @@ def dettaglio_movimento(request, pk):
 
 @login_required
 def modifica_movimento(request, pk):
-    # Ottieni il database dell'agenzia dell'utente
-    user_db = get_user_database(request.user)
-    movimento = get_object_or_404(Movimento.objects.using(user_db).select_related('distinta', 'cliente'), pk=pk)
+    # Usa il nuovo DatabaseManager
+    db = DatabaseManager(request.user)
+    movimento = db.get_object_or_404(
+        Movimento,
+        select_related=['distinta', 'cliente'],
+        pk=pk
+    )
 
     # Verifica autorizzazioni
     if movimento.distinta.stato != 'aperta':
@@ -663,9 +680,13 @@ def modifica_movimento(request, pk):
 @login_required
 @user_passes_test(is_manager_or_admin)
 def elimina_movimento(request, pk):
-    # Ottieni il database dell'agenzia dell'utente
-    user_db = get_user_database(request.user)
-    movimento = get_object_or_404(Movimento.objects.using(user_db).select_related('distinta', 'cliente'), pk=pk)
+    # Usa il nuovo DatabaseManager
+    db = DatabaseManager(request.user)
+    movimento = db.get_object_or_404(
+        Movimento,
+        select_related=['distinta', 'cliente'],
+        pk=pk
+    )
 
     # Se la distinta è verificata, solo un admin può eliminare
     if movimento.distinta.stato == 'verificata' and not is_admin(request.user):
