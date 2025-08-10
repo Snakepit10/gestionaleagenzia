@@ -445,18 +445,16 @@ class ContoFinanziario(models.Model):
         saldo_clienti = Cliente.calcola_saldo_complessivo()
 
         for nome, tipo, descrizione in conti_default:
-            # Imposta il saldo per il conto clienti
+            # Imposta i defaults senza riferimenti utente per evitare problemi cross-database
             defaults = {
                 'descrizione': descrizione,
-                'creato_da': user,
-                'modificato_da': user
             }
 
             # Se è il conto clienti, imposta il saldo automaticamente
             if tipo == 'clienti':
                 defaults['saldo'] = saldo_clienti
 
-            # Crea o aggiorna il conto
+            # Crea o aggiorna il conto (senza creato_da/modificato_da per evitare foreign key cross-database)
             conto, created = cls.objects.get_or_create(
                 nome=nome,
                 tipo=tipo,
