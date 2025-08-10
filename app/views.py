@@ -243,7 +243,7 @@ def lista_movimenti(request):
     for cliente in Cliente.objects.using(user_db).all():
         cliente.aggiorna_saldo(using=user_db)
 
-    movimenti = Movimento.objects.using(user_db).all()
+    movimenti = Movimento.objects.using(user_db).select_related('cliente').filter(cliente__isnull=False)
 
     # Verifica se c'è una distinta aperta (per la funzionalità saldo)
     distinta_aperta = DistintaCassa.objects.using(user_db).filter(

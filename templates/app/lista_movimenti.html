@@ -77,9 +77,13 @@
                     {% for movimento in page_obj %}
                     <tr>
                         <td>
-                            <a href="{% url 'dettaglio_cliente' movimento.cliente.id %}">
+                            {% if movimento.cliente.id %}
+                                <a href="{% url 'dettaglio_cliente' movimento.cliente.id %}">
+                                    {{ movimento.cliente.cognome }} {{ movimento.cliente.nome }}
+                                </a>
+                            {% else %}
                                 {{ movimento.cliente.cognome }} {{ movimento.cliente.nome }}
-                            </a>
+                            {% endif %}
                         </td>
                         <td>{{ movimento.get_tipo_display }}</td>
                         <td class="{% if movimento.importo < 0 %}text-danger{% else %}text-success{% endif %}">
