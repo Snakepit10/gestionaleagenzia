@@ -94,11 +94,31 @@ class Command(BaseCommand):
                     if created:
                         self.stdout.write(f'✅ Creato profilo per {user.username} -> {agenzia.nome}')
 
-                # 3. Crea i conti finanziari predefiniti
-                if admin_user and ContoFinanziario.objects.count() == 0:
-                    self.stdout.write('💰 Creando conti finanziari predefiniti...')
-                    ContoFinanziario.crea_conti_default(admin_user)
-                    self.stdout.write('✅ Conti finanziari creati')
+                # 3. Crea i conti finanziari predefiniti (solo nel database default)
+                if admin_user and ContoFinanziario.objects.using('default').count() == 0:
+                    self.stdout.write('💰 Creando conti finanziari predefiniti nel database default...')
+                    try:
+                        # Crea i conti base nel database default
+                        conti_base = [
+                            {'nome': 'Cassa', 'tipo': 'attivo', 'descrizione': 'Denaro contante'},
+                            {'nome': 'Banca', 'tipo': 'attivo', 'descrizione': 'Conto corrente bancario'},
+                            {'nome': 'Clienti', 'tipo': 'attivo', 'descrizione': 'Crediti vs clienti'},
+                            {'nome': 'Fornitori', 'tipo': 'passivo', 'descrizione': 'Debiti vs fornitori'},
+                        ]
+                        
+                        for conto_data in conti_base:
+                            ContoFinanziario.objects.using('default').create(
+                                nome=conto_data['nome'],
+                                tipo=conto_data['tipo'],
+                                descrizione=conto_data['descrizione'],
+                                creato_da=admin_user,
+                                modificato_da=admin_user,
+                                saldo=0
+                            )
+                        
+                        self.stdout.write('✅ Conti finanziari creati nel database default')
+                    except Exception as e:
+                        self.stdout.write(f'⚠️ Errore creando conti finanziari: {e}')
                 
                 self.stdout.write(
                     self.style.SUCCESS('🎉 Inizializzazione Railway completata!')
