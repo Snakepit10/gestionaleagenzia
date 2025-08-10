@@ -56,7 +56,7 @@ def dashboard(request):
     
     # Assicuriamoci che tutti i saldi siano aggiornati
     for cliente in Cliente.objects.using(user_db).all():
-        cliente.aggiorna_saldo()
+        cliente.aggiorna_saldo(using=user_db)
 
     # Recupera i clienti con fido superato (saldo negativo che supera il fido massimo in valore assoluto)
     clienti_fido_superato = Cliente.objects.using(user_db).filter(saldo__lt=0).filter(saldo__lt=-F('fido_massimo'))
@@ -133,7 +133,7 @@ def lista_clienti(request):
     
     # Aggiorna i saldi di tutti i clienti
     for cliente in Cliente.objects.using(user_db).all():
-        cliente.aggiorna_saldo()
+        cliente.aggiorna_saldo(using=user_db)
 
     clienti = Cliente.objects.using(user_db).all()
 
@@ -169,7 +169,7 @@ def dettaglio_cliente(request, pk):
     cliente = get_object_or_404(Cliente.objects.using(user_db), pk=pk)
 
     # Aggiorna il saldo del cliente
-    cliente.aggiorna_saldo()
+    cliente.aggiorna_saldo(using=user_db)
 
     # Recupera i movimenti del cliente
     movimenti = cliente.movimenti.all().order_by('-data')[:20]
@@ -241,7 +241,7 @@ def lista_movimenti(request):
     
     # Aggiorna i saldi di tutti i clienti prima di mostrare i movimenti
     for cliente in Cliente.objects.using(user_db).all():
-        cliente.aggiorna_saldo()
+        cliente.aggiorna_saldo(using=user_db)
 
     movimenti = Movimento.objects.using(user_db).all()
 
@@ -346,7 +346,7 @@ def nuovo_movimento(request):
 
             # Aggiorna il saldo del cliente
             cliente = movimento.cliente
-            cliente.aggiorna_saldo()
+            cliente.aggiorna_saldo(using=user_db)
 
             success_message = f'Movimento {movimento.get_tipo_display()} di {abs(movimento.importo)} € per {movimento.cliente} registrato!'
 

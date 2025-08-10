@@ -65,12 +65,12 @@ class Cliente(models.Model):
         from django.db.models import Sum
         return cls.objects.aggregate(total=Sum('saldo'))['total'] or 0
 
-    def aggiorna_saldo(self):
+    def aggiorna_saldo(self, using=None):
         """Ricalcola il saldo del cliente in base ai movimenti non saldati"""
         from django.db.models import Sum
         movimenti_sum = self.movimenti.filter(saldato=False).aggregate(Sum('importo'))['importo__sum']
         self.saldo = movimenti_sum if movimenti_sum is not None else 0
-        self.save(update_fields=['saldo'])
+        self.save(update_fields=['saldo'], using=using)
     
     class Meta:
         verbose_name = "Cliente"
@@ -236,7 +236,9 @@ class Movimento(models.Model):
         super().save(*args, **kwargs)
 
         # Aggiorniamo il saldo usando il metodo di ricalcolo completo
-        self.cliente.aggiorna_saldo()
+        # Usa lo stesso database dell'oggetto corrente
+        using_db = kwargs.get('using') or self._state.db
+        self.cliente.aggiorna_saldo(using=using_db)
     
     def salda(self, utente):
         """
@@ -315,15 +317,18 @@ class Movimento(models.Model):
         models.Model.save(self)
 
         # Aggiorna il saldo del cliente manualmente
-        self.cliente.aggiorna_saldo()
+        # Usa lo stesso database dell'oggetto corrente
+        using_db = self._state.db
+        self.cliente.aggiorna_saldo(using=using_db)
 
         return True
 
     def delete(self, *args, **kwargs):
         """Override delete to update cliente's saldo after deletion"""
         cliente = self.cliente
+        using_db = kwargs.get('using') or self._state.db
         super().delete(*args, **kwargs)
-        cliente.aggiorna_saldo()
+        cliente.aggiorna_saldo(using=using_db)
 
 
 class Comunicazione(models.Model):
