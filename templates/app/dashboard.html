@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load app_filters %}
+
+{% block title %}Dashboard - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+        </h1>
+    </div>
+</div>
+
+<!-- Statistiche -->
+<div class="row mb-4">
+    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-3">
+        <div class="card overview-card h-100 border-0 rounded-3 shadow">
+            <div class="card-body text-center p-3">
+                <div class="rounded-circle d-inline-flex justify-content-center align-items-center mb-2"
+                     style="width: 45px; height: 45px; background-color: rgba(107, 122, 255, 0.2);">
+                    <i class="fas fa-users fa-lg" style="color: #6b7aff;"></i>
+                </div>
+                <h6 class="card-title fw-bold mb-1">Totale Clienti</h6>
+                <div class="card-value h5 mb-1">{{ totale_clienti }}</div>
+                <div class="text-muted small">Registrati</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-3">
+        <div class="card overview-card h-100 border-0 rounded-3 shadow">
+            <div class="card-body text-center p-3">
+                <div class="rounded-circle d-inline-flex justify-content-center align-items-center mb-2"
+                     style="width: 45px; height: 45px; background-color: rgba(76, 175, 80, 0.2);">
+                    <i class="fas fa-wallet fa-lg" style="color: #4caf50;"></i>
+                </div>
+                <h6 class="card-title fw-bold mb-1">Saldo Clienti</h6>
+                <div class="card-value h6 mb-1 {% if saldo_complessivo < 0 %}text-danger{% else %}text-success{% endif %}">
+                    {{ saldo_complessivo|floatformat:2 }} €
+                </div>
+                <div class="text-muted small">Crediti/Debiti</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-3">
+        <div class="card overview-card h-100 border-0 rounded-3 shadow" id="cassa-card">
+            <div class="card-body text-center p-3">
+                <div class="rounded-circle d-inline-flex justify-content-center align-items-center mb-2"
+                     style="width: 45px; height: 45px; background-color: rgba(33, 150, 243, 0.2);">
+                    <i class="fas fa-cash-register fa-lg" style="color: #2196f3;"></i>
+                </div>
+                <h6 class="card-title fw-bold mb-1">Cassa Agenzia</h6>
+                <div class="card-value h6 mb-1 {% if saldo_cassa_agenzia < 0 %}text-danger{% else %}text-success{% endif %}">
+                    {{ saldo_cassa_agenzia|floatformat:2 }} €
+                </div>
+                <div class="text-muted small">Contante</div>
+            </div>
+            <a href="{% url 'bilancio_finanziario' %}" class="stretched-link" title="Vai ai Conti Finanziari"></a>
+        </div>
+    </div>
+
+    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-3">
+        <div class="card overview-card h-100 border-0 rounded-3 shadow" id="ritardo-card">
+            <div class="card-body text-center p-3">
+                <div class="rounded-circle d-inline-flex justify-content-center align-items-center mb-2"
+                     style="width: 45px; height: 45px; background-color: rgba(244, 67, 54, 0.2);">
+                    <i class="fas fa-clock fa-lg" style="color: #f44336;"></i>
+                </div>
+                <h6 class="card-title fw-bold mb-1">In Ritardo</h6>
+                <div class="card-value h5 mb-1 {% if clienti_in_ritardo|length > 0 %}text-danger{% endif %}">
+                    {{ clienti_in_ritardo|length }}
+                </div>
+                <div class="text-muted small">Oltre 3 giorni</div>
+            </div>
+            <a href="#clienti-ritardo" class="stretched-link" data-bs-toggle="collapse" role="button"></a>
+        </div>
+    </div>
+
+    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-3">
+        <div class="card overview-card h-100 border-0 rounded-3 shadow" id="fido-card">
+            <div class="card-body text-center p-3">
+                <div class="rounded-circle d-inline-flex justify-content-center align-items-center mb-2"
+                     style="width: 45px; height: 45px; background-color: rgba(255, 152, 0, 0.2);">
+                    <i class="fas fa-exclamation-triangle fa-lg" style="color: #ff9800;"></i>
+                </div>
+                <h6 class="card-title fw-bold mb-1">Fido Superato</h6>
+                <div class="card-value h5 mb-1 {% if clienti_fido_superato.count > 0 %}text-warning{% endif %}">
+                    {{ clienti_fido_superato.count }}
+                </div>
+                <div class="text-muted small">Clienti</div>
+            </div>
+            <a href="#clienti-fido" class="stretched-link" data-bs-toggle="collapse" role="button"></a>
+        </div>
+    </div>
+
+    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-3">
+        <div class="card overview-card h-100 border-0 rounded-3 shadow" id="distinte-card">
+            <div class="card-body text-center p-3">
+                <div class="rounded-circle d-inline-flex justify-content-center align-items-center mb-2"
+                     style="width: 45px; height: 45px; background-color: rgba(3, 169, 244, 0.2);">
+                    <i class="fas fa-clipboard-check fa-lg" style="color: #03a9f4;"></i>
+                </div>
+                <h6 class="card-title fw-bold mb-1">Da Verificare</h6>
+                <div class="card-value h5 mb-1 {% if distinte_da_verificare.count > 0 %}text-info{% endif %}">
+                    {{ distinte_da_verificare.count }}
+                </div>
+                <div class="text-muted small">Distinte</div>
+            </div>
+            <a href="#distinte-verificare" class="stretched-link" data-bs-toggle="collapse" role="button"></a>
+        </div>
+    </div>
+
+    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-3">
+        {% if distinta_corrente %}
+        <div class="card overview-card h-100 border-0 rounded-3 shadow bg-success">
+            <div class="card-body text-center p-3">
+                <div class="rounded-circle d-inline-flex justify-content-center align-items-center mb-2"
+                     style="width: 45px; height: 45px; background-color: rgba(255, 255, 255, 0.2);">
+                    <i class="fas fa-check-circle fa-lg text-white"></i>
+                </div>
+                <h6 class="card-title fw-bold mb-1 text-white">Distinta Aperta</h6>
+                <div class="card-value h6 mb-1 text-white">
+                    #{{ distinta_corrente.id }}
+                </div>
+                <div class="text-white-50 small">Operativa</div>
+            </div>
+            <a href="{% url 'dettaglio_distinta' distinta_corrente.id %}" class="stretched-link"></a>
+        </div>
+        {% else %}
+        <div class="card overview-card h-100 border-0 rounded-3 shadow bg-warning">
+            <div class="card-body text-center p-3">
+                <div class="rounded-circle d-inline-flex justify-content-center align-items-center mb-2"
+                     style="width: 45px; height: 45px; background-color: rgba(255, 255, 255, 0.2);">
+                    <i class="fas fa-exclamation-circle fa-lg text-white"></i>
+                </div>
+                <h6 class="card-title fw-bold mb-1 text-white">Nessuna Distinta</h6>
+                <div class="card-value h6 mb-1 text-white">
+                    Crea
+                </div>
+                <div class="text-white-50 small">Nuova</div>
+            </div>
+            <a href="{% url 'nuova_distinta' %}" class="stretched-link"></a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <!-- Colonna sinistra -->
+    <div class="col-md-6">
+        <!-- Clienti con fido superato -->
+        <div class="card mb-4 border-0 rounded-4 shadow">
+            <div class="card-header bg-warning text-white d-flex justify-content-between align-items-center rounded-top-4">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Clienti con Fido Superato (Max Debito)
+                </h5>
+                <button class="btn btn-sm btn-warning" type="button" data-bs-toggle="collapse" data-bs-target="#clienti-fido">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+            <div class="collapse show" id="clienti-fido">
+                <div class="card-body p-0">
+                    {% if clienti_fido_superato %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Saldo</th>
+                                    <th>Fido</th>
+                                    <th>Superamento</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cliente in clienti_fido_superato %}
+                                <tr>
+                                    <td>{{ cliente.cognome }} {{ cliente.nome }}</td>
+                                    <td class="text-danger">{{ cliente.saldo|floatformat:2 }} €</td>
+                                    <td>{{ cliente.fido_massimo|floatformat:2 }} €</td>
+                                    <td class="text-danger">
+                                        {{ cliente.importo_fido_superato|floatformat:2 }} €
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'dettaglio_cliente' cliente.id %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="card-body text-center py-4">
+                        <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                        <p class="mb-0">Nessun cliente ha superato il limite di fido</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Clienti in ritardo -->
+        <div class="card mb-4 border-0 rounded-4 shadow">
+            <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center rounded-top-4">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock me-2"></i>Clienti in Ritardo
+                </h5>
+                <button class="btn btn-sm btn-danger" type="button" data-bs-toggle="collapse" data-bs-target="#clienti-ritardo">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+            <div class="collapse show" id="clienti-ritardo">
+                <div class="card-body p-0">
+                    {% if clienti_in_ritardo %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Saldo</th>
+                                    <th>Ultimo Movimento</th>
+                                    <th>Giorni di Ritardo</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in clienti_in_ritardo %}
+                                <tr>
+                                    <td>{{ item.cliente.cognome }} {{ item.cliente.nome }}</td>
+                                    <td class="text-danger">{{ item.cliente.saldo|floatformat:2 }} €</td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ item.ultimo_movimento.get_tipo_display }}<br>
+                                            {{ item.ultimo_movimento.data|date:"d/m/Y" }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger">{{ item.giorni_ritardo }} giorni</span>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'dettaglio_cliente' item.cliente.id %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="card-body text-center py-4">
+                        <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                        <p class="mb-0">Nessun cliente con saldo negativo in ritardo oltre 3 giorni</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Colonna destra -->
+    <div class="col-md-6">
+        <!-- Distinte da verificare -->
+        <div class="card mb-4 border-0 rounded-4 shadow">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center rounded-top-4">
+                <h5 class="mb-0">
+                    <i class="fas fa-cash-register me-2"></i>Distinte da Verificare
+                </h5>
+                <button class="btn btn-sm btn-info" type="button" data-bs-toggle="collapse" data-bs-target="#distinte-verificare">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+            <div class="collapse show" id="distinte-verificare">
+                <div class="card-body p-0">
+                    {% if distinte_da_verificare %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Data</th>
+                                    <th>Operatore</th>
+                                    <th>Differenza</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for distinta in distinte_da_verificare %}
+                                <tr>
+                                    <td>{{ distinta.id }}</td>
+                                    <td>{{ distinta.data|date:"d/m/Y" }}</td>
+                                    <td>{{ distinta.operatore.username }}</td>
+                                    <td class="{% if distinta.differenza_cassa != 0 %}text-danger{% endif %}">
+                                        {{ distinta.differenza_cassa|floatformat:2 }} €
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'dettaglio_distinta' distinta.id %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if user.is_superuser or perms.app.verify_distinta %}
+                                        <a href="{% url 'verifica_distinta' distinta.id %}" class="btn btn-sm btn-success">
+                                            <i class="fas fa-check"></i>
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="card-body text-center py-4">
+                        <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                        <p class="mb-0">Nessuna distinta in attesa di verifica</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

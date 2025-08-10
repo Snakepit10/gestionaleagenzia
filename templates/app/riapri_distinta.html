@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load tz %}
+
+{% block title %}{{ titolo }} #{{ distinta.id }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-unlock me-2"></i>{{ titolo }} #{{ distinta.id }}
+        </h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'dettaglio_distinta' distinta.id %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Torna alla Distinta
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-warning text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-unlock me-2"></i>Riapertura Distinta di Cassa
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <div class="row">
+                <div class="col-md-4">
+                    <strong>Operatore:</strong> {{ distinta.operatore.get_full_name|default:distinta.operatore.username }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Data:</strong> {{ distinta.data|date:"d/m/Y" }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Ora Apertura:</strong> {{ distinta.ora_inizio|localtime|time:"H:i" }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Riepilogo Entrate (Prelievi)</h5>
+                    </div>
+                    <div class="card-body">
+                        <h2 class="text-center">{{ totale_entrate|floatformat:2 }} €</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">Riepilogo Uscite (Schedine/Ricariche)</h5>
+                    </div>
+                    <div class="card-body">
+                        <h2 class="text-center">{{ totale_uscite|floatformat:2 }} €</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="alert alert-warning">
+            <h5 class="mb-3"><i class="fas fa-exclamation-triangle me-2"></i>Attenzione!</h5>
+            <p>Stai per riaprire una distinta precedentemente chiusa. Questa operazione ti permetterà di:</p>
+            <ul>
+                <li>Aggiungere nuovi movimenti</li>
+                <li>Modificare i movimenti esistenti</li>
+                <li>Chiudere nuovamente la distinta con valori aggiornati</li>
+            </ul>
+            <p class="mb-0">La distinta dovrà essere chiusa nuovamente per completare il processo.</p>
+        </div>
+        
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+            
+            <div class="mt-4">
+                <button type="submit" class="btn btn-warning">
+                    <i class="fas fa-unlock me-2"></i>Riapri Distinta
+                </button>
+                <a href="{% url 'dettaglio_distinta' distinta.id %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i>Annulla
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

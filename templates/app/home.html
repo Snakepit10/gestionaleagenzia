@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-home me-2"></i>Benvenuto nel Gestionale Agenzia
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Card principale di benvenuto -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informazioni</h5>
+            </div>
+            <div class="card-body">
+                <h2>Benvenuto nel sistema di gestione</h2>
+                <p class="lead">
+                    Questo sistema ti permette di gestire clienti, distinte e movimenti per la tua agenzia.
+                </p>
+                <p>
+                    Utilizza il menu di navigazione qui sopra per accedere alle diverse funzionalità del sistema.
+                    Ogni utente ha accesso a funzionalità diverse in base al proprio ruolo.
+                </p>
+                
+                <div class="alert alert-info mt-4">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Suggerimento:</strong> Per iniziare, seleziona una delle sezioni disponibili dal menu in alto.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar con funzionalità rapide -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-link me-2"></i>Accesso Rapido</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-3">
+                    <a href="{% url 'lista_clienti' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-users me-2"></i>Gestione Clienti
+                    </a>
+                    <a href="{% url 'lista_movimenti' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-exchange-alt me-2"></i>Movimenti
+                    </a>
+                    <a href="{% url 'lista_distinte' %}" class="btn btn-outline-dark">
+                        <i class="fas fa-cash-register me-2"></i>Distinte di Cassa
+                    </a>
+                    {% if user.is_superuser %}
+                    <a href="{% url 'dashboard' %}" class="btn btn-warning">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a href="{% url 'bilancio_finanziario' %}" class="btn btn-info text-white">
+                        <i class="fas fa-balance-scale me-2"></i>Bilancio
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Card con info operatore -->
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-user me-2"></i>Il Tuo Account</h5>
+            </div>
+            <div class="card-body">
+                <p>
+                    <strong>Utente:</strong> {{ user.get_full_name|default:user.username }}
+                </p>
+                <p>
+                    <strong>Ultimo accesso:</strong> {{ user.last_login|date:"d/m/Y H:i" }}
+                </p>
+                {% if user.groups.all %}
+                <p>
+                    <strong>Gruppi:</strong><br>
+                    {% for group in user.groups.all %}
+                    <span class="badge bg-secondary me-1">{{ group.name }}</span>
+                    {% endfor %}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

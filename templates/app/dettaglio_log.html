@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Dettaglio Log{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <h1>Dettaglio Log</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    {% if log.action == 'create' %}
+                        <span class="badge bg-success">Creazione</span>
+                    {% elif log.action == 'update' %}
+                        <span class="badge bg-primary">Modifica</span>
+                    {% elif log.action == 'delete' %}
+                        <span class="badge bg-danger">Eliminazione</span>
+                    {% elif log.action == 'status_change' %}
+                        <span class="badge bg-warning">Cambio di stato</span>
+                    {% elif log.action == 'payment' %}
+                        <span class="badge bg-info">Pagamento</span>
+                    {% elif log.action == 'reopen' %}
+                        <span class="badge bg-secondary">Riapertura</span>
+                    {% endif %}
+                    {{ log.timestamp|date:"d/m/Y H:i:s" }}
+                </h5>
+                <span>Utente: <strong>{{ log.user.username }}</strong></span>
+            </div>
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">{{ log.description }}</h5>
+            
+            <div class="row mt-4">
+                {% if log.action != 'create' and log.data_before %}
+                <div class="col-md-6">
+                    <h6>Dati precedenti:</h6>
+                    <div class="border rounded p-3 bg-light">
+                        <pre class="mb-0">{{ log.data_before_formatted|safe }}</pre>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if log.action != 'delete' and log.data_after %}
+                <div class="col-md-{% if log.action == 'create' %}12{% else %}6{% endif %}">
+                    <h6>Dati attuali:</h6>
+                    <div class="border rounded p-3 bg-light">
+                        <pre class="mb-0">{{ log.data_after_formatted|safe }}</pre>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="mt-4">
+                <h6>Oggetto collegato:</h6>
+                <p>
+                    {% if log.content_type.model == 'movimento' %}
+                        Movimento
+                        {% if log.action != 'delete' %}
+                            - <a href="{% url 'modifica_movimento' log.object_id %}">Visualizza movimento</a>
+                        {% endif %}
+                    {% elif log.content_type.model == 'distintacassa' %}
+                        Distinta Cassa
+                        {% if log.action != 'delete' %}
+                            - <a href="{% url 'dettaglio_distinta' log.object_id %}">Visualizza distinta</a>
+                        {% endif %}
+                    {% elif log.content_type.model == 'movimentoconti' %}
+                        Movimento Conti
+                        {% if log.action != 'delete' %}
+                            - <a href="{% url 'lista_movimenti_conti' %}?id={{ log.object_id }}">Visualizza movimento</a>
+                        {% endif %}
+                    {% else %}
+                        {{ log.content_type.model|capfirst }}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="{% url 'lista_logs' %}" class="btn btn-secondary">Torna alla lista</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

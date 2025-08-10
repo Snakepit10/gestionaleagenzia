@@ -1,0 +1,405 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Bilancio Finanziario - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-balance-scale me-2"></i>Bilancio Finanziario
+        </h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'nuovo_conto' %}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i>Nuovo Conto
+        </a>
+        <a href="{% url 'effettua_giroconto' %}" class="btn btn-info text-white">
+            <i class="fas fa-exchange-alt me-2"></i>Giroconto
+        </a>
+        <a href="{% url 'lista_movimenti_conti' %}" class="btn btn-secondary">
+            <i class="fas fa-history me-2"></i>Movimenti
+        </a>
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#creaBilancioModal">
+            <i class="fas fa-save me-2"></i>Crea Bilancio
+        </button>
+    </div>
+</div>
+
+<!-- Riepilogo dei saldi -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Riepilogo Generale</h5>
+            </div>
+            <div class="card-body">
+                {% if differenza_saldi != 0 %}
+                <div class="alert alert-warning mt-3 p-2 mx-auto small">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Differenza con saldo calcolato dai movimenti: {{ differenza_saldi|floatformat:2 }} €
+                </div>
+                {% endif %}
+
+                <!-- Saldi in una lista -->
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Tipo di Conto</th>
+                                <th class="text-end">Saldo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Cassa -->
+                            <tr>
+                                <td>
+                                    <span class="badge {% if saldi_per_tipo.cassa < 0 %}bg-danger{% else %}bg-success{% endif %} me-2">
+                                        <i class="fas fa-cash-register"></i>
+                                    </span>
+                                    <strong>Cassa</strong>
+                                </td>
+                                <td class="text-end {% if saldi_per_tipo.cassa < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ saldi_per_tipo.cassa|floatformat:2 }} €
+                                </td>
+                            </tr>
+
+                            <!-- Banca -->
+                            <tr>
+                                <td>
+                                    <span class="badge {% if saldi_per_tipo.banca < 0 %}bg-danger{% else %}bg-success{% endif %} me-2">
+                                        <i class="fas fa-university"></i>
+                                    </span>
+                                    <strong>Banca</strong>
+                                </td>
+                                <td class="text-end {% if saldi_per_tipo.banca < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ saldi_per_tipo.banca|floatformat:2 }} €
+                                </td>
+                            </tr>
+
+                            <!-- Online -->
+                            <tr>
+                                <td>
+                                    <span class="badge {% if saldi_per_tipo.online < 0 %}bg-danger{% else %}bg-success{% endif %} me-2">
+                                        <i class="fas fa-globe"></i>
+                                    </span>
+                                    <strong>Online</strong>
+                                </td>
+                                <td class="text-end {% if saldi_per_tipo.online < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ saldi_per_tipo.online|floatformat:2 }} €
+                                </td>
+                            </tr>
+
+                            <!-- Clienti -->
+                            <tr>
+                                <td>
+                                    <span class="badge {% if saldo_clienti_conti < 0 %}bg-danger{% else %}bg-success{% endif %} me-2">
+                                        <i class="fas fa-users"></i>
+                                    </span>
+                                    <strong>Clienti</strong>
+                                </td>
+                                <td class="text-end {% if saldo_clienti_conti < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ saldo_clienti_conti|floatformat:2 }} €
+                                </td>
+                            </tr>
+
+                            <!-- Agent -->
+                            <tr>
+                                <td>
+                                    <span class="badge {% if saldi_per_tipo.agenti < 0 %}bg-danger{% else %}bg-success{% endif %} me-2">
+                                        <i class="fas fa-user-tie"></i>
+                                    </span>
+                                    <strong>Saldo Agent</strong>
+                                </td>
+                                <td class="text-end {% if saldi_per_tipo.agenti < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ saldi_per_tipo.agenti|floatformat:2 }} €
+                                </td>
+                            </tr>
+
+                            <!-- Ricavi -->
+                            <tr>
+                                <td>
+                                    <span class="badge {% if saldi_per_tipo.ricavi < 0 %}bg-danger{% else %}bg-primary{% endif %} me-2">
+                                        <i class="fas fa-coins"></i>
+                                    </span>
+                                    <strong>Ricavi</strong>
+                                </td>
+                                <td class="text-end {% if saldi_per_tipo.ricavi < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ saldi_per_tipo.ricavi|floatformat:2 }} €
+                                </td>
+                            </tr>
+
+                            <!-- Spese -->
+                            <tr>
+                                <td>
+                                    <span class="badge {% if saldi_per_tipo.spese > 0 %}bg-success{% else %}bg-danger{% endif %} me-2">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </span>
+                                    <strong>Spese</strong>
+                                </td>
+                                <td class="text-end {% if saldi_per_tipo.spese > 0 %}text-success{% else %}text-danger{% endif %} fw-bold">
+                                    {{ saldi_per_tipo.spese|floatformat:2 }} €
+                                </td>
+                            </tr>
+
+                            <!-- Prelievi -->
+                            <tr>
+                                <td>
+                                    <span class="badge {% if saldi_per_tipo.prelievi > 0 %}bg-warning{% else %}bg-info{% endif %} me-2">
+                                        <i class="fas fa-arrow-down"></i>
+                                    </span>
+                                    <strong>Prelievi</strong>
+                                </td>
+                                <td class="text-end {% if saldi_per_tipo.prelievi > 0 %}text-warning{% else %}text-info{% endif %} fw-bold">
+                                    {{ saldi_per_tipo.prelievi|floatformat:2 }} €
+                                </td>
+                            </tr>
+
+                            <!-- Versamenti -->
+                            <tr>
+                                <td>
+                                    <span class="badge {% if saldi_per_tipo.versamenti < 0 %}bg-danger{% else %}bg-success{% endif %} me-2">
+                                        <i class="fas fa-arrow-up"></i>
+                                    </span>
+                                    <strong>Versamenti</strong>
+                                </td>
+                                <td class="text-end {% if saldi_per_tipo.versamenti < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ saldi_per_tipo.versamenti|floatformat:2 }} €
+                                </td>
+                            </tr>
+
+                            <!-- Altro -->
+                            <tr>
+                                <td>
+                                    <span class="badge {% if saldi_per_tipo.altro < 0 %}bg-danger{% else %}bg-secondary{% endif %} me-2">
+                                        <i class="fas fa-question-circle"></i>
+                                    </span>
+                                    <strong>Altro</strong>
+                                </td>
+                                <td class="text-end {% if saldi_per_tipo.altro < 0 %}text-danger{% else %}text-secondary{% endif %} fw-bold">
+                                    {{ saldi_per_tipo.altro|floatformat:2 }} €
+                                </td>
+                            </tr>
+
+                            <!-- Separatore -->
+                            <tr class="table-dark">
+                                <td><strong>TOTALE</strong></td>
+                                <td class="text-end {% if saldo_totale < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ saldo_totale|floatformat:2 }} €
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<!-- Ultimi bilanci -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Ultimi Bilanci</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Saldo Totale</th>
+                                <th>Differenza</th>
+                                <th>Stato</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for bilancio in bilanci %}
+                            <tr>
+                                <td>{{ bilancio.data_riferimento|date:"d/m/Y H:i" }}</td>
+                                <td class="fw-bold">{{ bilancio.saldo_totale|floatformat:2 }} €</td>
+                                <td class="{% if bilancio.differenza_precedente < 0 %}text-danger{% elif bilancio.differenza_precedente > 0 %}text-success{% endif %} fw-bold">
+                                    {% if bilancio.differenza_precedente != 0 %}
+                                        {{ bilancio.differenza_precedente|floatformat:2 }} €
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if bilancio.stato_liquidita == 'ammanco' %}
+                                    <span class="badge bg-danger">Ammanco</span>
+                                    {% elif bilancio.stato_liquidita == 'surplus' %}
+                                    <span class="badge bg-success">Surplus</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Stabile</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'dettaglio_bilancio' bilancio.id %}" class="btn btn-sm btn-info text-white">
+                                        <i class="fas fa-search me-1"></i> Dettaglio
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">
+                                    <p class="text-muted mb-0">Nessun bilancio registrato</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs per i conti finanziari -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-list-alt me-2"></i>Conti Finanziari</h5>
+    </div>
+    <div class="card-body">
+        <ul class="nav nav-tabs mb-3" id="contiTab" role="tablist">
+            {% for tipo, nome in conti_per_tipo.items %}
+            <li class="nav-item mx-1" role="presentation">
+                <button class="nav-link fw-bold {% if forloop.first %}active{% endif %}" id="{{ tipo }}-tab" data-bs-toggle="tab" data-bs-target="#{{ tipo }}" type="button" role="tab" aria-controls="{{ tipo }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                    <i class="
+                        {% if tipo == 'cassa' %}fas fa-cash-register{% endif %}
+                        {% if tipo == 'banca' %}fas fa-university{% endif %}
+                        {% if tipo == 'online' %}fas fa-globe{% endif %}
+                        {% if tipo == 'clienti' %}fas fa-users{% endif %}
+                        {% if tipo == 'agenti' %}fas fa-user-tie{% endif %}
+                        {% if tipo == 'spese' %}fas fa-shopping-cart{% endif %}
+                        {% if tipo == 'ricavi' %}fas fa-coins{% endif %}
+                        {% if tipo == 'prelievi' %}fas fa-arrow-down{% endif %}
+                        {% if tipo == 'versamenti' %}fas fa-arrow-up{% endif %}
+                        {% if tipo == 'altro' %}fas fa-question-circle{% endif %}
+                        me-2"></i>
+                    {% if tipo == 'cassa' %}Cassa{% endif %}
+                    {% if tipo == 'banca' %}Conto Bancario{% endif %}
+                    {% if tipo == 'online' %}Conto Online{% endif %}
+                    {% if tipo == 'clienti' %}Crediti Clienti{% endif %}
+                    {% if tipo == 'agenti' %}Saldo Agent{% endif %}
+                    {% if tipo == 'spese' %}Spese{% endif %}
+                    {% if tipo == 'ricavi' %}Ricavi{% endif %}
+                    {% if tipo == 'prelievi' %}Prelievi Soci{% endif %}
+                    {% if tipo == 'versamenti' %}Versamenti Soci{% endif %}
+                    {% if tipo == 'altro' %}Altro{% endif %}
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="tab-content" id="contiTabContent">
+            {% for tipo, conti_tipo in conti_per_tipo.items %}
+            <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" id="{{ tipo }}" role="tabpanel" aria-labelledby="{{ tipo }}-tab">
+                <div class="table-responsive mt-3">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Saldo</th>
+                                <th>Descrizione</th>
+                                <th>Ultima Modifica</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for conto in conti_tipo %}
+                            <tr>
+                                <td>{{ conto.nome }}</td>
+                                <td class="{% if conto.saldo < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ conto.saldo|floatformat:2 }} €
+                                </td>
+                                <td>{{ conto.descrizione|default:"-" }}</td>
+                                <td>
+                                    {{ conto.data_modifica|date:"d/m/Y H:i" }}
+                                    {% if conto.modificato_da %}
+                                    <br><span class="text-muted small">{{ conto.modificato_da.username }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'modifica_conto' conto.id %}" class="btn btn-sm btn-warning me-2" title="Modifica conto">
+                                        <i class="fas fa-edit me-1"></i> Modifica
+                                    </a>
+                                    <a href="{% url 'modifica_saldo' conto.id %}" class="btn btn-sm btn-success me-2" title="Modifica saldo">
+                                        <i class="fas fa-money-bill-wave me-1"></i> Saldo
+                                    </a>
+                                    <a href="{% url 'elimina_conto' conto.id %}" class="btn btn-sm btn-danger" title="Elimina conto">
+                                        <i class="fas fa-trash me-1"></i> Elimina
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">
+                                    <p class="text-muted mb-0">Nessun conto in questa categoria presente</p>
+                                    <a href="{% url 'nuovo_conto' %}" class="btn btn-primary btn-sm mt-2">
+                                        <i class="fas fa-plus-circle me-1"></i>Aggiungi
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal per creare un nuovo bilancio -->
+<div class="modal fade" id="creaBilancioModal" tabindex="-1" aria-labelledby="creaBilancioModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="creaBilancioModalLabel">
+                    <i class="fas fa-save me-2"></i>Crea Nuovo Bilancio
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Creando un nuovo bilancio, verranno salvati i valori attuali di tutti i conti finanziari.
+                        Il bilancio potrà essere confrontato con i bilanci precedenti per verificare ammanco o surplus di liquidità.
+                    </p>
+                    
+                    {{ form_bilancio|crispy }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-2"></i>Crea Bilancio
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Attiva il tab corretto se specificato nell'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeTab = urlParams.get('tab');
+        
+        if (activeTab) {
+            const tabEl = document.querySelector(`#${activeTab}-tab`);
+            if (tabEl) {
+                const tab = new bootstrap.Tab(tabEl);
+                tab.show();
+            }
+        }
+    });
+</script>
+{% endblock %}

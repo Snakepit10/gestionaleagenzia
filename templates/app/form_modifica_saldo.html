@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ titolo }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-money-bill-wave me-2"></i>{{ titolo }}
+        </h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'bilancio_finanziario' %}?tab={{ conto.tipo }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Torna al Bilancio
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-money-bill-wave me-2"></i>Modifica Saldo
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Info conto -->
+                <div class="alert alert-info mb-4">
+                    <h5 class="alert-heading">{{ conto.nome }} ({{ conto.get_tipo_display }})</h5>
+                    <p class="mb-0">Saldo attuale: <span class="fw-bold {% if conto.saldo < 0 %}text-danger{% else %}text-success{% endif %}">{{ conto.saldo|floatformat:2 }} €</span></p>
+                    {% if conto.descrizione %}
+                    <hr>
+                    <p class="mb-0 text-muted small">{{ conto.descrizione }}</p>
+                    {% endif %}
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.operazione|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.importo|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            {{ form.note|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save me-2"></i>Aggiorna Saldo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Informazioni aggiuntive -->
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Informazioni
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-calendar-alt me-2"></i>Creato il</span>
+                        <span>{{ conto.data_creazione|date:"d/m/Y H:i" }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-user me-2"></i>Creato da</span>
+                        <span>{{ conto.creato_da.username }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-clock me-2"></i>Ultima modifica</span>
+                        <span>{{ conto.data_modifica|date:"d/m/Y H:i" }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-user-edit me-2"></i>Modificato da</span>
+                        <span>{{ conto.modificato_da.username }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

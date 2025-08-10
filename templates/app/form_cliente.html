@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ titolo }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            {% if cliente %}
+            <i class="fas fa-user-edit me-2"></i>{{ titolo }}
+            {% else %}
+            <i class="fas fa-user-plus me-2"></i>{{ titolo }}
+            {% endif %}
+        </h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% if cliente %}{% url 'dettaglio_cliente' cliente.id %}{% else %}{% url 'lista_clienti' %}{% endif %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Torna Indietro
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-user me-2"></i>Dati Cliente
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.nome|as_crispy_field }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.cognome|as_crispy_field }}
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.email|as_crispy_field }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.telefono|as_crispy_field }}
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.fido_massimo|as_crispy_field }}
+                </div>
+                {% if cliente %}
+                <div class="col-md-6 mb-3">
+                    <div class="form-group">
+                        <label class="form-label">Saldo Attuale</label>
+                        <div class="form-control-plaintext {% if cliente.saldo > 0 %}text-danger{% endif %}">
+                            {{ cliente.saldo|floatformat:2 }} €
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            {{ form.note|as_crispy_field }}
+            
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>{% if cliente %}Aggiorna{% else %}Salva{% endif %} Cliente
+                </button>
+                <a href="{% if cliente %}{% url 'dettaglio_cliente' cliente.id %}{% else %}{% url 'lista_clienti' %}{% endif %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i>Annulla
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

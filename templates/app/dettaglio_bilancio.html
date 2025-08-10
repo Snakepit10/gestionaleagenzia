@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}Bilancio del {{ bilancio.data_riferimento|date:"d/m/Y H:i" }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-balance-scale me-2"></i>Bilancio del {{ bilancio.data_riferimento|date:"d/m/Y H:i" }}
+            
+            {% if bilancio.stato_liquidita == 'ammanco' %}
+            <span class="badge bg-danger ms-2">Ammanco</span>
+            {% elif bilancio.stato_liquidita == 'surplus' %}
+            <span class="badge bg-success ms-2">Surplus</span>
+            {% else %}
+            <span class="badge bg-secondary ms-2">Stabile</span>
+            {% endif %}
+        </h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'bilancio_finanziario' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Torna al Bilancio
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Scheda bilancio attuale -->
+    <div class="col-md-{% if bilancio_precedente %}6{% else %}12{% endif %}">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-day me-2"></i>Bilancio Attuale
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Saldo totale -->
+                <div class="alert {% if bilancio.saldo_totale < 0 %}alert-danger{% else %}alert-success{% endif %} text-center">
+                    <h4 class="alert-heading">Saldo Totale</h4>
+                    <h2>{{ bilancio.saldo_totale|floatformat:2 }} €</h2>
+                    {% if bilancio.differenza_precedente != 0 %}
+                    <div class="mt-2">
+                        <span class="badge {% if bilancio.differenza_precedente < 0 %}bg-danger{% else %}bg-success{% endif %} p-2">
+                            <i class="fas {% if bilancio.differenza_precedente < 0 %}fa-arrow-down{% else %}fa-arrow-up{% endif %} me-1"></i>
+                            {{ bilancio.differenza_precedente|floatformat:2 }} €
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Tabella dei saldi -->
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Conto</th>
+                                <th class="text-end">Saldo</th>
+                                {% if differenze %}
+                                <th class="text-end">Differenza</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><i class="fas fa-users me-2"></i>Clienti</td>
+                                <td class="text-end {% if bilancio.saldo_clienti < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ bilancio.saldo_clienti|floatformat:2 }} €
+                                </td>
+                                {% if differenze %}
+                                <td class="text-end {% if differenze.clienti < 0 %}text-danger{% elif differenze.clienti > 0 %}text-success{% endif %}">
+                                    {% if differenze.clienti != 0 %}
+                                    {{ differenze.clienti|floatformat:2 }} €
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-cash-register me-2"></i>Cassa</td>
+                                <td class="text-end {% if bilancio.saldo_cassa < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ bilancio.saldo_cassa|floatformat:2 }} €
+                                </td>
+                                {% if differenze %}
+                                <td class="text-end {% if differenze.cassa < 0 %}text-danger{% elif differenze.cassa > 0 %}text-success{% endif %}">
+                                    {% if differenze.cassa != 0 %}
+                                    {{ differenze.cassa|floatformat:2 }} €
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-university me-2"></i>Banca</td>
+                                <td class="text-end {% if bilancio.saldo_banca < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ bilancio.saldo_banca|floatformat:2 }} €
+                                </td>
+                                {% if differenze %}
+                                <td class="text-end {% if differenze.banca < 0 %}text-danger{% elif differenze.banca > 0 %}text-success{% endif %}">
+                                    {% if differenze.banca != 0 %}
+                                    {{ differenze.banca|floatformat:2 }} €
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-globe me-2"></i>Online</td>
+                                <td class="text-end {% if bilancio.saldo_online < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ bilancio.saldo_online|floatformat:2 }} €
+                                </td>
+                                {% if differenze %}
+                                <td class="text-end {% if differenze.online < 0 %}text-danger{% elif differenze.online > 0 %}text-success{% endif %}">
+                                    {% if differenze.online != 0 %}
+                                    {{ differenze.online|floatformat:2 }} €
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-user-tie me-2"></i>Saldo Agent</td>
+                                <td class="text-end {% if bilancio.saldo_agenti < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ bilancio.saldo_agenti|floatformat:2 }} €
+                                </td>
+                                {% if differenze %}
+                                <td class="text-end {% if differenze.agenti < 0 %}text-danger{% elif differenze.agenti > 0 %}text-success{% endif %}">
+                                    {% if differenze.agenti != 0 %}
+                                    {{ differenze.agenti|floatformat:2 }} €
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-coins me-2"></i>Ricavi</td>
+                                <td class="text-end {% if bilancio.saldo_ricavi < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ bilancio.saldo_ricavi|floatformat:2 }} €
+                                </td>
+                                {% if differenze %}
+                                <td class="text-end {% if differenze.ricavi < 0 %}text-danger{% elif differenze.ricavi > 0 %}text-success{% endif %}">
+                                    {% if differenze.ricavi != 0 %}
+                                    {{ differenze.ricavi|floatformat:2 }} €
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-shopping-cart me-2"></i>Spese</td>
+                                <td class="text-end {% if bilancio.saldo_spese > 0 %}text-success{% else %}text-danger{% endif %} fw-bold">
+                                    {{ bilancio.saldo_spese|floatformat:2 }} €
+                                </td>
+                                {% if differenze %}
+                                <td class="text-end {% if differenze.spese > 0 %}text-danger{% elif differenze.spese < 0 %}text-success{% endif %}">
+                                    {% if differenze.spese != 0 %}
+                                    {{ differenze.spese|floatformat:2 }} €
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-arrow-down me-2"></i>Prelievi Soci</td>
+                                <td class="text-end {% if bilancio.saldo_prelievi > 0 %}text-warning{% else %}text-info{% endif %} fw-bold">
+                                    {{ bilancio.saldo_prelievi|floatformat:2 }} €
+                                </td>
+                                {% if differenze %}
+                                <td class="text-end {% if differenze.prelievi > 0 %}text-warning{% elif differenze.prelievi < 0 %}text-info{% endif %}">
+                                    {% if differenze.prelievi != 0 %}
+                                    {{ differenze.prelievi|floatformat:2 }} €
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-arrow-up me-2"></i>Versamenti Soci</td>
+                                <td class="text-end {% if bilancio.saldo_versamenti < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ bilancio.saldo_versamenti|floatformat:2 }} €
+                                </td>
+                                {% if differenze %}
+                                <td class="text-end {% if differenze.versamenti < 0 %}text-danger{% elif differenze.versamenti > 0 %}text-success{% endif %}">
+                                    {% if differenze.versamenti != 0 %}
+                                    {{ differenze.versamenti|floatformat:2 }} €
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% if bilancio.saldo_altro != 0 %}
+                            <tr>
+                                <td><i class="fas fa-question-circle me-2"></i>Altro</td>
+                                <td class="text-end {% if bilancio.saldo_altro < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ bilancio.saldo_altro|floatformat:2 }} €
+                                </td>
+                                {% if differenze %}
+                                <td class="text-end {% if differenze.altro < 0 %}text-danger{% elif differenze.altro > 0 %}text-success{% endif %}">
+                                    {% if differenze.altro != 0 %}
+                                    {{ differenze.altro|floatformat:2 }} €
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Note bilancio -->
+                {% if bilancio.note %}
+                <div class="alert alert-secondary mt-3">
+                    <h6 class="alert-heading"><i class="fas fa-sticky-note me-2"></i>Note</h6>
+                    <p class="mb-0">{{ bilancio.note }}</p>
+                </div>
+                {% endif %}
+                
+                <!-- Info creatore -->
+                <div class="text-muted mt-3 small text-end">
+                    <p class="mb-0">
+                        Creato da {{ bilancio.creato_da.username }} il {{ bilancio.data_riferimento|date:"d/m/Y H:i" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scheda bilancio precedente -->
+    {% if bilancio_precedente %}
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-minus me-2"></i>Bilancio Precedente ({{ bilancio_precedente.data_riferimento|date:"d/m/Y H:i" }})
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Saldo totale precedente -->
+                <div class="alert {% if bilancio_precedente.saldo_totale < 0 %}alert-danger{% else %}alert-success{% endif %} text-center">
+                    <h4 class="alert-heading">Saldo Totale</h4>
+                    <h2>{{ bilancio_precedente.saldo_totale|floatformat:2 }} €</h2>
+                </div>
+                
+                <!-- Tabella dei saldi precedenti -->
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Conto</th>
+                                <th class="text-end">Saldo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><i class="fas fa-users me-2"></i>Clienti</td>
+                                <td class="text-end {% if bilancio_precedente.saldo_clienti < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ bilancio_precedente.saldo_clienti|floatformat:2 }} €
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-cash-register me-2"></i>Cassa</td>
+                                <td class="text-end {% if bilancio_precedente.saldo_cassa < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ bilancio_precedente.saldo_cassa|floatformat:2 }} €
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-university me-2"></i>Banca</td>
+                                <td class="text-end {% if bilancio_precedente.saldo_banca < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ bilancio_precedente.saldo_banca|floatformat:2 }} €
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-globe me-2"></i>Online</td>
+                                <td class="text-end {% if bilancio_precedente.saldo_online < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ bilancio_precedente.saldo_online|floatformat:2 }} €
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-user-tie me-2"></i>Saldo Agent</td>
+                                <td class="text-end {% if bilancio_precedente.saldo_agenti < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ bilancio_precedente.saldo_agenti|floatformat:2 }} €
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-coins me-2"></i>Ricavi</td>
+                                <td class="text-end {% if bilancio_precedente.saldo_ricavi < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ bilancio_precedente.saldo_ricavi|floatformat:2 }} €
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-shopping-cart me-2"></i>Spese</td>
+                                <td class="text-end {% if bilancio_precedente.saldo_spese > 0 %}text-success{% else %}text-danger{% endif %} fw-bold">
+                                    {{ bilancio_precedente.saldo_spese|floatformat:2 }} €
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-arrow-down me-2"></i>Prelievi Soci</td>
+                                <td class="text-end {% if bilancio_precedente.saldo_prelievi > 0 %}text-warning{% else %}text-info{% endif %} fw-bold">
+                                    {{ bilancio_precedente.saldo_prelievi|floatformat:2 }} €
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-arrow-up me-2"></i>Versamenti Soci</td>
+                                <td class="text-end {% if bilancio_precedente.saldo_versamenti < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ bilancio_precedente.saldo_versamenti|floatformat:2 }} €
+                                </td>
+                            </tr>
+                            {% if bilancio_precedente.saldo_altro != 0 %}
+                            <tr>
+                                <td><i class="fas fa-question-circle me-2"></i>Altro</td>
+                                <td class="text-end {% if bilancio_precedente.saldo_altro < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ bilancio_precedente.saldo_altro|floatformat:2 }} €
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Note bilancio precedente -->
+                {% if bilancio_precedente.note %}
+                <div class="alert alert-secondary mt-3">
+                    <h6 class="alert-heading"><i class="fas fa-sticky-note me-2"></i>Note</h6>
+                    <p class="mb-0">{{ bilancio_precedente.note }}</p>
+                </div>
+                {% endif %}
+                
+                <!-- Info creatore -->
+                <div class="text-muted mt-3 small text-end">
+                    <p class="mb-0">
+                        Creato da {{ bilancio_precedente.creato_da.username }} il {{ bilancio_precedente.data_riferimento|date:"d/m/Y H:i" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

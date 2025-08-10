@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Modifica Movimento #{{ movimento.id }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-edit me-2"></i>Modifica Movimento #{{ movimento.id }}
+        </h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'dettaglio_distinta' movimento.distinta.id %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Torna alla Distinta
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Colonna principale - Dati Movimento -->
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-exchange-alt me-2"></i>Dati Movimento
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            {{ form.cliente|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.tipo|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.importo|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.saldato|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            {{ form.note|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Aggiorna Movimento
+                        </button>
+                        <a href="{% url 'dettaglio_distinta' movimento.distinta.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Annulla
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Colonna laterale - Dettagli del movimento -->
+    <div class="col-md-4">
+        <!-- Distinta di appartenenza -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-cash-register me-2"></i>Distinta
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="badge bg-info text-white me-2" style="font-size: 1.2rem;">#{{ movimento.distinta.id }}</div>
+                    <div>
+                        <div>{{ movimento.distinta.data|date:"d/m/Y" }}</div>
+                        <small class="text-muted">{{ movimento.distinta.operatore.username }}</small>
+                    </div>
+                </div>
+                <a href="{% url 'dettaglio_distinta' movimento.distinta.id %}" class="btn btn-sm btn-outline-info">
+                    <i class="fas fa-eye me-1"></i>Vai alla Distinta
+                </a>
+            </div>
+        </div>
+
+        <!-- Informazioni cronologiche -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>Cronologia
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6 class="border-bottom pb-2 mb-2">Creazione</h6>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-user me-2 text-muted"></i>
+                        <div>
+                            <strong>{{ movimento.creato_da.username }}</strong>
+                            {% if movimento.data_creazione %}
+                            <div><small class="text-muted">{{ movimento.data_creazione|date:"d/m/Y H:i" }}</small></div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {% if movimento.modificato_da %}
+                <div class="mb-3">
+                    <h6 class="border-bottom pb-2 mb-2">Ultima Modifica</h6>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-edit me-2 text-muted"></i>
+                        <div>
+                            <strong>{{ movimento.modificato_da.username }}</strong>
+                            {% if movimento.data_modifica %}
+                            <div><small class="text-muted">{{ movimento.data_modifica|date:"d/m/Y H:i" }}</small></div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if movimento.movimento_origine %}
+                <div>
+                    <h6 class="border-bottom pb-2 mb-2">Movimento Origine</h6>
+                    <a href="{% url 'modifica_movimento' movimento.movimento_origine.id %}" class="btn btn-sm btn-outline-secondary w-100">
+                        <i class="fas fa-reply me-1"></i> Movimento #{{ movimento.movimento_origine.id }}
+                        <div class="mt-1 small">{{ movimento.movimento_origine.get_tipo_display }} • {{ movimento.movimento_origine.data|date:"d/m/Y" }}</div>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Inizializza select2 per il cliente
+        $('#id_cliente').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Cerca cliente...',
+            allowClear: true
+        });
+    });
+</script>
+{% endblock %}

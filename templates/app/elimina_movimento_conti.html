@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titolo }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>{{ titolo }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <h5><i class="fas fa-exclamation-triangle me-2"></i>Conferma eliminazione</h5>
+                    <p>Sei sicuro di voler eliminare questo movimento?</p>
+                    <p class="mb-0"><strong>Questa operazione ripristinerà i saldi precedenti dei conti coinvolti e non può essere annullata.</strong></p>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title">Dettagli del movimento da eliminare:</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Tipo:</strong> {{ movimento.get_tipo_display }}</li>
+                            <li><strong>Importo:</strong> 
+                                <span class="text-primary fw-bold">{{ movimento.importo|floatformat:2 }} €</span>
+                            </li>
+                            <li><strong>Data:</strong> {{ movimento.data|date:"d/m/Y H:i" }}</li>
+                            
+                            {% if movimento.conto_origine %}
+                            <li><strong>Conto origine:</strong> {{ movimento.conto_origine.nome }}
+                                {% if movimento.saldo_origine_pre is not None %}
+                                <br><small class="text-muted">Saldo: {{ movimento.saldo_origine_pre|floatformat:2 }} € → {{ movimento.saldo_origine_post|floatformat:2 }} €</small>
+                                {% endif %}
+                            </li>
+                            {% endif %}
+                            
+                            {% if movimento.conto_destinazione %}
+                            <li><strong>Conto destinazione:</strong> {{ movimento.conto_destinazione.nome }}
+                                {% if movimento.saldo_destinazione_pre is not None %}
+                                <br><small class="text-muted">Saldo: {{ movimento.saldo_destinazione_pre|floatformat:2 }} € → {{ movimento.saldo_destinazione_post|floatformat:2 }} €</small>
+                                {% endif %}
+                            </li>
+                            {% endif %}
+                            
+                            <li><strong>Operatore:</strong> {{ movimento.operatore.username }}</li>
+                            {% if movimento.note %}
+                            <li><strong>Note:</strong> {{ movimento.note }}</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle me-2"></i>Cosa succederà:</h6>
+                    <ul class="mb-0">
+                        {% if movimento.tipo == 'giroconto' %}
+                        <li>Il movimento di giroconto verrà eliminato</li>
+                        {% if movimento.conto_origine and movimento.saldo_origine_pre is not None %}
+                        <li>Il saldo del conto <strong>{{ movimento.conto_origine.nome }}</strong> tornerà a <strong>{{ movimento.saldo_origine_pre|floatformat:2 }} €</strong></li>
+                        {% endif %}
+                        {% if movimento.conto_destinazione and movimento.saldo_destinazione_pre is not None %}
+                        <li>Il saldo del conto <strong>{{ movimento.conto_destinazione.nome }}</strong> tornerà a <strong>{{ movimento.saldo_destinazione_pre|floatformat:2 }} €</strong></li>
+                        {% endif %}
+                        {% elif movimento.tipo == 'modifica' %}
+                        <li>La modifica diretta del saldo verrà annullata</li>
+                        {% if movimento.conto_origine and movimento.saldo_origine_pre is not None %}
+                        <li>Il saldo del conto <strong>{{ movimento.conto_origine.nome }}</strong> tornerà a <strong>{{ movimento.saldo_origine_pre|floatformat:2 }} €</strong></li>
+                        {% endif %}
+                        {% if movimento.conto_destinazione and movimento.saldo_destinazione_pre is not None %}
+                        <li>Il saldo del conto <strong>{{ movimento.conto_destinazione.nome }}</strong> tornerà a <strong>{{ movimento.saldo_destinazione_pre|floatformat:2 }} €</strong></li>
+                        {% endif %}
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'lista_movimenti_conti' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Annulla
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>Elimina Movimento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
