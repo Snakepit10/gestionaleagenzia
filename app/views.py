@@ -408,12 +408,14 @@ def nuovo_movimento(request):
 
 @login_required
 def salda_movimento(request, pk):
-    movimento = get_object_or_404(Movimento, pk=pk)
+    # Ottieni il database dell'agenzia dell'utente
+    user_db = get_user_database(request.user)
+    movimento = get_object_or_404(Movimento.objects.using(user_db), pk=pk)
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     # Verifica se esiste una distinta aperta
     try:
-        distinta = DistintaCassa.objects.filter(
+        distinta = DistintaCassa.objects.using(user_db).filter(
             operatore=request.user,
             stato='aperta'
         ).latest('data', 'ora_inizio')
@@ -548,7 +550,9 @@ def salda_movimento(request, pk):
 @login_required
 def dettaglio_movimento(request, pk):
     """View per visualizzare i dettagli di un movimento (sola lettura)"""
-    movimento = get_object_or_404(Movimento, pk=pk)
+    # Ottieni il database dell'agenzia dell'utente
+    user_db = get_user_database(request.user)
+    movimento = get_object_or_404(Movimento.objects.using(user_db), pk=pk)
     
     # Verifica autorizzazioni base - l'utente deve poter vedere la distinta
     if movimento.distinta.operatore != request.user and not request.user.is_superuser:
@@ -573,7 +577,9 @@ def dettaglio_movimento(request, pk):
 
 @login_required
 def modifica_movimento(request, pk):
-    movimento = get_object_or_404(Movimento, pk=pk)
+    # Ottieni il database dell'agenzia dell'utente
+    user_db = get_user_database(request.user)
+    movimento = get_object_or_404(Movimento.objects.using(user_db), pk=pk)
 
     # Verifica autorizzazioni
     if movimento.distinta.stato != 'aperta':
@@ -657,7 +663,9 @@ def modifica_movimento(request, pk):
 @login_required
 @user_passes_test(is_manager_or_admin)
 def elimina_movimento(request, pk):
-    movimento = get_object_or_404(Movimento, pk=pk)
+    # Ottieni il database dell'agenzia dell'utente
+    user_db = get_user_database(request.user)
+    movimento = get_object_or_404(Movimento.objects.using(user_db), pk=pk)
 
     # Se la distinta è verificata, solo un admin può eliminare
     if movimento.distinta.stato == 'verificata' and not is_admin(request.user):
