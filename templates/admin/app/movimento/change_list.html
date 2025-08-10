@@ -1,0 +1,19 @@
+{% extends "admin/change_list.html" %}
+
+{% block content_title %}
+    {{ block.super }}
+    
+    {% if db_selector %}
+        <div style="background: #f0f8f0; border: 1px solid #b3d9b3; padding: 10px; margin: 10px 0; border-radius: 4px;">
+            <strong>Database: {{ db_selector.current_label }}</strong>
+            <span style="margin-left: 15px;">Cambia:</span>
+            {% for value, label in db_selector.options %}
+                {% if value == db_selector.current %}
+                    <span style="background: #007cba; color: white; padding: 2px 6px; margin: 0 2px; border-radius: 3px;">{{ label }}</span>
+                {% else %}
+                    <a href="?db={{ value }}" style="background: #f0f0f0; color: #333; padding: 2px 6px; margin: 0 2px; border-radius: 3px; text-decoration: none;">{{ label }}</a>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}

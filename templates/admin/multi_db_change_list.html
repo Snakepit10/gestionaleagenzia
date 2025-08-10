@@ -1,0 +1,32 @@
+{% extends "admin/change_list.html" %}
+
+{% block content_title %}
+    <h1>{{ opts.verbose_name_plural|capfirst }}</h1>
+    
+    <!-- Database Selector -->
+    <div style="margin: 10px 0; padding: 10px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px;">
+        <strong>Seleziona Database:</strong>
+        <div style="margin-top: 5px;">
+            {% for db_value, db_label in database_options %}
+                {% if db_value == selected_db %}
+                    <span style="background: #007cba; color: white; padding: 4px 8px; border-radius: 3px; margin-right: 5px;">
+                        {{ db_label }}
+                    </span>
+                {% else %}
+                    <a href="?db={{ db_value }}" style="background: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 3px; margin-right: 5px; text-decoration: none;">
+                        {{ db_label }}
+                    </a>
+                {% endif %}
+            {% endfor %}
+        </div>
+        <small style="color: #6c757d;">Database attivo: <strong>{{ selected_db }}</strong></small>
+    </div>
+{% endblock %}
+
+{% block search %}
+    <!-- Mantieni il database selezionato nelle ricerche -->
+    {% if selected_db %}
+        <input type="hidden" name="db" value="{{ selected_db }}">
+    {% endif %}
+    {{ block.super }}
+{% endblock %}
