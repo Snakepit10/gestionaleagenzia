@@ -445,7 +445,7 @@ class ContoFinanziario(models.Model):
         saldo_clienti = Cliente.calcola_saldo_complessivo()
 
         for nome, tipo, descrizione in conti_default:
-            # Imposta il saldo per il conto clienti
+            # Imposta i defaults con riferimenti utente (ora funziona grazie al router aggiornato)
             defaults = {
                 'descrizione': descrizione,
                 'creato_da': user,
