@@ -14,7 +14,6 @@ class AgenziaRouter:
     SHARED_MODELS = [
         'agenzia',
         'profiloutente', 
-        'user',
         'group',
         'permission',
         'contenttype',
@@ -22,13 +21,22 @@ class AgenziaRouter:
         'logentry'
     ]
     
+    # Modelli che devono essere presenti in TUTTI i database (per foreign key)
+    REPLICATED_MODELS = [
+        'user'
+    ]
+    
     def db_for_read(self, model, **hints):
         """Decide quale database utilizzare per le letture"""
-        # Forza sempre i modelli Django built-in al database 'default'
-        if model._meta.app_label in ['auth', 'contenttypes', 'sessions', 'admin']:
-            return 'default'
-        
         model_name = model._meta.model_name.lower()
+        
+        # Modelli replicati: User va sempre nel database dell'agenzia corrente per permettere foreign key
+        if model_name in self.REPLICATED_MODELS:
+            return self._get_user_database()
+        
+        # Forza sempre gli altri modelli Django built-in al database 'default'
+        if model._meta.app_label in ['contenttypes', 'sessions', 'admin']:
+            return 'default'
         
         # Modelli condivisi vanno sempre sul database 'default'  
         if model_name in self.SHARED_MODELS:
