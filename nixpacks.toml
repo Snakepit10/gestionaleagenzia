@@ -2,11 +2,7 @@
 cmds = [
     "python -m pip install --upgrade pip",
     "python -m pip install -r requirements.txt",
-    "python manage.py collectstatic --noinput",
-    "python manage.py migrate --noinput",
-    "python manage.py migrate --database=goldbet_db --noinput",
-    "python manage.py migrate --database=better_db --noinput",
-    "python manage.py setup_agenzie --create-agenzie --create-users"
+    "python manage.py collectstatic --noinput"
 ]
 
 [start]
