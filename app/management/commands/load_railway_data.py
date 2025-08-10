@@ -5,6 +5,8 @@ from django.core.management.base import BaseCommand
 from django.core import management
 from django.conf import settings
 import os
+import json
+import codecs
 
 class Command(BaseCommand):
     help = 'Carica i dati esportati nei database Railway'
@@ -56,9 +58,6 @@ class Command(BaseCommand):
                 # Gestione corretta dell'encoding con JSON
                 self.stdout.write(f"🔧 Correggendo encoding del file JSON...")
                 
-                import json
-                import codecs
-                
                 # Prova diversi encoding per leggere il file
                 data = None
                 successful_encoding = None
@@ -94,7 +93,6 @@ class Command(BaseCommand):
                 )
                 
                 # Pulisci il file temporaneo
-                import os
                 os.remove(temp_filepath)
                 
                 self.stdout.write(f"✅ Dati caricati con successo in {db_name}")
