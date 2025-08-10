@@ -6,4 +6,4 @@ cmds = [
 ]
 
 [start]
-cmd = "python manage.py migrate --database=default && python manage.py migrate --database=goldbet_db && python manage.py migrate --database=better_db && python manage.py init_railway && gunicorn agenzia.wsgi --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-level info"
+cmd = "python manage.py migrate --database=default && python manage.py migrate --database=goldbet_db && python manage.py migrate --database=better_db && python manage.py flush --database=default --noinput && python manage.py flush --database=goldbet_db --noinput && python manage.py flush --database=better_db --noinput && python manage.py init_railway && python manage.py load_railway_data && gunicorn agenzia.wsgi --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-level info"
