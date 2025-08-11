@@ -66,6 +66,8 @@
                         <th>Cassa Iniziale</th>
                         <th>Cassa Finale</th>
                         <th>Differenza</th>
+                        <th>Note Distinta</th>
+                        <th>Note Verifica</th>
                         <th>Stato</th>
                         <th>Azioni</th>
                     </tr>
@@ -84,9 +86,23 @@
                             <span class="text-muted">-</span>
                             {% endif %}
                         </td>
-                        <td class="{% if distinta.differenza_cassa != 0 and distinta.differenza_cassa != None %}text-danger{% endif %}">
+                        <td class="{% if distinta.differenza_cassa > 0 %}text-success{% elif distinta.differenza_cassa < 0 %}text-danger{% endif %}">
                             {% if distinta.differenza_cassa != None %}
                             {{ distinta.differenza_cassa|floatformat:2 }} €
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if distinta.note_distinta %}
+                            <span title="{{ distinta.note_distinta }}">{{ distinta.note_distinta|truncatechars:30 }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if distinta.note_verifica %}
+                            <span title="{{ distinta.note_verifica }}">{{ distinta.note_verifica|truncatechars:30 }}</span>
                             {% else %}
                             <span class="text-muted">-</span>
                             {% endif %}
@@ -130,12 +146,12 @@
                 <ul class="pagination justify-content-center mb-0">
                     {% if page_obj.has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="?page=1{{ request.GET.urlencode|slice:'5:' }}">
+                        <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
                             <i class="fas fa-angle-double-left"></i>
                         </a>
                     </li>
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{{ request.GET.urlencode|slice:'5:' }}">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
                             <i class="fas fa-angle-left"></i>
                         </a>
                     </li>
@@ -155,19 +171,19 @@
                         </li>
                         {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ i }}{{ request.GET.urlencode|slice:'5:' }}">{{ i }}</a>
+                            <a class="page-link" href="?page={{ i }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ i }}</a>
                         </li>
                         {% endif %}
                     {% endfor %}
                     
                     {% if page_obj.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{{ request.GET.urlencode|slice:'5:' }}">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
                             <i class="fas fa-angle-right"></i>
                         </a>
                     </li>
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{{ request.GET.urlencode|slice:'5:' }}">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
                             <i class="fas fa-angle-double-right"></i>
                         </a>
                     </li>

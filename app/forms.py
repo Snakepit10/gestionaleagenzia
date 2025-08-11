@@ -114,12 +114,13 @@ class DistintaCassaForm(forms.ModelForm):
 class ChiusuraDistintaForm(forms.ModelForm):
     class Meta:
         model = DistintaCassa
-        fields = ['cassa_finale', 'totale_bevande', 'saldo_terminale', 'differenza_cassa', 'note_verifica']
+        fields = ['cassa_finale', 'totale_bevande', 'saldo_terminale', 'differenza_cassa', 'note_distinta', 'note_verifica']
         widgets = {
             'cassa_finale': forms.NumberInput(attrs={'min': '0', 'step': '0.01'}),
             'totale_bevande': forms.NumberInput(attrs={'min': '0', 'step': '0.01'}),
             'saldo_terminale': forms.NumberInput(attrs={'min': '0', 'step': '0.01'}),
             'differenza_cassa': forms.NumberInput(attrs={'readonly': 'readonly', 'step': '0.01'}),
+            'note_distinta': forms.Textarea(attrs={'rows': 4}),
         }
 
 

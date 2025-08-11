@@ -121,10 +121,10 @@
                         <form method="post">
                             {% csrf_token %}
                             
-                            {% if distinta.note_verifica %}
+                            {% if distinta.note_distinta %}
                             <div class="alert alert-secondary mb-4">
                                 <h6 class="alert-heading">Note dell'operatore:</h6>
-                                <p class="mb-0">{{ distinta.note_verifica }}</p>
+                                <p class="mb-0">{{ distinta.note_distinta }}</p>
                             </div>
                             {% endif %}
                             

@@ -8,6 +8,10 @@ from django.contrib.contenttypes.models import ContentType
 from .database_utils import MultiDatabaseMixin
 
 
+def get_current_time():
+    return timezone.localtime(timezone.now()).time()
+
+
 class Agenzia(models.Model):
     """Modello per rappresentare le agenzie (goldbet, better, etc.)"""
     nome = models.CharField(max_length=100, unique=True)
@@ -146,7 +150,7 @@ class DistintaCassa(MultiDatabaseMixin, models.Model):
     
     operatore = models.ForeignKey(User, on_delete=models.PROTECT, related_name='distinte_create')
     data = models.DateField(default=timezone.now)
-    ora_inizio = models.TimeField(default=lambda: timezone.localtime(timezone.now()).time())
+    ora_inizio = models.TimeField(default=get_current_time)
     ora_fine = models.TimeField(null=True, blank=True)
     cassa_iniziale = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     cassa_finale = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
@@ -159,6 +163,7 @@ class DistintaCassa(MultiDatabaseMixin, models.Model):
     verificata_da = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='distinte_verificate')
     data_verifica = models.DateTimeField(null=True, blank=True)
     note_verifica = models.TextField(blank=True, null=True)
+    note_distinta = models.TextField(blank=True, null=True)
     
     class Meta:
         verbose_name = "Distinta di Cassa"
