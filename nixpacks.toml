@@ -6,4 +6,4 @@ cmds = [
 ]
 
 [start]
-cmd = "python manage.py migrate --database=default && python manage.py migrate --database=goldbet_db && python manage.py migrate --database=better_db && gunicorn agenzia.wsgi --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-level info"
+cmd = "python manage.py migrate --database=default && python manage.py migrate --database=goldbet_db && python manage.py migrate --database=better_db && python manage.py load_data_safe && gunicorn agenzia.wsgi --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-level info"

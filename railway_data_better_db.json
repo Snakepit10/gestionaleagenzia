@@ -1,0 +1,388 @@
+[
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$20Tpzuk75HnLaKFGnN0Z2r$aQ1kzCeSwNq7jyLEzVCZDJ6oza426Gt2T6xjdI2rbXg=",
+    "last_login": "2025-08-10T17:50:39.897Z",
+    "is_superuser": true,
+    "username": "salvo",
+    "first_name": "Salvo",
+    "last_name": "Better",
+    "email": "salvo@better.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2025-08-10T15:06:31Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "app.cliente",
+  "pk": 1,
+  "fields": {
+    "nome": "PROVA",
+    "cognome": "BETTER",
+    "email": null,
+    "telefono": null,
+    "saldo": "-150.00",
+    "fido_massimo": "200.00",
+    "rating": "C",
+    "note": "",
+    "data_creazione": "2025-08-10T17:50:55.919Z",
+    "data_modifica": "2025-08-10T17:50:55.919Z",
+    "creato_da": [
+      "salvo"
+    ],
+    "modificato_da": null
+  }
+},
+{
+  "model": "app.cliente",
+  "pk": 2,
+  "fields": {
+    "nome": "Mario",
+    "cognome": "Rossi",
+    "email": null,
+    "telefono": null,
+    "saldo": "0.00",
+    "fido_massimo": "0.00",
+    "rating": "C",
+    "note": null,
+    "data_creazione": "2025-08-10T17:57:50.909Z",
+    "data_modifica": "2025-08-10T17:57:50.909Z",
+    "creato_da": null,
+    "modificato_da": null
+  }
+},
+{
+  "model": "app.cliente",
+  "pk": 3,
+  "fields": {
+    "nome": "Luca",
+    "cognome": "Bianchi",
+    "email": null,
+    "telefono": null,
+    "saldo": "0.00",
+    "fido_massimo": "0.00",
+    "rating": "C",
+    "note": null,
+    "data_creazione": "2025-08-10T17:57:50.914Z",
+    "data_modifica": "2025-08-10T17:57:50.914Z",
+    "creato_da": null,
+    "modificato_da": null
+  }
+},
+{
+  "model": "app.cliente",
+  "pk": 4,
+  "fields": {
+    "nome": "Anna",
+    "cognome": "Verdi",
+    "email": null,
+    "telefono": null,
+    "saldo": "0.00",
+    "fido_massimo": "0.00",
+    "rating": "C",
+    "note": null,
+    "data_creazione": "2025-08-10T17:57:50.918Z",
+    "data_modifica": "2025-08-10T17:57:50.918Z",
+    "creato_da": null,
+    "modificato_da": null
+  }
+},
+{
+  "model": "app.distintacassa",
+  "pk": 1,
+  "fields": {
+    "operatore": [
+      "salvo"
+    ],
+    "data": "2025-08-10",
+    "ora_inizio": "19:51:12.104",
+    "ora_fine": null,
+    "cassa_iniziale": "500.00",
+    "cassa_finale": null,
+    "totale_entrate": "0.00",
+    "totale_uscite": "0.00",
+    "totale_bevande": "0.00",
+    "saldo_terminale": null,
+    "differenza_cassa": null,
+    "stato": "aperta",
+    "verificata_da": null,
+    "data_verifica": null,
+    "note_verifica": null,
+    "note_distinta": null
+  }
+},
+{
+  "model": "app.movimento",
+  "pk": 1,
+  "fields": {
+    "cliente": 1,
+    "tipo": "schedina",
+    "importo": "-150.00",
+    "data": "2025-08-10T17:51:17.356Z",
+    "saldato": false,
+    "distinta": 1,
+    "creato_da": [
+      "salvo"
+    ],
+    "data_creazione": "2025-08-10T17:51:17.358Z",
+    "modificato_da": null,
+    "data_modifica": "2025-08-10T17:51:17.358Z",
+    "movimento_origine": null,
+    "note": ""
+  }
+},
+{
+  "model": "app.contofinanziario",
+  "pk": 1,
+  "fields": {
+    "nome": "Cassa Agenzia",
+    "tipo": "cassa",
+    "saldo": "0.00",
+    "descrizione": "Contante fisico presente in agenzia",
+    "creato_da": [
+      "salvo"
+    ],
+    "data_creazione": "2025-08-10T17:10:12.231Z",
+    "modificato_da": [
+      "salvo"
+    ],
+    "data_modifica": "2025-08-10T17:51:12.108Z"
+  }
+},
+{
+  "model": "app.contofinanziario",
+  "pk": 2,
+  "fields": {
+    "nome": "Conto Corrente Principale",
+    "tipo": "banca",
+    "saldo": "0.00",
+    "descrizione": "Conto corrente aziendale principale",
+    "creato_da": [
+      "salvo"
+    ],
+    "data_creazione": "2025-08-10T17:10:12.237Z",
+    "modificato_da": [
+      "salvo"
+    ],
+    "data_modifica": "2025-08-10T17:10:12.237Z"
+  }
+},
+{
+  "model": "app.contofinanziario",
+  "pk": 3,
+  "fields": {
+    "nome": "Conto Gioco Online",
+    "tipo": "online",
+    "saldo": "0.00",
+    "descrizione": "Saldo disponibile su piattaforme di gioco online",
+    "creato_da": [
+      "salvo"
+    ],
+    "data_creazione": "2025-08-10T17:10:12.241Z",
+    "modificato_da": [
+      "salvo"
+    ],
+    "data_modifica": "2025-08-10T17:10:12.241Z"
+  }
+},
+{
+  "model": "app.contofinanziario",
+  "pk": 4,
+  "fields": {
+    "nome": "Saldo Clienti",
+    "tipo": "clienti",
+    "saldo": "0.00",
+    "descrizione": "Crediti/debiti verso clienti calcolato automaticamente",
+    "creato_da": [
+      "salvo"
+    ],
+    "data_creazione": "2025-08-10T17:10:12.246Z",
+    "modificato_da": [
+      "salvo"
+    ],
+    "data_modifica": "2025-08-10T17:10:12.246Z"
+  }
+},
+{
+  "model": "app.contofinanziario",
+  "pk": 5,
+  "fields": {
+    "nome": "Saldo Agent",
+    "tipo": "agenti",
+    "saldo": "0.00",
+    "descrizione": "Crediti/debiti verso agent",
+    "creato_da": [
+      "salvo"
+    ],
+    "data_creazione": "2025-08-10T17:10:12.251Z",
+    "modificato_da": [
+      "salvo"
+    ],
+    "data_modifica": "2025-08-10T17:10:12.251Z"
+  }
+},
+{
+  "model": "app.contofinanziario",
+  "pk": 6,
+  "fields": {
+    "nome": "Spese Generali",
+    "tipo": "spese",
+    "saldo": "0.00",
+    "descrizione": "Spese di gestione e amministrazione",
+    "creato_da": [
+      "salvo"
+    ],
+    "data_creazione": "2025-08-10T17:10:12.258Z",
+    "modificato_da": [
+      "salvo"
+    ],
+    "data_modifica": "2025-08-10T17:10:12.258Z"
+  }
+},
+{
+  "model": "app.contofinanziario",
+  "pk": 7,
+  "fields": {
+    "nome": "Ricavi Operativi",
+    "tipo": "ricavi",
+    "saldo": "0.00",
+    "descrizione": "Ricavi generati dall'attività",
+    "creato_da": [
+      "salvo"
+    ],
+    "data_creazione": "2025-08-10T17:10:12.263Z",
+    "modificato_da": [
+      "salvo"
+    ],
+    "data_modifica": "2025-08-10T17:10:12.263Z"
+  }
+},
+{
+  "model": "app.contofinanziario",
+  "pk": 8,
+  "fields": {
+    "nome": "Prelievi Soci",
+    "tipo": "prelievi",
+    "saldo": "0.00",
+    "descrizione": "Prelievi effettuati dai soci",
+    "creato_da": [
+      "salvo"
+    ],
+    "data_creazione": "2025-08-10T17:10:12.267Z",
+    "modificato_da": [
+      "salvo"
+    ],
+    "data_modifica": "2025-08-10T17:10:12.267Z"
+  }
+},
+{
+  "model": "app.contofinanziario",
+  "pk": 9,
+  "fields": {
+    "nome": "Versamenti Soci",
+    "tipo": "versamenti",
+    "saldo": "0.00",
+    "descrizione": "Versamenti effettuati dai soci",
+    "creato_da": [
+      "salvo"
+    ],
+    "data_creazione": "2025-08-10T17:10:12.272Z",
+    "modificato_da": [
+      "salvo"
+    ],
+    "data_modifica": "2025-08-10T17:10:12.272Z"
+  }
+},
+{
+  "model": "app.movimentoconti",
+  "pk": 1,
+  "fields": {
+    "data": "2025-08-10T17:51:08.273Z",
+    "tipo": "modifica",
+    "importo": "500.00",
+    "conto_origine": null,
+    "conto_destinazione": 1,
+    "saldo_origine_pre": null,
+    "saldo_origine_post": null,
+    "saldo_destinazione_pre": "0.00",
+    "saldo_destinazione_post": "500.00",
+    "note": "",
+    "operatore": [
+      "salvo"
+    ]
+  }
+},
+{
+  "model": "app.movimentoconti",
+  "pk": 2,
+  "fields": {
+    "data": "2025-08-10T17:51:12.116Z",
+    "tipo": "modifica",
+    "importo": "500.00",
+    "conto_origine": 1,
+    "conto_destinazione": null,
+    "saldo_origine_pre": "500.00",
+    "saldo_origine_post": "0.00",
+    "saldo_destinazione_pre": null,
+    "saldo_destinazione_post": null,
+    "note": "Prelievo per apertura Distinta N° 1 - Operatore: salvo",
+    "operatore": [
+      "salvo"
+    ]
+  }
+},
+{
+  "model": "app.activitylog",
+  "pk": 1,
+  "fields": {
+    "user": [
+      "salvo"
+    ],
+    "action": "create",
+    "timestamp": "2025-08-10T17:51:12.121Z",
+    "description": "Apertura Distinta N° 1 con cassa iniziale di 500.00 € ",
+    "data_before": null,
+    "data_after": {
+      "operatore": "salvo",
+      "data": "10/08/2025",
+      "ora_inizio": "19:51",
+      "cassa_iniziale": "500.00",
+      "stato": "aperta"
+    },
+    "content_type": [
+      "app",
+      "distintacassa"
+    ],
+    "object_id": 1
+  }
+},
+{
+  "model": "app.activitylog",
+  "pk": 2,
+  "fields": {
+    "user": [
+      "salvo"
+    ],
+    "action": "create",
+    "timestamp": "2025-08-10T17:51:17.369Z",
+    "description": "Creazione movimento Schedina di 150 € per BETTER PROVA",
+    "data_before": null,
+    "data_after": {
+      "tipo": "Schedina",
+      "importo": "150",
+      "cliente": "BETTER PROVA",
+      "distinta": 1,
+      "note": "",
+      "saldato": false
+    },
+    "content_type": [
+      "app",
+      "movimento"
+    ],
+    "object_id": 1
+  }
+}
+]
