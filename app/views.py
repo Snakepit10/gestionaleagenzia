@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required, user_passes_test, permission_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponseForbidden
@@ -573,6 +573,7 @@ def salda_movimento(request, pk):
     return redirect('dettaglio_distinta', pk=distinta.pk)
 
 @login_required
+@permission_required('app.view_movimento', raise_exception=True)
 def dettaglio_movimento(request, pk):
     """View per visualizzare i dettagli di un movimento (sola lettura)"""
     # Usa il nuovo DatabaseManager
@@ -582,11 +583,6 @@ def dettaglio_movimento(request, pk):
         select_related=['distinta', 'cliente', 'creato_da'],
         pk=pk
     )
-    
-    # Verifica autorizzazioni base - l'utente deve poter vedere la distinta
-    if movimento.distinta.operatore != request.user and not request.user.is_superuser:
-        messages.error(request, 'Non sei autorizzato a visualizzare questo movimento.')
-        return redirect('home')
     
     # Recupera i log delle attività relativi a questo movimento
     from django.contrib.contenttypes.models import ContentType
