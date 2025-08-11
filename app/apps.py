@@ -6,5 +6,6 @@ class AppConfig(AppConfig):
     name = 'app'
     
     def ready(self):
-        """Importa i segnali quando l'app è pronta"""
+        """Setup quando l'app è pronta"""
+        # Importa i segnali
         import app.signals

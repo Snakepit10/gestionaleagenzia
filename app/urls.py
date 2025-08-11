@@ -33,8 +33,8 @@ urlpatterns = [
     # Bilancio Finanziario
     path('bilancio/', views.bilancio_finanziario, name='bilancio_finanziario'),
     path('bilancio/conto/nuovo/', views.nuovo_conto, name='nuovo_conto'),
-    path('bilancio/conto/<int:pk>/modifica/', views.modifica_conto, name='modifica_conto'),
     path('bilancio/conto/<int:pk>/saldo/', views.modifica_saldo, name='modifica_saldo'),
+    path('bilancio/conto/<int:pk>/modifica/', views.modifica_conto, name='modifica_conto'),
     path('bilancio/conto/<int:pk>/elimina/', views.elimina_conto, name='elimina_conto'),
     path('bilancio/<int:pk>/', views.dettaglio_bilancio, name='dettaglio_bilancio'),
     path('bilancio/giroconto/', views.effettua_giroconto, name='effettua_giroconto'),
