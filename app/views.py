@@ -128,6 +128,7 @@ def dashboard(request):
 
 # Gestione Clienti
 @login_required
+@permission_required('app.view_cliente', raise_exception=True)
 def lista_clienti(request):
     # Usa il nuovo DatabaseManager
     db = DatabaseManager(request.user)
@@ -165,6 +166,7 @@ def lista_clienti(request):
     return render(request, 'app/lista_clienti.html', context)
 
 @login_required
+@permission_required('app.view_cliente', raise_exception=True)
 def dettaglio_cliente(request, pk):
     # Usa il nuovo DatabaseManager
     db = DatabaseManager(request.user)
@@ -208,6 +210,7 @@ def dettaglio_cliente(request, pk):
     return render(request, 'app/dettaglio_cliente.html', context)
 
 @login_required
+@permission_required('app.add_cliente', raise_exception=True)
 def nuovo_cliente(request):
     if request.method == 'POST':
         form = ClienteForm(request.POST, user=request.user)
@@ -231,6 +234,7 @@ def nuovo_cliente(request):
     return render(request, 'app/form_cliente.html', {'form': form, 'titolo': 'Nuovo Cliente'})
 
 @login_required
+@permission_required('app.change_cliente', raise_exception=True)
 def modifica_cliente(request, pk):
     db = DatabaseManager(request.user)
     cliente = get_object_or_404(db.get_queryset(Cliente), pk=pk)
@@ -317,6 +321,7 @@ def lista_movimenti(request):
     return render(request, 'app/lista_movimenti.html', context)
 
 @login_required
+@permission_required('app.add_movimento', raise_exception=True)
 def nuovo_movimento(request):
     db = DatabaseManager(request.user)
     user_db = get_user_database(request.user)
@@ -601,6 +606,7 @@ def dettaglio_movimento(request, pk):
     return render(request, 'app/dettaglio_movimento.html', context)
 
 @login_required
+@permission_required('app.change_movimento', raise_exception=True)
 def modifica_movimento(request, pk):
     # Usa il nuovo DatabaseManager
     db = DatabaseManager(request.user)
@@ -690,7 +696,8 @@ def modifica_movimento(request, pk):
     return render(request, 'app/modifica_movimento.html', context)
 
 @login_required
-@user_passes_test(is_manager_or_admin)
+@login_required
+@permission_required('app.delete_movimento', raise_exception=True)
 def elimina_movimento(request, pk):
     # Usa il nuovo DatabaseManager
     db = DatabaseManager(request.user)
@@ -742,6 +749,7 @@ def elimina_movimento(request, pk):
 
 # Gestione Distinte di Cassa
 @login_required
+@permission_required('app.view_distintacassa', raise_exception=True)
 def lista_distinte(request):
     db = DatabaseManager(request.user)
     user_db = get_user_database(request.user)
@@ -787,6 +795,7 @@ def lista_distinte(request):
     return render(request, 'app/lista_distinte.html', context)
 
 @login_required
+@permission_required('app.view_distintacassa', raise_exception=True)
 def dettaglio_distinta(request, pk):
     # Usa il nuovo DatabaseManager
     db = DatabaseManager(request.user)
@@ -869,6 +878,7 @@ def dettaglio_distinta(request, pk):
     return render(request, 'app/dettaglio_distinta.html', context)
 
 @login_required
+@permission_required('app.add_distintacassa', raise_exception=True)
 def nuova_distinta(request):
     # Usa il nuovo DatabaseManager
     db = DatabaseManager(request.user)
@@ -954,6 +964,7 @@ def nuova_distinta(request):
     return render(request, 'app/form_distinta.html', {'form': form, 'titolo': 'Nuova Distinta', 'conto_cassa': conto_cassa})
 
 @login_required
+@permission_required('app.change_distintacassa', raise_exception=True)
 def chiudi_distinta(request, pk):
     db = DatabaseManager(request.user)
     distinta = get_object_or_404(db.get_queryset(DistintaCassa), pk=pk)
@@ -1129,7 +1140,8 @@ def chiudi_distinta(request, pk):
     return render(request, 'app/chiudi_distinta.html', context)
 
 @login_required
-@user_passes_test(is_manager_or_admin)
+@login_required
+@permission_required('app.change_distintacassa', raise_exception=True)
 def verifica_distinta(request, pk):
     db = DatabaseManager(request.user)
     distinta = get_object_or_404(db.get_queryset(DistintaCassa), pk=pk)
