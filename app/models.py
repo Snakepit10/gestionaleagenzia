@@ -448,7 +448,8 @@ class ContoFinanziario(MultiDatabaseMixin, models.Model):
 
     @classmethod
     def aggiorna_saldo_cassa_da_distinte(cls, user):
-        """Aggiorna il saldo della cassa agenzia con il valore della cassa finale dell'ultima distinta chiusa"""
+        """Aggiorna il saldo della cassa agenzia considerando distinte chiuse e movimenti successivi"""
+        from django.db.models import Sum
         from .database_utils import DatabaseManager
         
         db = DatabaseManager(user)
@@ -460,17 +461,45 @@ class ContoFinanziario(MultiDatabaseMixin, models.Model):
             ultima_distinta = db.get_queryset(DistintaCassa).filter(stato='chiusa').order_by('-data', '-ora_inizio').first()
             
             if ultima_distinta:
-                # Usa la cassa finale dell'ultima distinta chiusa
-                nuovo_saldo = ultima_distinta.cassa_finale
+                # Usa la cassa finale dell'ultima distinta chiusa come base
+                saldo_base = ultima_distinta.cassa_finale
                 
-                # Aggiorna il saldo del conto cassa
-                conto_cassa.saldo = nuovo_saldo
-                db.save_object(conto_cassa)
+                # Calcola data/ora di chiusura della distinta per filtrare movimenti successivi
+                data_chiusura = timezone.make_aware(
+                    timezone.datetime.combine(ultima_distinta.data, ultima_distinta.ora_fine or ultima_distinta.ora_inizio)
+                )
                 
-                return nuovo_saldo
+                # Somma movimenti DOPO la chiusura della distinta
+                movimenti_entrata = db.get_queryset(MovimentoConti).filter(
+                    conto_destinazione=conto_cassa,
+                    data__gt=data_chiusura
+                ).aggregate(total=Sum('importo'))['total'] or 0
+                
+                movimenti_uscita = db.get_queryset(MovimentoConti).filter(
+                    conto_origine=conto_cassa,
+                    data__gt=data_chiusura
+                ).aggregate(total=Sum('importo'))['total'] or 0
+                
+                # Calcola il nuovo saldo: base + entrate - uscite
+                nuovo_saldo = saldo_base + movimenti_entrata - movimenti_uscita
+                
             else:
-                # Se non ci sono distinte chiuse, mantieni il saldo attuale
-                return conto_cassa.saldo
+                # Se non ci sono distinte chiuse, calcola da tutti i movimenti
+                movimenti_entrata = db.get_queryset(MovimentoConti).filter(
+                    conto_destinazione=conto_cassa
+                ).aggregate(total=Sum('importo'))['total'] or 0
+                
+                movimenti_uscita = db.get_queryset(MovimentoConti).filter(
+                    conto_origine=conto_cassa
+                ).aggregate(total=Sum('importo'))['total'] or 0
+                
+                nuovo_saldo = movimenti_entrata - movimenti_uscita
+            
+            # Aggiorna il saldo del conto cassa
+            conto_cassa.saldo = nuovo_saldo
+            db.save_object(conto_cassa)
+            
+            return nuovo_saldo
             
         except cls.DoesNotExist:
             return 0
