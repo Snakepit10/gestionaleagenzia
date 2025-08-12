@@ -895,6 +895,9 @@ def nuova_distinta(request):
 
     # Ottieni il conto cassa
     try:
+        # Prima aggiorna il saldo della cassa basandosi sulle distinte chiuse
+        ContoFinanziario.aggiorna_saldo_cassa_da_distinte(request.user)
+        
         conto_cassa = db.get_queryset(ContoFinanziario).filter(tipo='cassa').first()
         if not conto_cassa:
             messages.warning(request, 'Nessun conto cassa trovato nel bilancio. Contatta l\'amministratore.')
