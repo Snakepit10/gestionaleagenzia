@@ -9,6 +9,7 @@ from django.db import models
 AGENZIA_DATABASE_MAP = {
     'goldbet': 'goldbet_db',
     'better': 'better_db',
+    'planet': 'planet_db',
 }
 
 # Database di default per dati condivisi

@@ -410,10 +410,24 @@ class ContoFinanziario(MultiDatabaseMixin, models.Model):
         ('versamenti', 'Versamenti Soci'),
         ('altro', 'Altro'),
     ]
+    
+    CATEGORIA_CHOICES = [
+        # STATO FINANZIARIO
+        ('liquidita', 'Liquidità'),  # Cassa, Banche
+        ('crediti', 'Crediti'),      # Da clienti, agenti
+        ('debiti', 'Debiti'),        # Verso fornitori, agenti
+        
+        # GESTIONE (per calcolo utile/imposte)
+        ('ricavi', 'Ricavi'),                # Commissioni, vendite
+        ('costi', 'Costi Operativi'),       # Affitto, utenze, personale
+        ('imposte', 'Imposte e Tasse'),     # Per tracking separato
+    ]
 
     nome = models.CharField(max_length=100)
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
+    categoria = models.CharField(max_length=20, choices=CATEGORIA_CHOICES, default='liquidita', help_text="Categoria contabile per bilancio")
     saldo = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    tassabile = models.BooleanField(default=True, help_text="Concorre al calcolo delle imposte")
     descrizione = models.TextField(blank=True, null=True)
     creato_da = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='conti_creati')
     data_creazione = models.DateTimeField(auto_now_add=True)
@@ -445,6 +459,56 @@ class ContoFinanziario(MultiDatabaseMixin, models.Model):
         
         db = DatabaseManager(user)
         return db.get_queryset(cls).filter(tipo=tipo).aggregate(total=Sum('saldo'))['total'] or 0
+    
+    @classmethod
+    def calcola_saldo_per_categoria(cls, user, categoria, tassabile=None):
+        """Calcola il saldo totale per una categoria contabile"""
+        from django.db.models import Sum
+        from .database_utils import DatabaseManager
+        
+        db = DatabaseManager(user)
+        queryset = db.get_queryset(cls).filter(categoria=categoria)
+        
+        if tassabile is not None:
+            queryset = queryset.filter(tassabile=tassabile)
+            
+        return queryset.aggregate(total=Sum('saldo'))['total'] or 0
+    
+    @classmethod
+    def calcola_situazione_fiscale(cls, user):
+        """Calcola utile lordo e stima imposte"""
+        ricavi_tassabili = cls.calcola_saldo_per_categoria(user, 'ricavi', tassabile=True)
+        costi_deducibili = cls.calcola_saldo_per_categoria(user, 'costi', tassabile=True)
+        
+        utile_lordo = ricavi_tassabili - costi_deducibili
+        stima_imposte = max(0, utile_lordo * 0.24)  # IRPEF + addizionali stimate (24%)
+        
+        return {
+            'ricavi_tassabili': ricavi_tassabili,
+            'costi_deducibili': costi_deducibili,
+            'utile_lordo': utile_lordo,
+            'stima_imposte': stima_imposte,
+            'utile_netto_stimato': utile_lordo - stima_imposte
+        }
+    
+    @classmethod
+    def calcola_situazione_finanziaria(cls, user):
+        """Calcola situazione finanziaria (liquidità disponibile)"""
+        liquidita = cls.calcola_saldo_per_categoria(user, 'liquidita')
+        crediti = cls.calcola_saldo_per_categoria(user, 'crediti')
+        debiti = cls.calcola_saldo_per_categoria(user, 'debiti')
+        imposte_accantonate = cls.calcola_saldo_per_categoria(user, 'imposte')
+        
+        situazione_fiscale = cls.calcola_situazione_fiscale(user)
+        
+        return {
+            'liquidita': liquidita,
+            'crediti': crediti,
+            'debiti': debiti,
+            'imposte_accantonate': imposte_accantonate,
+            'situazione_finanziaria_netta': liquidita + crediti - debiti,
+            'liquidita_effettiva': liquidita - situazione_fiscale['stima_imposte'] + imposte_accantonate,
+        }
 
     @classmethod
     def aggiorna_saldo_cassa_da_distinte(cls, user):
@@ -651,6 +715,346 @@ class MovimentoConti(MultiDatabaseMixin, models.Model):
         
         db.save_object(movimento)
         return movimento
+
+
+class SnapshotSaldoCassa(MultiDatabaseMixin, models.Model):
+    """Storicizza gli snapshots del saldo cassa agenzia per audit e tracciabilità"""
+    
+    data_snapshot = models.DateTimeField(default=timezone.now)
+    saldo_precedente = models.DecimalField(max_digits=15, decimal_places=2)
+    saldo_nuovo = models.DecimalField(max_digits=15, decimal_places=2)
+    differenza = models.DecimalField(max_digits=15, decimal_places=2)
+    causale = models.CharField(max_length=100, help_text="Motivo della variazione")
+    riferimento_id = models.PositiveIntegerField(null=True, blank=True, help_text="ID del record correlato (distinta, movimento, etc.)")
+    riferimento_tipo = models.CharField(max_length=50, null=True, blank=True, help_text="Tipo di record correlato")
+    operatore = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='snapshots_cassa')
+    note = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        verbose_name = "Snapshot Saldo Cassa"
+        verbose_name_plural = "Snapshots Saldo Cassa"
+        ordering = ['-data_snapshot']
+    
+    def __str__(self):
+        return f"Cassa: {self.saldo_precedente} → {self.saldo_nuovo} € ({self.causale}) - {self.data_snapshot.strftime('%d/%m/%Y %H:%M')}"
+    
+    @classmethod
+    def registra_snapshot(cls, saldo_precedente, saldo_nuovo, causale, operatore, riferimento_id=None, riferimento_tipo=None, note=None):
+        """Registra un nuovo snapshot del saldo cassa"""
+        from .database_utils import DatabaseManager
+        
+        db = DatabaseManager(operatore)
+        
+        snapshot = cls(
+            saldo_precedente=saldo_precedente,
+            saldo_nuovo=saldo_nuovo,
+            differenza=saldo_nuovo - saldo_precedente,
+            causale=causale,
+            riferimento_id=riferimento_id,
+            riferimento_tipo=riferimento_tipo,
+            operatore=operatore,
+            note=note
+        )
+        
+        db.save_object(snapshot)
+        return snapshot
+    
+    @classmethod
+    def get_ultimo_saldo(cls, user):
+        """Recupera l'ultimo saldo registrato"""
+        from .database_utils import DatabaseManager
+        
+        db = DatabaseManager(user)
+        ultimo_snapshot = db.get_queryset(cls).first()
+        
+        if ultimo_snapshot:
+            return ultimo_snapshot.saldo_nuovo
+        else:
+            return 0
+
+
+class MovimentoCassa(MultiDatabaseMixin, models.Model):
+    """Traccia tutti i movimenti che influenzano la cassa agenzia"""
+    
+    TIPO_MOVIMENTO_CHOICES = [
+        ('apertura_distinta', 'Apertura Distinta'),
+        ('chiusura_distinta', 'Chiusura Distinta'),
+        ('verifica_distinta', 'Verifica Distinta'),
+        ('giroconto_entrata', 'Giroconto in Entrata'),
+        ('giroconto_uscita', 'Giroconto in Uscita'),
+        ('deposito', 'Deposito Manuale'),
+        ('prelievo', 'Prelievo Manuale'),
+        ('correzione', 'Correzione Manuale'),
+        ('inizializzazione', 'Inizializzazione Sistema'),
+    ]
+    
+    data_movimento = models.DateTimeField(default=timezone.now)
+    tipo_movimento = models.CharField(max_length=30, choices=TIPO_MOVIMENTO_CHOICES)
+    importo = models.DecimalField(max_digits=15, decimal_places=2, help_text="Positivo per entrate, negativo per uscite")
+    saldo_precedente = models.DecimalField(max_digits=15, decimal_places=2)
+    saldo_nuovo = models.DecimalField(max_digits=15, decimal_places=2)
+    
+    # Collegamenti ai record correlati
+    distinta = models.ForeignKey(DistintaCassa, on_delete=models.PROTECT, null=True, blank=True, related_name='movimenti_cassa')
+    movimento_conti = models.ForeignKey(MovimentoConti, on_delete=models.PROTECT, null=True, blank=True, related_name='movimenti_cassa')
+    
+    descrizione = models.TextField(help_text="Descrizione dettagliata del movimento")
+    operatore = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='movimenti_cassa')
+    
+    class Meta:
+        verbose_name = "Movimento Cassa"
+        verbose_name_plural = "Movimenti Cassa"
+        ordering = ['-data_movimento']
+    
+    def __str__(self):
+        simbolo = "+" if self.importo >= 0 else ""
+        return f"{simbolo}{self.importo} € - {self.get_tipo_movimento_display()} ({self.data_movimento.strftime('%d/%m/%Y %H:%M')})"
+    
+    @classmethod
+    def registra_movimento(cls, tipo_movimento, importo, saldo_precedente, descrizione, operatore, distinta=None, movimento_conti=None):
+        """Registra un nuovo movimento cassa"""
+        from .database_utils import DatabaseManager
+        
+        db = DatabaseManager(operatore)
+        saldo_nuovo = saldo_precedente + importo
+        
+        movimento = cls(
+            tipo_movimento=tipo_movimento,
+            importo=importo,
+            saldo_precedente=saldo_precedente,
+            saldo_nuovo=saldo_nuovo,
+            distinta=distinta,
+            movimento_conti=movimento_conti,
+            descrizione=descrizione,
+            operatore=operatore
+        )
+        
+        db.save_object(movimento)
+        
+        # Registra anche il snapshot
+        SnapshotSaldoCassa.registra_snapshot(
+            saldo_precedente=saldo_precedente,
+            saldo_nuovo=saldo_nuovo,
+            causale=movimento.get_tipo_movimento_display(),
+            operatore=operatore,
+            riferimento_id=movimento.pk,
+            riferimento_tipo='MovimentoCassa',
+            note=descrizione
+        )
+        
+        return movimento, saldo_nuovo
+    
+    @classmethod
+    def calcola_saldo_attuale(cls, user):
+        """Calcola il saldo attuale dalla somma progressiva di tutti i movimenti"""
+        from django.db.models import Sum
+        from .database_utils import DatabaseManager
+        
+        db = DatabaseManager(user)
+        
+        # Alternativa 1: usa l'ultimo movimento registrato
+        ultimo_movimento = db.get_queryset(cls).first()
+        if ultimo_movimento:
+            return ultimo_movimento.saldo_nuovo
+        
+        # Alternativa 2: calcola dalla somma (più sicura per verifiche)
+        totale_movimenti = db.get_queryset(cls).aggregate(
+            total=Sum('importo')
+        )['total'] or 0
+        
+        return totale_movimenti
+
+
+class ControlloQuadratura(MultiDatabaseMixin, models.Model):
+    """Sistema di controllo quadratura per verificare coerenza saldi"""
+    
+    STATO_CHOICES = [
+        ('in_corso', 'Controllo in Corso'),
+        ('quadrato', 'Quadrato'),
+        ('differenza', 'Con Differenze'),
+        ('ammanco', 'Ammanco Rilevato'),
+    ]
+    
+    data_controllo = models.DateTimeField(default=timezone.now)
+    operatore = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='controlli_quadratura')
+    
+    # Riferimenti temporali del periodo controllato
+    data_inizio_periodo = models.DateTimeField(help_text="Inizio periodo di controllo")
+    data_fine_periodo = models.DateTimeField(help_text="Fine periodo di controllo")
+    
+    # Saldi di controllo
+    saldo_iniziale = models.DecimalField(max_digits=15, decimal_places=2, help_text="Saldo all'inizio del periodo")
+    saldo_finale_reale = models.DecimalField(max_digits=15, decimal_places=2, help_text="Saldo effettivo rilevato")
+    saldo_finale_calcolato = models.DecimalField(max_digits=15, decimal_places=2, help_text="Saldo teorico da movimenti")
+    
+    differenza = models.DecimalField(max_digits=15, decimal_places=2, help_text="Ammanco/Surplus rilevato", editable=False)
+    
+    # Dettaglio movimenti nel periodo
+    totale_entrate = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    totale_uscite = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    numero_movimenti = models.IntegerField(default=0)
+    
+    # Controllo specifico
+    conto_controllato = models.ForeignKey(ContoFinanziario, on_delete=models.PROTECT, null=True, blank=True, help_text="Conto specifico controllato")
+    controllo_generale = models.BooleanField(default=True, help_text="True se controllo generale, False se su conto specifico")
+    
+    note_controllo = models.TextField(blank=True, null=True)
+    stato = models.CharField(max_length=20, choices=STATO_CHOICES, default='in_corso')
+    
+    class Meta:
+        verbose_name = "Controllo Quadratura"
+        verbose_name_plural = "Controlli Quadratura"
+        ordering = ['-data_controllo']
+    
+    def save(self, *args, **kwargs):
+        # Calcola automaticamente la differenza
+        self.differenza = self.saldo_finale_reale - self.saldo_finale_calcolato
+        
+        # Determina lo stato automaticamente
+        if abs(self.differenza) < 0.01:  # Considera quadrato se differenza < 1 centesimo
+            self.stato = 'quadrato'
+        elif self.differenza < 0:
+            self.stato = 'ammanco'
+        else:
+            self.stato = 'differenza'
+            
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        if self.controllo_generale:
+            return f"Controllo Generale - {self.data_controllo.strftime('%d/%m/%Y %H:%M')} - {self.get_stato_display()}"
+        else:
+            return f"Controllo {self.conto_controllato} - {self.data_controllo.strftime('%d/%m/%Y %H:%M')} - {self.get_stato_display()}"
+    
+    @classmethod
+    def esegui_controllo_cassa(cls, user, saldo_reale_rilevato, data_ultimo_controllo=None):
+        """Esegue controllo di quadratura specifico per la cassa agenzia"""
+        from .database_utils import DatabaseManager
+        from django.db.models import Sum
+        
+        db = DatabaseManager(user)
+        
+        # Determina il periodo di controllo
+        if data_ultimo_controllo:
+            data_inizio = data_ultimo_controllo
+        else:
+            # Se è il primo controllo, usa la data del primo movimento
+            primo_movimento = db.get_queryset(MovimentoCassa).last()
+            data_inizio = primo_movimento.data_movimento if primo_movimento else timezone.now() - timezone.timedelta(days=30)
+        
+        data_fine = timezone.now()
+        
+        # Recupera conto cassa agenzia
+        try:
+            conto_cassa = db.get_queryset(ContoFinanziario).get(tipo='cassa', nome='Cassa Agenzia')
+        except ContoFinanziario.DoesNotExist:
+            raise ValueError("Conto Cassa Agenzia non trovato")
+        
+        # Calcola saldo iniziale (dall'ultimo controllo o dal sistema)
+        ultimo_controllo = db.get_queryset(cls).filter(
+            conto_controllato=conto_cassa
+        ).first()
+        
+        saldo_iniziale = ultimo_controllo.saldo_finale_reale if ultimo_controllo else 0
+        
+        # Calcola movimenti nel periodo
+        movimenti_periodo = db.get_queryset(MovimentoCassa).filter(
+            data_movimento__gte=data_inizio,
+            data_movimento__lte=data_fine
+        )
+        
+        totale_entrate = movimenti_periodo.filter(importo__gt=0).aggregate(
+            total=Sum('importo')
+        )['total'] or 0
+        
+        totale_uscite = abs(movimenti_periodo.filter(importo__lt=0).aggregate(
+            total=Sum('importo')
+        )['total'] or 0)
+        
+        saldo_finale_calcolato = saldo_iniziale + totale_entrate - totale_uscite
+        
+        # Crea il controllo
+        controllo = cls(
+            operatore=user,
+            data_inizio_periodo=data_inizio,
+            data_fine_periodo=data_fine,
+            saldo_iniziale=saldo_iniziale,
+            saldo_finale_reale=saldo_reale_rilevato,
+            saldo_finale_calcolato=saldo_finale_calcolato,
+            totale_entrate=totale_entrate,
+            totale_uscite=totale_uscite,
+            numero_movimenti=movimenti_periodo.count(),
+            conto_controllato=conto_cassa,
+            controllo_generale=False
+        )
+        
+        db.save_object(controllo)
+        return controllo
+    
+    @classmethod
+    def esegui_controllo_generale(cls, user, saldi_reali_per_categoria):
+        """Esegue controllo di quadratura generale su tutte le categorie"""
+        from .database_utils import DatabaseManager
+        
+        db = DatabaseManager(user)
+        
+        # Calcola situazione teorica
+        situazione_teorica = ContoFinanziario.calcola_situazione_finanziaria(user)
+        
+        # Confronta con saldi reali forniti
+        differenze = {}
+        differenza_totale = 0
+        
+        for categoria, saldo_reale in saldi_reali_per_categoria.items():
+            if categoria in ['liquidita', 'crediti', 'debiti']:
+                saldo_teorico = situazione_teorica.get(categoria, 0)
+                differenza = saldo_reale - saldo_teorico
+                differenze[categoria] = {
+                    'teorico': saldo_teorico,
+                    'reale': saldo_reale,
+                    'differenza': differenza
+                }
+                differenza_totale += abs(differenza)
+        
+        # Crea controllo generale
+        controllo = cls(
+            operatore=user,
+            data_inizio_periodo=timezone.now() - timezone.timedelta(days=30),  # Ultimo mese
+            data_fine_periodo=timezone.now(),
+            saldo_iniziale=0,  # Non applicabile per controllo generale
+            saldo_finale_reale=sum(saldi_reali_per_categoria.values()),
+            saldo_finale_calcolato=situazione_teorica['situazione_finanziaria_netta'],
+            controllo_generale=True,
+            note_controllo=f"Controllo generale - Differenze per categoria: {differenze}"
+        )
+        
+        db.save_object(controllo)
+        return controllo
+    
+    @classmethod
+    def get_ultimo_controllo(cls, user, conto=None):
+        """Recupera l'ultimo controllo effettuato"""
+        from .database_utils import DatabaseManager
+        
+        db = DatabaseManager(user)
+        queryset = db.get_queryset(cls)
+        
+        if conto:
+            queryset = queryset.filter(conto_controllato=conto)
+        
+        return queryset.first()
+    
+    @property
+    def has_anomalie(self):
+        """Verifica se il controllo ha rilevato anomalie"""
+        return abs(self.differenza) >= 0.01
+    
+    @property
+    def percentuale_scostamento(self):
+        """Calcola la percentuale di scostamento"""
+        if self.saldo_finale_calcolato != 0:
+            return (self.differenza / self.saldo_finale_calcolato) * 100
+        return 0
 
     def delete(self, user=None, *args, **kwargs):
         """Override delete to revert account balances"""

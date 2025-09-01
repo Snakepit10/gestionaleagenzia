@@ -41,6 +41,11 @@ class Command(BaseCommand):
                 'nome': 'Better',
                 'codice': '2014678', 
                 'database_name': 'better_db'
+            },
+            {
+                'nome': 'Planet',
+                'codice': '2016789',
+                'database_name': 'planet_db'
             }
         ]
 
@@ -64,6 +69,7 @@ class Command(BaseCommand):
             # Agenzia Goldbet
             goldbet = Agenzia.objects.get(codice='2015103')
             better = Agenzia.objects.get(codice='2014678')
+            planet = Agenzia.objects.get(codice='2016789')
         except Agenzia.DoesNotExist:
             self.stdout.write(
                 self.style.ERROR('Agenzie non trovate! Esegui prima --create-agenzie')
@@ -86,6 +92,15 @@ class Command(BaseCommand):
                 'first_name': 'Salvo',
                 'last_name': 'Better',
                 'agenzia': better,
+                'is_staff': True,
+                'is_superuser': False
+            },
+            {
+                'username': 'admin_planet',
+                'email': 'admin@planet.com',
+                'first_name': 'Admin',
+                'last_name': 'Planet',
+                'agenzia': planet,
                 'is_staff': True,
                 'is_superuser': False
             }

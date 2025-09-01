@@ -105,6 +105,19 @@ else:
         'NAME': BASE_DIR / 'db_better.sqlite3',
     }
 
+if os.environ.get('PLANET_DATABASE_URL'):
+    DATABASES['planet_db'] = dj_database_url.parse(
+        os.environ.get('PLANET_DATABASE_URL'),
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+else:
+    # Database locale SQLite per sviluppo
+    DATABASES['planet_db'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db_planet.sqlite3',
+    }
+
 # Niente router automatico - gestiamo manualmente il database routing
 
 # Password validation
