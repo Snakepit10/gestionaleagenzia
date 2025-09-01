@@ -6,4 +6,4 @@ cmds = [
 ]
 
 [start]
-cmd = "python manage.py migrate --database=planet_db && gunicorn agenzia.wsgi --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-level info"
+cmd = "python manage.py migrate --database=planet_db && python manage.py setup_agenzie --create-agenzie --create-users && gunicorn agenzia.wsgi --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-level info"
