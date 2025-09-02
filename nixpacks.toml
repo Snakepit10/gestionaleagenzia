@@ -2,6 +2,11 @@
 cmds = [
     "python -m pip install --upgrade pip",
     "python -m pip install -r requirements.txt",
+    "python manage.py wait_for_db",
+    "python manage.py migrate --verbosity=2",
+    "python manage.py migrate --database=goldbet_db --verbosity=2",
+    "python manage.py migrate --database=better_db --verbosity=2",
+    "python manage.py migrate --database=planet_db --verbosity=2",
     "python manage.py collectstatic --noinput"
 ]
 
