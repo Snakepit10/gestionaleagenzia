@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 AGENZIA_DATABASE_MAP = {
     'goldbet': 'goldbet_db',
     'better': 'better_db',
-    # Aggiungi altre agenzie qui se necessario
+    'planet': 'planet_db',
 }
 
 @receiver(post_save, sender=User)
