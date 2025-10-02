@@ -26,12 +26,14 @@ class DatabaseSelectorMixin:
             'options': [
                 ('default', 'Default'),
                 ('goldbet_db', 'Goldbet'),
-                ('better_db', 'Better')
+                ('better_db', 'Better'),
+                ('planet_db', 'Planet')
             ],
             'current_label': dict([
                 ('default', 'Default'),
-                ('goldbet_db', 'Goldbet'), 
-                ('better_db', 'Better')
+                ('goldbet_db', 'Goldbet'),
+                ('better_db', 'Better'),
+                ('planet_db', 'Planet')
             ]).get(selected_db, 'Unknown')
         }
         
