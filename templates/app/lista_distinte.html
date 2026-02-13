@@ -57,22 +57,22 @@
     <div class="card-body p-0">
         {% if page_obj %}
         <div class="table-responsive">
-            <table class="table table-striped table-hover mb-0">
+            <table class="table table-striped table-hover mb-0 table-sm">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>Data</th>
-                        <th>Operatore</th>
-                        <th>Verifica Continuità</th>
-                        <th>Cassa Iniziale</th>
-                        <th>Cassa Finale</th>
-                        <th>Entrate-Uscite</th>
-                        <th>Cassa 2 (bevande)</th>
-                        <th>Differenza</th>
-                        <th>Note Distinta</th>
-                        <th>Note Verifica</th>
-                        <th>Stato</th>
-                        <th>Azioni</th>
+                        <th style="min-width: 50px;">#</th>
+                        <th style="min-width: 90px;">Data</th>
+                        <th style="min-width: 80px;">Operatore</th>
+                        <th style="min-width: 100px;">Ver. Cont.</th>
+                        <th style="min-width: 90px;">Cassa In.</th>
+                        <th style="min-width: 90px;">Cassa Fin.</th>
+                        <th style="min-width: 90px;">Entr-Usc</th>
+                        <th style="min-width: 90px;">Cassa 2</th>
+                        <th style="min-width: 80px;">Diff.</th>
+                        <th style="min-width: 100px;">Note Dist.</th>
+                        <th style="min-width: 100px;">Note Ver.</th>
+                        <th style="min-width: 80px;">Stato</th>
+                        <th style="min-width: 120px;">Azioni</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -86,18 +86,18 @@
                                 {% if distinta.diff_cassa_precedente == 0 %}
                                     <span class="badge bg-success">OK</span>
                                 {% elif distinta.diff_cassa_precedente > 0 %}
-                                    +{{ distinta.diff_cassa_precedente|floatformat:2 }} €
+                                    +{{ distinta.diff_cassa_precedente|floatformat:2 }}
                                 {% else %}
-                                    {{ distinta.diff_cassa_precedente|floatformat:2 }} €
+                                    {{ distinta.diff_cassa_precedente|floatformat:2 }}
                                 {% endif %}
                             {% else %}
                                 <span class="text-muted">-</span>
                             {% endif %}
                         </td>
-                        <td>{{ distinta.cassa_iniziale|floatformat:2 }} €</td>
+                        <td>{{ distinta.cassa_iniziale|floatformat:2 }}</td>
                         <td>
                             {% if distinta.cassa_finale %}
-                            {{ distinta.cassa_finale|floatformat:2 }} €
+                            {{ distinta.cassa_finale|floatformat:2 }}
                             {% else %}
                             <span class="text-muted">-</span>
                             {% endif %}
@@ -105,35 +105,35 @@
                         <td>
                             {% if distinta.totale_entrate != None and distinta.totale_uscite != None %}
                             {% widthratio distinta.totale_uscite 1 -1 as uscite_negative %}
-                            {{ distinta.totale_entrate|add:uscite_negative|floatformat:2 }} €
+                            {{ distinta.totale_entrate|add:uscite_negative|floatformat:2 }}
                             {% else %}
                             <span class="text-muted">-</span>
                             {% endif %}
                         </td>
                         <td>
                             {% if distinta.totale_bevande %}
-                            {{ distinta.totale_bevande|floatformat:2 }} €
+                            {{ distinta.totale_bevande|floatformat:2 }}
                             {% else %}
                             <span class="text-muted">-</span>
                             {% endif %}
                         </td>
                         <td class="{% if distinta.differenza_cassa > 0 %}text-success{% elif distinta.differenza_cassa < 0 %}text-danger{% endif %}">
                             {% if distinta.differenza_cassa != None %}
-                            {{ distinta.differenza_cassa|floatformat:2 }} €
+                            {{ distinta.differenza_cassa|floatformat:2 }}
                             {% else %}
                             <span class="text-muted">-</span>
                             {% endif %}
                         </td>
                         <td>
                             {% if distinta.note_distinta %}
-                            <span title="{{ distinta.note_distinta }}">{{ distinta.note_distinta|truncatechars:30 }}</span>
+                            <span title="{{ distinta.note_distinta }}">{{ distinta.note_distinta|truncatechars:15 }}</span>
                             {% else %}
                             <span class="text-muted">-</span>
                             {% endif %}
                         </td>
                         <td>
                             {% if distinta.note_verifica %}
-                            <span title="{{ distinta.note_verifica }}">{{ distinta.note_verifica|truncatechars:30 }}</span>
+                            <span title="{{ distinta.note_verifica }}">{{ distinta.note_verifica|truncatechars:15 }}</span>
                             {% else %}
                             <span class="text-muted">-</span>
                             {% endif %}
@@ -147,19 +147,17 @@
                             <span class="badge bg-primary">Verificata</span>
                             {% endif %}
                         </td>
-                        <td>
-                            <a href="{% url 'dettaglio_distinta' distinta.id %}" class="btn btn-sm btn-primary">
+                        <td class="text-nowrap">
+                            <a href="{% url 'dettaglio_distinta' distinta.id %}" class="btn btn-sm btn-primary" title="Visualizza">
                                 <i class="fas fa-eye"></i>
                             </a>
-                            
                             {% if distinta.stato == 'aperta' and distinta.operatore == user or user.is_superuser %}
-                            <a href="{% url 'chiudi_distinta' distinta.id %}" class="btn btn-sm btn-warning">
+                            <a href="{% url 'chiudi_distinta' distinta.id %}" class="btn btn-sm btn-warning" title="Chiudi">
                                 <i class="fas fa-lock"></i>
                             </a>
                             {% endif %}
-                            
                             {% if distinta.stato == 'chiusa' and perms.app.can_verify or user.is_superuser %}
-                            <a href="{% url 'verifica_distinta' distinta.id %}" class="btn btn-sm btn-success">
+                            <a href="{% url 'verifica_distinta' distinta.id %}" class="btn btn-sm btn-success" title="Verifica">
                                 <i class="fas fa-check"></i>
                             </a>
                             {% endif %}
