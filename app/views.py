@@ -757,12 +757,35 @@ def lista_distinte(request):
     paginator = Paginator(distinte, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
+    # Calcola la differenza con la distinta precedente per ogni distinta nella pagina
+    from django.db.models import Q
+    from datetime import datetime, time
+
+    for distinta in page_obj:
+        # Crea un datetime combinato per la distinta corrente
+        distinta_datetime = timezone.make_aware(
+            datetime.combine(distinta.data, distinta.ora_inizio)
+        )
+
+        # Trova TUTTE le distinte precedenti (sia data precedente che stessa data con ora precedente)
+        # Cerchiamo la distinta con il datetime immediatamente precedente
+        distinta_precedente = db.get_queryset(DistintaCassa).filter(
+            Q(data__lt=distinta.data) |
+            Q(data=distinta.data, ora_inizio__lt=distinta.ora_inizio)
+        ).order_by('-data', '-ora_inizio').first()
+
+        # Calcola la differenza: cassa_iniziale (corrente) - cassa_finale (precedente)
+        if distinta_precedente and distinta_precedente.cassa_finale is not None:
+            distinta.diff_cassa_precedente = distinta.cassa_iniziale - distinta_precedente.cassa_finale
+        else:
+            distinta.diff_cassa_precedente = None
+
     context = {
         'page_obj': page_obj,
         'form_filtro': form_filtro,
     }
-    
+
     return render(request, 'app/lista_distinte.html', context)
 
 @login_required

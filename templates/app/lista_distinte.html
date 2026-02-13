@@ -63,10 +63,11 @@
                         <th>#</th>
                         <th>Data</th>
                         <th>Operatore</th>
+                        <th>Verifica Continuità</th>
                         <th>Cassa Iniziale</th>
                         <th>Cassa Finale</th>
-                        <th>Totale Bevande</th>
                         <th>Entrate-Uscite</th>
+                        <th>Cassa 2 (bevande)</th>
                         <th>Differenza</th>
                         <th>Note Distinta</th>
                         <th>Note Verifica</th>
@@ -80,6 +81,19 @@
                         <td>{{ distinta.id }}</td>
                         <td>{{ distinta.data|date:"d/m/Y" }}</td>
                         <td>{{ distinta.operatore.username }}</td>
+                        <td class="{% if distinta.diff_cassa_precedente == 0 %}text-success{% elif distinta.diff_cassa_precedente > 0 %}text-success{% elif distinta.diff_cassa_precedente < 0 %}text-danger{% endif %}">
+                            {% if distinta.diff_cassa_precedente is not None %}
+                                {% if distinta.diff_cassa_precedente == 0 %}
+                                    <span class="badge bg-success">OK</span>
+                                {% elif distinta.diff_cassa_precedente > 0 %}
+                                    +{{ distinta.diff_cassa_precedente|floatformat:2 }} €
+                                {% else %}
+                                    {{ distinta.diff_cassa_precedente|floatformat:2 }} €
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
                         <td>{{ distinta.cassa_iniziale|floatformat:2 }} €</td>
                         <td>
                             {% if distinta.cassa_finale %}
@@ -89,16 +103,16 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if distinta.totale_bevande %}
-                            {{ distinta.totale_bevande|floatformat:2 }} €
+                            {% if distinta.totale_entrate != None and distinta.totale_uscite != None %}
+                            {% widthratio distinta.totale_uscite 1 -1 as uscite_negative %}
+                            {{ distinta.totale_entrate|add:uscite_negative|floatformat:2 }} €
                             {% else %}
                             <span class="text-muted">-</span>
                             {% endif %}
                         </td>
-                        <td class="{% if distinta.totale_entrate > distinta.totale_uscite %}text-success{% elif distinta.totale_entrate < distinta.totale_uscite %}text-danger{% endif %}">
-                            {% if distinta.totale_entrate != None and distinta.totale_uscite != None %}
-                            {% widthratio distinta.totale_uscite 1 -1 as uscite_negative %}
-                            {{ distinta.totale_entrate|add:uscite_negative|floatformat:2 }} €
+                        <td>
+                            {% if distinta.totale_bevande %}
+                            {{ distinta.totale_bevande|floatformat:2 }} €
                             {% else %}
                             <span class="text-muted">-</span>
                             {% endif %}
