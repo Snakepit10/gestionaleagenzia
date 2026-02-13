@@ -27,39 +27,72 @@
                 </h5>
             </div>
             <div class="card-body">
+                <!-- Dati movimento (non modificabili) -->
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Nota:</strong> È possibile modificare solo le note del movimento. Per modificare importo/tipo/cliente, è necessario eliminare e ricreare il movimento.
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="text-muted mb-3">Dati Movimento (sola lettura)</h6>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4"><strong>Cliente:</strong></div>
+                        <div class="col-md-8">
+                            <a href="{% url 'dettaglio_cliente' movimento.cliente.id %}">
+                                {{ movimento.cliente.nome_completo }}
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4"><strong>Tipo:</strong></div>
+                        <div class="col-md-8">
+                            <span class="badge bg-primary">{{ movimento.get_tipo_display }}</span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4"><strong>Importo:</strong></div>
+                        <div class="col-md-8">
+                            <span class="{% if movimento.importo < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                {{ movimento.importo|floatformat:2 }} €
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4"><strong>Data:</strong></div>
+                        <div class="col-md-8">{{ movimento.data|date:"d/m/Y H:i" }}</div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4"><strong>Saldato:</strong></div>
+                        <div class="col-md-8">
+                            {% if movimento.saldato %}
+                                <span class="badge bg-success">Sì</span>
+                            {% else %}
+                                <span class="badge bg-warning">No</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Form per modificare solo le note -->
                 <form method="post">
                     {% csrf_token %}
 
-                    <div class="row">
-                        <div class="col-md-12 mb-3">
-                            {{ form.cliente|as_crispy_field }}
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            {{ form.tipo|as_crispy_field }}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            {{ form.importo|as_crispy_field }}
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            {{ form.saldato|as_crispy_field }}
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-12 mb-3">
-                            {{ form.note|as_crispy_field }}
-                        </div>
+                    <div class="mb-3">
+                        <label for="id_note" class="form-label fw-bold">Note</label>
+                        <textarea name="note" id="id_note" class="form-control" rows="4" placeholder="Aggiungi una nota...">{{ movimento.note }}</textarea>
+                        <small class="form-text text-muted">Inserisci eventuali note o informazioni aggiuntive sul movimento.</small>
                     </div>
 
                     <div class="d-flex justify-content-between mt-4">
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-2"></i>Aggiorna Movimento
+                            <i class="fas fa-save me-2"></i>Salva Note
                         </button>
                         <a href="{% url 'dettaglio_distinta' movimento.distinta.id %}" class="btn btn-outline-secondary">
                             <i class="fas fa-times me-2"></i>Annulla
@@ -145,14 +178,4 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    $(document).ready(function() {
-        // Inizializza select2 per il cliente
-        $('#id_cliente').select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Cerca cliente...',
-            allowClear: true
-        });
-    });
-</script>
 {% endblock %}

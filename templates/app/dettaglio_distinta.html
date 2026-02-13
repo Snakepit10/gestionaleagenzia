@@ -532,16 +532,19 @@
                                     </a>
                                     
                                     {% if distinta.stato == 'aperta' and distinta.operatore == user or user.is_superuser %}
-                                    <a href="{% url 'modifica_movimento' movimento.id %}" class="btn btn-sm btn-warning" title="Modifica">
+                                    <a href="{% url 'modifica_movimento' movimento.id %}" class="btn btn-sm btn-warning" title="Modifica Note">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     {% endif %}
-                                    
+
+                                    {# Eliminazione movimenti disabilitata per mantenere integrità saldo progressivo #}
+                                    {% comment %}
                                     {% if perms.app.delete_movimento or user.is_superuser %}
                                     <a href="{% url 'elimina_movimento' movimento.id %}" class="btn btn-sm btn-danger">
                                         <i class="fas fa-trash"></i>
                                     </a>
                                     {% endif %}
+                                    {% endcomment %}
                                 </td>
                             </tr>
                             {% endif %}
@@ -619,16 +622,19 @@
                                     </a>
                                     
                                     {% if distinta.stato == 'aperta' and distinta.operatore == user or user.is_superuser %}
-                                    <a href="{% url 'modifica_movimento' movimento.id %}" class="btn btn-sm btn-warning" title="Modifica">
+                                    <a href="{% url 'modifica_movimento' movimento.id %}" class="btn btn-sm btn-warning" title="Modifica Note">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     {% endif %}
-                                    
+
+                                    {# Eliminazione movimenti disabilitata per mantenere integrità saldo progressivo #}
+                                    {% comment %}
                                     {% if perms.app.delete_movimento or user.is_superuser %}
                                     <a href="{% url 'elimina_movimento' movimento.id %}" class="btn btn-sm btn-danger">
                                         <i class="fas fa-trash"></i>
                                     </a>
                                     {% endif %}
+                                    {% endcomment %}
                                 </td>
                             </tr>
                             {% endif %}

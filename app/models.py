@@ -234,7 +234,14 @@ class Movimento(MultiDatabaseMixin, models.Model):
     data_modifica = models.DateTimeField(auto_now=True)
     movimento_origine = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='movimento_saldo')
     note = models.TextField(blank=True, null=True)
-    
+    saldo_progressivo = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Saldo totale di tutti i clienti dopo questo movimento"
+    )
+
     class Meta:
         verbose_name = "Movimento"
         verbose_name_plural = "Movimenti"
@@ -260,6 +267,21 @@ class Movimento(MultiDatabaseMixin, models.Model):
             self.importo = abs(self.importo) * -1  # Segno negativo (uscite)
         elif self.tipo in ['prelievo', 'incasso_credito']:
             self.importo = abs(self.importo)  # Segno positivo (entrate)
+
+        # Calcola il saldo progressivo solo per nuovi record
+        if nuovo_record and self.saldo_progressivo is None:
+            # Ottieni l'ultimo movimento (per data) dal database corretto
+            try:
+                ultimo_movimento = self.__class__.objects.using(self._state.db).order_by('-data', '-id').first()
+                if ultimo_movimento and ultimo_movimento.saldo_progressivo is not None:
+                    # Saldo progressivo = ultimo saldo + importo corrente
+                    self.saldo_progressivo = ultimo_movimento.saldo_progressivo + self.importo
+                else:
+                    # Primo movimento o nessun saldo precedente disponibile
+                    self.saldo_progressivo = self.importo
+            except Exception:
+                # In caso di errore, imposta come primo movimento
+                self.saldo_progressivo = self.importo
 
         # Salviamo il record
         super().save(*args, **kwargs)

@@ -608,6 +608,7 @@ def dettaglio_movimento(request, pk):
 @login_required
 @permission_required('app.change_movimento', raise_exception=True)
 def modifica_movimento(request, pk):
+    """Vista per modificare SOLO le note di un movimento"""
     # Usa il nuovo DatabaseManager
     db = DatabaseManager(request.user)
     movimento = db.get_object_or_404(
@@ -626,70 +627,40 @@ def modifica_movimento(request, pk):
         return redirect('dettaglio_distinta', pk=movimento.distinta.pk)
 
     if request.method == 'POST':
-        # Raccoglie i dati prima della modifica per il log (prima di processare il form)
+        # Raccoglie i dati prima della modifica per il log
         movimento_before = {
-            'tipo': movimento.get_tipo_display(),
-            'importo': str(abs(movimento.importo)),
-            'cliente': movimento.cliente.nome_completo,
-            'distinta': movimento.distinta.id,
-            'note': movimento.note if movimento.note else '',
-            'saldato': movimento.saldato
+            'note': movimento.note if movimento.note else ''
         }
-        
-        form = MovimentoForm(request.POST, instance=movimento, distinta=movimento.distinta, user=request.user)
-        if form.is_valid():
-            # Salva il movimento aggiornato
-            movimento = form.save(commit=False)
-            movimento.modificato_da_id = request.user.id
 
-            # Imposta manualmente l'importo con il segno corretto per non modificarlo nel save
-            from decimal import Decimal
-            if movimento.tipo in ['schedina', 'ricarica']:
-                importo_con_segno = -abs(Decimal(str(form.cleaned_data['importo'])))
-            else:
-                importo_con_segno = abs(Decimal(str(form.cleaned_data['importo'])))
+        # Recupera solo le note dal POST
+        nuove_note = request.POST.get('note', '')
 
-            # Imposta manualmente l'importo per evitare che il save lo cambi nuovamente
-            movimento.importo = importo_con_segno
+        # Aggiorna solo le note
+        movimento.note = nuove_note
+        movimento.modificato_da_id = request.user.id
 
-            # Assicurati che la nota venga salvata
-            if form.cleaned_data.get('note'):
-                movimento.note = form.cleaned_data['note']
+        # Salva solo il campo note (NON ricalcola il saldo progressivo)
+        db.save_object(movimento)
 
-            db.save_object(movimento)
+        # Raccoglie i dati dopo la modifica per il log
+        movimento_after = {
+            'note': movimento.note if movimento.note else ''
+        }
 
-            # Raccoglie i dati dopo la modifica per il log
-            movimento_after = {
-                'tipo': movimento.get_tipo_display(),
-                'importo': str(abs(movimento.importo)),
-                'cliente': movimento.cliente.nome_completo,
-                'distinta': movimento.distinta.id,
-                'note': movimento.note if movimento.note else '',
-                'saldato': movimento.saldato
-            }
+        # Registra l'azione nei log
+        ActivityLog.log_action(
+            user=request.user,
+            obj=movimento,
+            action='update',
+            description=f"Modifica note movimento #{movimento.id} ({movimento.get_tipo_display()}) per {movimento.cliente}",
+            data_before=movimento_before,
+            data_after=movimento_after
+        )
 
-            # Registra l'azione nei log
-            ActivityLog.log_action(
-                user=request.user,
-                obj=movimento,
-                action='update',
-                description=f"Modifica movimento #{movimento.id} ({movimento.get_tipo_display()}) per {movimento.cliente}",
-                data_before=movimento_before,
-                data_after=movimento_after
-            )
-
-            # Il metodo save aggiorna automaticamente il saldo del cliente
-            # considerando solo i movimenti non saldati
-
-            messages.success(request, f'Movimento {movimento.get_tipo_display()} aggiornato con successo!')
-            return redirect('dettaglio_distinta', pk=movimento.distinta.pk)
-    else:
-        # Per il form, usiamo l'importo in valore assoluto
-        movimento.importo = abs(movimento.importo)
-        form = MovimentoForm(instance=movimento, distinta=movimento.distinta, user=request.user)
+        messages.success(request, 'Note aggiornate con successo!')
+        return redirect('dettaglio_distinta', pk=movimento.distinta.pk)
 
     context = {
-        'form': form,
         'movimento': movimento,
     }
 

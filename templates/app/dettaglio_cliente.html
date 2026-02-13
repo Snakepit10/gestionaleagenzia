@@ -259,12 +259,15 @@
                                 <i class="fas fa-check"></i>
                             </a>
                             {% endif %}
-                            
+
+                            {# Eliminazione movimenti disabilitata per mantenere integrità saldo progressivo #}
+                            {% comment %}
                             {% if perms.app.delete_movimento or user.is_superuser %}
                             <a href="{% url 'elimina_movimento' movimento.id %}" class="btn btn-sm btn-danger" title="Elimina">
                                 <i class="fas fa-trash"></i>
                             </a>
                             {% endif %}
+                            {% endcomment %}
                         </td>
                     </tr>
                     {% endfor %}
