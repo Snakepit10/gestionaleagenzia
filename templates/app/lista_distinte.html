@@ -65,6 +65,8 @@
                         <th>Operatore</th>
                         <th>Cassa Iniziale</th>
                         <th>Cassa Finale</th>
+                        <th>Totale Bevande</th>
+                        <th>Entrate-Uscite</th>
                         <th>Differenza</th>
                         <th>Note Distinta</th>
                         <th>Note Verifica</th>
@@ -82,6 +84,21 @@
                         <td>
                             {% if distinta.cassa_finale %}
                             {{ distinta.cassa_finale|floatformat:2 }} €
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if distinta.totale_bevande %}
+                            {{ distinta.totale_bevande|floatformat:2 }} €
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="{% if distinta.totale_entrate > distinta.totale_uscite %}text-success{% elif distinta.totale_entrate < distinta.totale_uscite %}text-danger{% endif %}">
+                            {% if distinta.totale_entrate != None and distinta.totale_uscite != None %}
+                            {% widthratio distinta.totale_uscite 1 -1 as uscite_negative %}
+                            {{ distinta.totale_entrate|add:uscite_negative|floatformat:2 }} €
                             {% else %}
                             <span class="text-muted">-</span>
                             {% endif %}

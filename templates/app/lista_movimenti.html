@@ -90,7 +90,7 @@
                         <td class="{% if movimento.importo < 0 %}text-danger{% else %}text-success{% endif %}">
                             {{ movimento.importo|floatformat:2 }} €
                         </td>
-                        <td class="fw-bold {% if movimento.saldo_progressivo < 0 %}text-danger{% else %}text-success{% endif %}">
+                        <td class="{% if movimento.saldo_progressivo < 0 %}text-danger{% else %}text-success{% endif %}">
                             {% if movimento.saldo_progressivo is not None %}
                                 {{ movimento.saldo_progressivo|floatformat:2 }} €
                             {% else %}
