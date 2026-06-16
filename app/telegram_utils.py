@@ -118,6 +118,12 @@ def msg_aumento_fido(cliente, vecchio_fido, nuovo_fido, using):
     )
 
 
+def _riga_note(movimento):
+    """Ritorna la riga 'Note: ...' se il movimento ha note, altrimenti stringa vuota."""
+    note = (getattr(movimento, 'note', None) or '').strip()
+    return f"\nNote: {note}" if note else ""
+
+
 def msg_fido_superato(cliente, saldo, movimento, using):
     sforamento = abs(saldo) - cliente.fido_massimo
     return (
@@ -126,6 +132,7 @@ def msg_fido_superato(cliente, saldo, movimento, using):
         f"Saldo: {saldo:.2f} € | Fido: {cliente.fido_massimo:.2f} €\n"
         f"Sforamento: <b>{sforamento:.2f} €</b>\n"
         f"Ultimo movimento: {movimento.get_tipo_display()} {movimento.importo:.2f} €"
+        f"{_riga_note(movimento)}"
     )
 
 
@@ -133,6 +140,7 @@ def msg_movimento_conto(movimento, using):
     return (
         f"💸 <b>Movimento conto</b> ({_nome_agenzia(using)})\n"
         f"{movimento}"
+        f"{_riga_note(movimento)}"
     )
 
 
@@ -143,4 +151,5 @@ def msg_movimento_cliente(movimento, saldo, using):
         f"Cliente: <b>{cliente.nome_completo}</b>\n"
         f"Operazione: {movimento.get_tipo_display()} {movimento.importo:.2f} €\n"
         f"Saldo aggiornato: {saldo:.2f} €"
+        f"{_riga_note(movimento)}"
     )
