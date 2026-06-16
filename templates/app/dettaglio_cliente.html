@@ -204,6 +204,7 @@
                         <th>Data</th>
                         <th>Saldato</th>
                         <th>Distinta</th>
+                        <th>Note</th>
                         <th>Creato da</th>
                         <th>Ultima modifica</th>
                         <th>Saldo</th>
@@ -234,6 +235,7 @@
                                 #{{ movimento.distinta.id }}
                             {% endif %}
                         </td>
+                        <td>{{ movimento.note|default:"-" }}</td>
                         <td>
                             {{ movimento.creato_da.username|default:"-" }}
                             <br><small class="text-muted">{{ movimento.data_creazione|date:"d/m H:i" }}</small>

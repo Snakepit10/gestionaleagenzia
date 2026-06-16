@@ -25,6 +25,8 @@ CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if 
 # nel campo Agenzia.telegram_chat_id. Se il token manca, le notifiche sono disattivate.
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
 TELEGRAM_NOTIFICHE_ATTIVE = os.environ.get('TELEGRAM_NOTIFICHE_ATTIVE', 'True').lower() == 'true'
+# Segreto del webhook Telegram: protegge l'endpoint che riceve i messaggi (es. comando "soglia").
+TELEGRAM_WEBHOOK_SECRET = os.environ.get('TELEGRAM_WEBHOOK_SECRET', '')
 
 # Application definition
 

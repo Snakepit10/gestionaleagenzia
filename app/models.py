@@ -24,6 +24,13 @@ class Agenzia(models.Model):
         null=True,
         help_text="Chat/gruppo Telegram a cui inviare le notifiche di questa agenzia (es. -1001234567890)"
     )
+    soglia_cassa = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Se la cassa finale di una distinta supera questo valore, invia un alert Telegram. Vuoto = nessun alert."
+    )
     data_creazione = models.DateTimeField(auto_now_add=True)
 
     class Meta:

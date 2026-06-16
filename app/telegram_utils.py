@@ -35,6 +35,22 @@ def _get_chat_id(using):
     return None
 
 
+def get_soglia(using):
+    """
+    Dato l'alias del database, ritorna la soglia_cassa dell'agenzia corrispondente
+    (Decimal) oppure None se non configurata.
+    """
+    from .models import Agenzia
+
+    try:
+        agenzia = Agenzia.objects.using('default').filter(database_name=using).first()
+        if agenzia:
+            return agenzia.soglia_cassa
+    except Exception as e:
+        logger.error(f"Telegram: errore nel recupero soglia per db '{using}': {e}")
+    return None
+
+
 def _nome_agenzia(using):
     """Nome leggibile dell'agenzia a partire dall'alias del database."""
     from .models import Agenzia
@@ -141,6 +157,15 @@ def msg_movimento_conto(movimento, using):
         f"💸 <b>Movimento conto</b> ({_nome_agenzia(using)})\n"
         f"{movimento}"
         f"{_riga_note(movimento)}"
+    )
+
+
+def msg_cassa_oltre_soglia(distinta, soglia, using):
+    return (
+        f"🚨 <b>Cassa oltre soglia</b> ({_nome_agenzia(using)})\n"
+        f"Distinta #{distinta.pk} chiusa con cassa finale <b>{distinta.cassa_finale:.2f} €</b>\n"
+        f"Soglia impostata: {soglia:.2f} €\n"
+        f"Operatore: {distinta.operatore.username}"
     )
 
 

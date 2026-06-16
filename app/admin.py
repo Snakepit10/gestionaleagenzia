@@ -172,7 +172,7 @@ class ComunicazioneAdmin(admin.ModelAdmin):
 
 @admin.register(Agenzia)
 class AgenziaAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'codice', 'database_name', 'attiva', 'telegram_chat_id', 'data_creazione')
+    list_display = ('nome', 'codice', 'database_name', 'attiva', 'telegram_chat_id', 'soglia_cassa', 'data_creazione')
     list_filter = ('attiva', 'data_creazione')
     search_fields = ('nome', 'codice')
     readonly_fields = ('data_creazione',)
@@ -182,8 +182,8 @@ class AgenziaAdmin(admin.ModelAdmin):
             'fields': ('nome', 'codice', 'database_name', 'attiva')
         }),
         ('Notifiche Telegram', {
-            'fields': ('telegram_chat_id',),
-            'description': 'Chat o gruppo Telegram a cui inviare le notifiche automatiche di questa agenzia.'
+            'fields': ('telegram_chat_id', 'soglia_cassa'),
+            'description': 'Chat/gruppo Telegram per le notifiche. Soglia cassa: se la cassa finale di una distinta la supera, invia un alert (impostabile anche da Telegram con "soglia <valore>").'
         }),
         ('Date', {
             'fields': ('data_creazione',)

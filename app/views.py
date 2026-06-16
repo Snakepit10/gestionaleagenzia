@@ -13,6 +13,7 @@ from .models import (
     ContoFinanziario, BilancioPeriodico, MovimentoConti, ActivityLog, RiepilogoGiornaliero
 )
 from .database_utils import DatabaseManager, get_user_database, sync_user_to_agency_db
+from . import telegram_utils
 from .forms import (ClienteForm, MovimentoForm, DistintaCassaForm, ChiusuraDistintaForm,
                    VerificaDistintaForm, ComunicazioneForm, FiltroMovimentiForm, FiltroDistinteForm,
                    ContoFinanziarioForm, ModificaSaldoForm, BilancioPeriodoForm, GirocontoForm,
@@ -1037,6 +1038,17 @@ def chiudi_distinta(request, pk):
 
             # Salva la distinta chiusa
             db.save_object(distinta)
+
+            # Alert Telegram se la cassa finale supera la soglia configurata per l'agenzia
+            try:
+                soglia = telegram_utils.get_soglia(db.user_db)
+                if soglia is not None and distinta.cassa_finale is not None and distinta.cassa_finale > soglia:
+                    telegram_utils.notifica(
+                        db.user_db,
+                        telegram_utils.msg_cassa_oltre_soglia(distinta, soglia, db.user_db)
+                    )
+            except Exception:
+                pass
 
             # Aggiorna il saldo del conto cassa con il valore della cassa finale
             if conto_cassa:
