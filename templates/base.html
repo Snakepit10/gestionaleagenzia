@@ -156,6 +156,17 @@
                 theme: 'bootstrap-5'
             });
 
+            // All'apertura di un qualsiasi Select2, porta subito il cursore nel campo
+            // di ricerca: si possono digitare le iniziali senza un click aggiuntivo.
+            $(document).on('select2:open', function() {
+                setTimeout(function() {
+                    var campo = document.querySelector('.select2-container--open .select2-search__field');
+                    if (campo) {
+                        campo.focus();
+                    }
+                }, 0);
+            });
+
             // Chiudi automaticamente i messaggi di alert dopo 5 secondi
             setTimeout(function() {
                 $('.alert').alert('close');
