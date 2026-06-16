@@ -569,12 +569,17 @@ class ContoFinanziario(MultiDatabaseMixin, models.Model):
                     timezone.datetime.combine(ultima_distinta.data, ultima_distinta.ora_fine or ultima_distinta.ora_inizio)
                 )
                 
-                # Somma movimenti DOPO la chiusura della distinta
+                # Somma movimenti DOPO la chiusura della distinta.
+                # IMPORTANTE: il "Versamento per chiusura" di questa stessa distinta viene
+                # creato pochi istanti dopo ora_fine e rappresenta lo stesso cassa_finale gia'
+                # incluso in saldo_base: va escluso, altrimenti il saldo risulta raddoppiato.
                 movimenti_entrata = db.get_queryset(MovimentoConti).filter(
                     conto_destinazione=conto_cassa,
                     data__gt=data_chiusura
+                ).exclude(
+                    note__startswith=f"Versamento per chiusura Distinta N° {ultima_distinta.pk} -"
                 ).aggregate(total=Sum('importo'))['total'] or 0
-                
+
                 movimenti_uscita = db.get_queryset(MovimentoConti).filter(
                     conto_origine=conto_cassa,
                     data__gt=data_chiusura
