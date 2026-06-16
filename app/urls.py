@@ -41,6 +41,17 @@ urlpatterns = [
     path('bilancio/movimenti/', views.lista_movimenti_conti, name='lista_movimenti_conti'),
     path('bilancio/movimenti/<int:pk>/elimina/', views.elimina_movimento_conti, name='elimina_movimento_conti'),
 
+    # Riepilogo Crediti
+    path('riepilogo-crediti/', views.riepilogo_crediti, name='riepilogo_crediti'),
+
+    # Riepiloghi Giornalieri
+    path('riepiloghi/', views.lista_riepiloghi, name='lista_riepiloghi'),
+    path('riepiloghi/nuovo/', views.nuovo_riepilogo, name='nuovo_riepilogo'),
+    path('riepiloghi/<int:pk>/', views.dettaglio_riepilogo, name='dettaglio_riepilogo'),
+    path('riepiloghi/<int:pk>/modifica/', views.modifica_riepilogo, name='modifica_riepilogo'),
+    path('riepiloghi/<int:pk>/elimina/', views.elimina_riepilogo, name='elimina_riepilogo'),
+    path('riepiloghi/genera-mancanti/', views.genera_riepiloghi_mancanti, name='genera_riepiloghi_mancanti'),
+
     # Logs
     path('logs/', views.lista_logs, name='lista_logs'),
     path('logs/<int:pk>/', views.dettaglio_log, name='dettaglio_log'),

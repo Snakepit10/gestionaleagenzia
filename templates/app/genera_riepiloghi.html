@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titolo }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-sync me-2"></i>{{ titolo }}
+        </h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'lista_riepiloghi' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Torna alla Lista
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>Generazione Automatica Riepiloghi
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if count > 0 %}
+        <div class="alert alert-info">
+            <h5><i class="fas fa-info-circle me-2"></i>Riepiloghi Mancanti</h5>
+            <p class="mb-0">Sono state trovate <strong>{{ count }}</strong> date con distinte chiuse o verificate che non hanno ancora un riepilogo giornaliero.</p>
+        </div>
+
+        <h6 class="mb-3">Date per cui verrà creato il riepilogo:</h6>
+        <div class="row">
+            {% for data in date_mancanti %}
+            <div class="col-md-3 mb-2">
+                <div class="card bg-light">
+                    <div class="card-body text-center py-2">
+                        <i class="fas fa-calendar-day me-2"></i>{{ data|date:"d/m/Y" }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+            <div class="alert alert-warning">
+                <h6><i class="fas fa-exclamation-triangle me-2"></i>Nota Importante:</h6>
+                <p class="mb-0">I riepiloghi verranno creati automaticamente calcolando i dati dalle distinte chiuse o verificate. I campi manuali (Saldo CED, PV Online, Giroconti, ecc.) saranno impostati a zero e dovranno essere compilati successivamente.</p>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{% url 'lista_riepiloghi' %}" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>Annulla
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-check me-2"></i>Genera {{ count }} Riepilog{{ count|pluralize:"o,hi" }}
+                </button>
+            </div>
+        </form>
+        {% else %}
+        <div class="alert alert-success">
+            <h5><i class="fas fa-check-circle me-2"></i>Tutto Aggiornato!</h5>
+            <p class="mb-0">Non ci sono riepiloghi mancanti. Tutti i riepiloghi per le date con distinte chiuse o verificate sono già presenti.</p>
+        </div>
+
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            <a href="{% url 'lista_riepiloghi' %}" class="btn btn-primary">
+                <i class="fas fa-arrow-left me-2"></i>Torna alla Lista
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

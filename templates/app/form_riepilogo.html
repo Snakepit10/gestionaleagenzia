@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ titolo }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-edit me-2"></i>{{ titolo }}
+        </h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'lista_riepiloghi' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Torna alla Lista
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-file-alt me-2"></i>Compila i Dati del Riepilogo
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <h6 class="text-primary"><i class="fas fa-calendar me-2"></i>Data</h6>
+                    <hr>
+                </div>
+                <div class="col-md-4">
+                    {{ form.data|as_crispy_field }}
+                </div>
+            </div>
+
+            {% if form.instance.pk %}
+            <div class="row mt-4">
+                <div class="col-md-12 mb-3">
+                    <h6 class="text-primary"><i class="fas fa-calculator me-2"></i>Campi Calcolati Automaticamente</h6>
+                    <hr>
+                </div>
+                <div class="col-md-3">
+                    {{ form.saldo_crediti_display|as_crispy_field }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.saldo_cassa_display|as_crispy_field }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.cassa_2_display|as_crispy_field }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.differenza_distinta_display|as_crispy_field }}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="row mt-4">
+                <div class="col-md-12 mb-3">
+                    <h6 class="text-primary"><i class="fas fa-edit me-2"></i>Campi Manuali</h6>
+                    <hr>
+                </div>
+                <div class="col-md-3">
+                    {{ form.saldo_ced|as_crispy_field }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.saldo_pvonline|as_crispy_field }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.giroconto_ced|as_crispy_field }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.giroconto_online|as_crispy_field }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.sovvenzione|as_crispy_field }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.restituzione|as_crispy_field }}
+                </div>
+            </div>
+
+            {% if form.instance.pk %}
+            <div class="row mt-4">
+                <div class="col-md-12 mb-3">
+                    <h6 class="text-success"><i class="fas fa-check-circle me-2"></i>Totali</h6>
+                    <hr>
+                </div>
+                <div class="col-md-6">
+                    {{ form.totale_display|as_crispy_field }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.saldo_progressivo_display|as_crispy_field }}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'lista_riepiloghi' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Annulla
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Salva
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="alert alert-info mt-3">
+    <h6><i class="fas fa-info-circle me-2"></i>Nota:</h6>
+    <p class="mb-1"><strong>Campi automatici:</strong> Saldo Crediti, Saldo Cassa, Cassa 2 e Differenza Distinta vengono calcolati automaticamente dalle distinte chiuse/verificate della giornata.</p>
+    <p class="mb-0"><strong>Formula Totale:</strong> Crediti + Saldo Cassa + PV Online + CED - Giroconto CED - Giroconto Online - Sovvenzione + Restituzione - Cassa 2 - Diff. Distinta</p>
+</div>
+
+{% endblock %}

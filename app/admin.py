@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.html import format_html
-from .models import Cliente, Movimento, DistintaCassa, Comunicazione, Agenzia, ProfiloUtente
+from .models import Cliente, Movimento, DistintaCassa, Comunicazione, Agenzia, ProfiloUtente, RiepilogoGiornaliero
 from .database_utils import AGENZIA_DATABASE_MAP
 
 
@@ -168,14 +168,18 @@ class ComunicazioneAdmin(admin.ModelAdmin):
 
 @admin.register(Agenzia)
 class AgenziaAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'codice', 'database_name', 'attiva', 'data_creazione')
+    list_display = ('nome', 'codice', 'database_name', 'attiva', 'telegram_chat_id', 'data_creazione')
     list_filter = ('attiva', 'data_creazione')
     search_fields = ('nome', 'codice')
     readonly_fields = ('data_creazione',)
-    
+
     fieldsets = (
         ('Informazioni Agenzia', {
             'fields': ('nome', 'codice', 'database_name', 'attiva')
+        }),
+        ('Notifiche Telegram', {
+            'fields': ('telegram_chat_id',),
+            'description': 'Chat o gruppo Telegram a cui inviare le notifiche automatiche di questa agenzia.'
         }),
         ('Date', {
             'fields': ('data_creazione',)
@@ -188,13 +192,80 @@ class ProfiloUtenteAdmin(admin.ModelAdmin):
     list_display = ('user', 'agenzia', 'get_user_email')
     list_filter = ('agenzia',)
     search_fields = ('user__username', 'user__first_name', 'user__last_name', 'agenzia__nome')
-    
+
     def get_user_email(self, obj):
         return obj.user.email
     get_user_email.short_description = 'Email'
-    
+
     fieldsets = (
         ('Associazione', {
             'fields': ('user', 'agenzia')
         }),
     )
+
+
+@admin.register(RiepilogoGiornaliero)
+class RiepilogoGiornalieroAdmin(DatabaseSelectorMixin, admin.ModelAdmin):
+    list_display = (
+        'data',
+        'saldo_crediti',
+        'saldo_cassa',
+        'cassa_2',
+        'differenza_distinta',
+        'saldo_ced',
+        'saldo_pvonline',
+        'totale',
+        'saldo_progressivo'
+    )
+    list_filter = ('data',)
+    search_fields = ('data',)
+    date_hierarchy = 'data'
+
+    fieldsets = (
+        ('Data', {
+            'fields': ('data',)
+        }),
+        ('Campi Calcolati Automaticamente', {
+            'fields': ('saldo_crediti', 'saldo_cassa', 'cassa_2', 'differenza_distinta'),
+            'description': 'Questi campi vengono calcolati automaticamente dalle distinte chiuse/verificate.'
+        }),
+        ('Campi Manuali', {
+            'fields': ('saldo_ced', 'saldo_pvonline', 'giroconto_ced', 'giroconto_online', 'sovvenzione', 'restituzione')
+        }),
+        ('Totali', {
+            'fields': ('totale', 'saldo_progressivo'),
+            'description': 'Totale e saldo progressivo calcolati automaticamente.'
+        }),
+        ('Informazioni di Audit', {
+            'fields': ('creato_da', 'data_creazione', 'modificato_da', 'data_modifica'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    readonly_fields = (
+        'saldo_crediti',
+        'saldo_cassa',
+        'cassa_2',
+        'differenza_distinta',
+        'totale',
+        'saldo_progressivo',
+        'data_creazione',
+        'data_modifica'
+    )
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.creato_da = request.user
+        else:
+            obj.modificato_da = request.user
+
+        # Ottieni il database selezionato
+        selected_db = request.GET.get('db', 'goldbet_db')
+
+        # Salva usando il database selezionato
+        obj.save(using=selected_db)
+
+    def delete_model(self, request, obj):
+        # Ottieni il database selezionato
+        selected_db = request.GET.get('db', 'goldbet_db')
+        obj.delete(using=selected_db)

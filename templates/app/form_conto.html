@@ -54,10 +54,16 @@
                     
                     <div class="row">
                         <div class="col-md-12 mb-3">
+                            {{ form.notifica_telegram|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
                             {{ form.descrizione|as_crispy_field }}
                         </div>
                     </div>
-                    
+
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary">
                             {% if conto %}

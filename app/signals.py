@@ -1,10 +1,13 @@
 """
 Segnali per sincronizzazione automatica degli utenti tra database (per agenzia specifica)
 """
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
+from django.db import transaction
+from django.db.models import Sum
 from django.contrib.auth.models import User
-from app.models import ProfiloUtente
+from app.models import ProfiloUtente, Cliente, Movimento, MovimentoConti
+from app import telegram_utils
 import logging
 
 logger = logging.getLogger(__name__)
@@ -109,6 +112,80 @@ def sync_user_on_delete(sender, instance, using, **kwargs):
         # Elimina SOLO dal database dell'agenzia dell'utente
         User.objects.using(target_db).filter(id=instance.id).delete()
         logger.info(f"Eliminato utente {instance.username} da {target_db} (agenzia: {agenzia_nome})")
-            
+
     except Exception as e:
         logger.error(f"Errore eliminando utente {instance.username}: {str(e)}")
+
+
+# ===========================================================================
+# Notifiche Telegram
+# ===========================================================================
+
+@receiver(pre_save, sender=Cliente)
+def cliente_memorizza_fido_precedente(sender, instance, using, **kwargs):
+    """Salva il fido attuale (da DB) sull'istanza per rilevare un eventuale aumento."""
+    if instance.pk is None:
+        instance._old_fido = None
+        return
+    try:
+        precedente = Cliente.objects.using(using).filter(pk=instance.pk).first()
+        instance._old_fido = precedente.fido_massimo if precedente else None
+    except Exception as e:
+        logger.error(f"Telegram: errore lettura fido precedente cliente {instance.pk}: {e}")
+        instance._old_fido = None
+
+
+@receiver(post_save, sender=Cliente)
+def cliente_notifica_telegram(sender, instance, created, using, **kwargs):
+    """Trigger #4 (nuovo cliente) e #3 (aumento fido)."""
+    try:
+        if created:
+            testo = telegram_utils.msg_nuovo_cliente(instance, using)
+            transaction.on_commit(lambda: telegram_utils.notifica(using, testo), using=using)
+            return
+
+        old_fido = getattr(instance, '_old_fido', None)
+        if old_fido is not None and instance.fido_massimo > old_fido:
+            testo = telegram_utils.msg_aumento_fido(instance, old_fido, instance.fido_massimo, using)
+            transaction.on_commit(lambda: telegram_utils.notifica(using, testo), using=using)
+    except Exception as e:
+        logger.error(f"Telegram: errore notifica cliente {instance.pk}: {e}")
+
+
+@receiver(post_save, sender=Movimento)
+def movimento_notifica_fido_superato(sender, instance, created, using, **kwargs):
+    """
+    Trigger #1: notifica quando, dopo questo movimento, il cliente è sopra il fido.
+    Notifica a ogni movimento successivo finché il saldo resta oltre il fido.
+    """
+    try:
+        # Ignora i movimenti di compensazione/saldo: non sono nuovo debito.
+        if instance.saldato or instance.movimento_origine_id:
+            return
+
+        cliente = instance.cliente
+        # In Movimento.save() il post_save scatta PRIMA di aggiorna_saldo(): ricalcolo qui.
+        saldo = Movimento.objects.using(using).filter(
+            cliente=cliente, saldato=False
+        ).aggregate(tot=Sum('importo'))['tot'] or 0
+
+        if saldo < 0 and abs(saldo) > cliente.fido_massimo:
+            testo = telegram_utils.msg_fido_superato(cliente, saldo, instance, using)
+            transaction.on_commit(lambda: telegram_utils.notifica(using, testo), using=using)
+    except Exception as e:
+        logger.error(f"Telegram: errore notifica fido superato movimento {instance.pk}: {e}")
+
+
+@receiver(post_save, sender=MovimentoConti)
+def movimento_conti_notifica_telegram(sender, instance, created, using, **kwargs):
+    """Trigger #2: notifica i movimenti dei conti marcati con notifica_telegram."""
+    try:
+        if not created:
+            return
+        origine = instance.conto_origine
+        destinazione = instance.conto_destinazione
+        if (origine and origine.notifica_telegram) or (destinazione and destinazione.notifica_telegram):
+            testo = telegram_utils.msg_movimento_conto(instance, using)
+            transaction.on_commit(lambda: telegram_utils.notifica(using, testo), using=using)
+    except Exception as e:
+        logger.error(f"Telegram: errore notifica movimento conti {instance.pk}: {e}")

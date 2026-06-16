@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Riepilogo Crediti - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-table me-2"></i>Riepilogo Crediti per Data
+        </h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>Tabella Riepilogo
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        {% if righe %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0 table-sm">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Data</th>
+                        <th class="text-end">Crediti Clienti</th>
+                        <th class="text-end">Cassa Finale</th>
+                        <th class="text-end">Saldo Bevande</th>
+                        <th class="text-end">Differenza Distinta</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for riga in righe %}
+                    <tr>
+                        <td>{{ riga.data|date:"d/m/Y" }}</td>
+                        <td class="text-end">
+                            {% if riga.crediti is not None %}
+                                <span class="{% if riga.crediti < 0 %}text-danger{% elif riga.crediti > 0 %}text-success{% endif %}">
+                                    {{ riga.crediti|floatformat:2 }} €
+                                </span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if riga.cassa_finale is not None %}
+                                {{ riga.cassa_finale|floatformat:2 }} €
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {{ riga.saldo_bevande|floatformat:2 }} €
+                        </td>
+                        <td class="text-end">
+                            <span class="{% if riga.differenza_distinta < 0 %}text-danger{% elif riga.differenza_distinta > 0 %}text-success{% endif %}">
+                                {{ riga.differenza_distinta|floatformat:2 }} €
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <i class="fas fa-inbox fa-2x mb-2"></i>
+            <p>Nessuna distinta trovata.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

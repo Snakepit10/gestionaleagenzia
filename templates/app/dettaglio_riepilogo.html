@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titolo }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-file-alt me-2"></i>{{ titolo }}
+        </h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'lista_riepiloghi' %}" class="btn btn-secondary me-2">
+            <i class="fas fa-arrow-left me-2"></i>Torna alla Lista
+        </a>
+        <a href="{% url 'modifica_riepilogo' riepilogo.pk %}" class="btn btn-warning me-2">
+            <i class="fas fa-edit me-2"></i>Modifica
+        </a>
+        <a href="{% url 'elimina_riepilogo' riepilogo.pk %}" class="btn btn-danger">
+            <i class="fas fa-trash me-2"></i>Elimina
+        </a>
+    </div>
+</div>
+
+<!-- Informazioni Principali -->
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>Informazioni Principali
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <p><strong>Data:</strong> {{ riepilogo.data|date:"d/m/Y" }}</p>
+            </div>
+            <div class="col-md-4">
+                <p><strong>Creato da:</strong> {{ riepilogo.creato_da.username }}</p>
+            </div>
+            <div class="col-md-4">
+                <p><strong>Data Creazione:</strong> {{ riepilogo.data_creazione|date:"d/m/Y H:i" }}</p>
+            </div>
+        </div>
+        {% if riepilogo.modificato_da %}
+        <div class="row">
+            <div class="col-md-4">
+                <p><strong>Modificato da:</strong> {{ riepilogo.modificato_da.username }}</p>
+            </div>
+            <div class="col-md-4">
+                <p><strong>Data Modifica:</strong> {{ riepilogo.data_modifica|date:"d/m/Y H:i" }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Campi Calcolati Automaticamente -->
+<div class="card mb-3">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-calculator me-2"></i>Campi Calcolati Automaticamente
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="card-subtitle mb-2 text-muted">Saldo Totale Crediti</h6>
+                        <h4 class="card-title {% if riepilogo.saldo_crediti < 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ riepilogo.saldo_crediti|floatformat:2 }} €
+                        </h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="card-subtitle mb-2 text-muted">Saldo Cassa</h6>
+                        <h4 class="card-title">{{ riepilogo.saldo_cassa|floatformat:2 }} €</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="card-subtitle mb-2 text-muted">Cassa 2 (Bevande)</h6>
+                        <h4 class="card-title">{{ riepilogo.cassa_2|floatformat:2 }} €</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="card-subtitle mb-2 text-muted">Differenza Distinta</h6>
+                        <h4 class="card-title">{{ riepilogo.differenza_distinta|floatformat:2 }} €</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Campi Manuali -->
+<div class="card mb-3">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">
+            <i class="fas fa-edit me-2"></i>Campi Manuali
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="card-subtitle mb-2 text-muted">Saldo CED</h6>
+                        <h4 class="card-title">{{ riepilogo.saldo_ced|floatformat:2 }} €</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="card-subtitle mb-2 text-muted">Saldo PV Online</h6>
+                        <h4 class="card-title">{{ riepilogo.saldo_pvonline|floatformat:2 }} €</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="card-subtitle mb-2 text-muted">Giroconto CED</h6>
+                        <h4 class="card-title">{{ riepilogo.giroconto_ced|floatformat:2 }} €</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="card-subtitle mb-2 text-muted">Giroconto Online</h6>
+                        <h4 class="card-title">{{ riepilogo.giroconto_online|floatformat:2 }} €</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="card-subtitle mb-2 text-muted">Sovvenzione</h6>
+                        <h4 class="card-title">{{ riepilogo.sovvenzione|floatformat:2 }} €</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="card-subtitle mb-2 text-muted">Restituzione</h6>
+                        <h4 class="card-title">{{ riepilogo.restituzione|floatformat:2 }} €</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Totali -->
+<div class="card">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-check-circle me-2"></i>Totali
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="card-subtitle mb-2 text-muted">Totale</h6>
+                        <h3 class="card-title {% if riepilogo.totale < 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ riepilogo.totale|floatformat:2 }} €
+                        </h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h6 class="card-subtitle mb-2 text-muted">Saldo Progressivo</h6>
+                        <h3 class="card-title {% if riepilogo.saldo_progressivo < 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ riepilogo.saldo_progressivo|floatformat:2 }} €
+                        </h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-info mt-3">
+    <h6><i class="fas fa-info-circle me-2"></i>Formula Totale:</h6>
+    <p class="mb-0 font-monospace">
+        Totale = Crediti + Saldo Cassa + PV Online + CED - Giroconto CED - Giroconto Online - Sovvenzione + Restituzione - Cassa 2 - Diff. Distinta
+    </p>
+    <hr>
+    <h6><i class="fas fa-info-circle me-2"></i>Formula Saldo Progressivo:</h6>
+    <p class="mb-0 font-monospace">
+        Saldo Progr. = Totale Data -1 + Totale Data Odierna + Bevande Data -1 + Diff. Distinta Data -1 + Giroconto CED Data -1 + Giroconto Online Data -1 + Sovvenzione Data -1 - Restituzione Data -1
+    </p>
+</div>
+
+{% endblock %}

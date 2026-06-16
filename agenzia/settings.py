@@ -20,6 +20,12 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost,192.168.1.8
 # CSRF Settings per Railway
 CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if os.environ.get('CSRF_TRUSTED_ORIGINS') else []
 
+# Notifiche Telegram
+# Token del bot (unico per tutte le agenzie). Le chat sono configurate per agenzia
+# nel campo Agenzia.telegram_chat_id. Se il token manca, le notifiche sono disattivate.
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+TELEGRAM_NOTIFICHE_ATTIVE = os.environ.get('TELEGRAM_NOTIFICHE_ATTIVE', 'True').lower() == 'true'
+
 # Application definition
 
 INSTALLED_APPS = [

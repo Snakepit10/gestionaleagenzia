@@ -18,8 +18,14 @@ class Agenzia(models.Model):
     codice = models.CharField(max_length=20, unique=True, help_text="Codice agenzia per il database")
     database_name = models.CharField(max_length=100, help_text="Nome del database per questa agenzia")
     attiva = models.BooleanField(default=True)
+    telegram_chat_id = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True,
+        help_text="Chat/gruppo Telegram a cui inviare le notifiche di questa agenzia (es. -1001234567890)"
+    )
     data_creazione = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         verbose_name = "Agenzia"
         verbose_name_plural = "Agenzie"
@@ -450,6 +456,10 @@ class ContoFinanziario(MultiDatabaseMixin, models.Model):
     categoria = models.CharField(max_length=20, choices=CATEGORIA_CHOICES, default='liquidita', help_text="Categoria contabile per bilancio")
     saldo = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     tassabile = models.BooleanField(default=True, help_text="Concorre al calcolo delle imposte")
+    notifica_telegram = models.BooleanField(
+        default=False,
+        help_text="Invia una notifica Telegram per ogni movimento di questo conto"
+    )
     descrizione = models.TextField(blank=True, null=True)
     creato_da = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='conti_creati')
     data_creazione = models.DateTimeField(auto_now_add=True)
@@ -1312,3 +1322,248 @@ class ActivityLog(MultiDatabaseMixin, models.Model):
         db.save_object(log)
 
         return log
+
+
+class RiepilogoGiornaliero(MultiDatabaseMixin, models.Model):
+    """Modello per il riepilogo finanziario giornaliero"""
+
+    data = models.DateField(unique=True, help_text="Data del riepilogo")
+
+    # Campi calcolati automaticamente
+    saldo_crediti = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Saldo dell'ultimo movimento crediti clienti della giornata"
+    )
+    saldo_cassa = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Saldo finale dell'ultima distinta della giornata"
+    )
+    cassa_2 = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Somma del totale bevande delle distinte della giornata"
+    )
+    differenza_distinta = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Somma della differenza distinta delle distinte della giornata"
+    )
+
+    # Campi manuali da compilare dall'operatore
+    saldo_ced = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Saldo CED"
+    )
+    saldo_pvonline = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Saldo PV Online"
+    )
+    giroconto_ced = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Giroconto CED"
+    )
+    giroconto_online = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Giroconto Online"
+    )
+    sovvenzione = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Sovvenzione"
+    )
+    restituzione = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Restituzione"
+    )
+
+    # Campi calcolati
+    totale = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Totale calcolato"
+    )
+    saldo_progressivo = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Saldo progressivo"
+    )
+
+    # Campi di audit
+    creato_da = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='riepiloghi_creati')
+    data_creazione = models.DateTimeField(auto_now_add=True)
+    modificato_da = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='riepiloghi_modificati')
+    data_modifica = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Riepilogo Giornaliero"
+        verbose_name_plural = "Riepiloghi Giornalieri"
+        ordering = ['-data']
+
+    def __str__(self):
+        return f"Riepilogo {self.data.strftime('%d/%m/%Y')}"
+
+    def calcola_campi_automatici(self):
+        """
+        Calcola automaticamente i campi derivati da distinte e movimenti.
+        Considera solo le date con distinte chiuse o verificate.
+        """
+        from django.db.models import Sum, Max
+
+        # Usa il database dell'oggetto corrente
+        db_name = self._state.db if hasattr(self, '_state') and self._state.db else 'default'
+
+        distinte_qs = DistintaCassa.objects.using(db_name)
+        movimenti_qs = Movimento.objects.using(db_name)
+
+        # Filtra distinte della giornata che sono chiuse o verificate
+        distinte_giornata = distinte_qs.filter(
+            data=self.data,
+            stato__in=['chiusa', 'verificata']
+        )
+
+        # Calcola saldo cassa (saldo finale dell'ultima distinta)
+        ultima_distinta = distinte_giornata.order_by('-ora_fine').first()
+        if ultima_distinta and ultima_distinta.cassa_finale:
+            self.saldo_cassa = ultima_distinta.cassa_finale
+        else:
+            self.saldo_cassa = Decimal('0')
+
+        # Calcola cassa_2 (somma totale bevande)
+        totale_bevande = distinte_giornata.aggregate(Sum('totale_bevande'))['totale_bevande__sum']
+        self.cassa_2 = totale_bevande if totale_bevande else Decimal('0')
+
+        # Calcola differenza distinta (somma differenza cassa)
+        diff_distinta = distinte_giornata.aggregate(Sum('differenza_cassa'))['differenza_cassa__sum']
+        self.differenza_distinta = diff_distinta if diff_distinta else Decimal('0')
+
+        # Calcola saldo crediti (saldo progressivo dell'ultimo movimento della giornata, invertito)
+        ultimo_movimento = movimenti_qs.filter(
+            data__date=self.data
+        ).order_by('-data').first()
+
+        if ultimo_movimento and ultimo_movimento.saldo_progressivo:
+            self.saldo_crediti = -ultimo_movimento.saldo_progressivo  # Inverte il segno
+        else:
+            self.saldo_crediti = Decimal('0')
+
+    def calcola_totale(self):
+        """
+        Calcola il totale secondo la formula:
+        crediti + saldo cassa + pvonline + ced - giroconto ced - giroconto online - sovvenzione + restituzione - cassa 2 - diff. distinta
+        """
+        self.totale = (
+            self.saldo_crediti +
+            self.saldo_cassa +
+            self.saldo_pvonline +
+            self.saldo_ced -
+            self.giroconto_ced -
+            self.giroconto_online -
+            self.sovvenzione +
+            self.restituzione -
+            self.cassa_2 -
+            self.differenza_distinta
+        )
+
+    def calcola_saldo_progressivo(self):
+        """
+        Calcola il saldo progressivo secondo la formula:
+        saldo totale data -1 - saldo totale data odierna + bevande data -1 + diff. distinta data -1 +
+        giroconto ced data -1 + giroconto online data -1 + sovvenzione data -1 - restituzione data -1
+        """
+        # Usa il database dell'oggetto corrente
+        db_name = self._state.db if hasattr(self, '_state') and self._state.db else 'default'
+
+        riepiloghi_qs = RiepilogoGiornaliero.objects.using(db_name)
+
+        # Ottieni il riepilogo del giorno precedente
+        try:
+            riepilogo_precedente = riepiloghi_qs.filter(
+                data__lt=self.data
+            ).order_by('-data').first()
+
+            if riepilogo_precedente:
+                self.saldo_progressivo = (
+                    riepilogo_precedente.totale -
+                    self.totale +
+                    riepilogo_precedente.cassa_2 +
+                    riepilogo_precedente.differenza_distinta +
+                    riepilogo_precedente.giroconto_ced +
+                    riepilogo_precedente.giroconto_online +
+                    riepilogo_precedente.sovvenzione -
+                    riepilogo_precedente.restituzione
+                )
+            else:
+                # Primo riepilogo: il saldo progressivo è uguale al totale negativo
+                self.saldo_progressivo = -self.totale
+        except Exception:
+            self.saldo_progressivo = -self.totale
+
+    def save(self, *args, **kwargs):
+        """Override del save per calcolare automaticamente i campi"""
+        # Calcola i campi automatici
+        self.calcola_campi_automatici()
+
+        # Calcola il totale
+        self.calcola_totale()
+
+        # Calcola il saldo progressivo
+        self.calcola_saldo_progressivo()
+
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def genera_riepiloghi_mancanti(cls, user):
+        """
+        Genera automaticamente i riepiloghi per tutte le date con distinte chiuse/verificate
+        che non hanno ancora un riepilogo.
+        """
+        from .database_utils import DatabaseManager, get_user_database
+        from django.db.models import Q
+
+        db = DatabaseManager(user)
+        user_db = get_user_database(user)
+
+        distinte_qs = db.get_queryset(DistintaCassa)
+        riepiloghi_qs = db.get_queryset(cls)
+
+        # Ottieni tutte le date con distinte chiuse o verificate
+        date_con_distinte = distinte_qs.filter(
+            Q(stato='chiusa') | Q(stato='verificata')
+        ).values_list('data', flat=True).distinct()
+
+        # Ottieni le date già presenti nei riepiloghi
+        date_con_riepiloghi = riepiloghi_qs.values_list('data', flat=True)
+
+        # Trova le date mancanti
+        date_mancanti = set(date_con_distinte) - set(date_con_riepiloghi)
+
+        # Crea i riepiloghi mancanti
+        riepiloghi_creati = []
+        for data in sorted(date_mancanti):
+            # Crea il riepilogo specificando il database usando()
+            riepilogo = cls(data=data, creato_da=user)
+            # Imposta manualmente il database prima di salvare
+            riepilogo._state.db = user_db
+            riepilogo.save(using=user_db)
+            riepiloghi_creati.append(riepilogo)
+
+        return riepiloghi_creati

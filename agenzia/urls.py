@@ -4,6 +4,8 @@ from django.contrib.auth import views as auth_views
 from django.views.generic import TemplateView
 from django.urls import reverse_lazy
 from django.http import JsonResponse
+from django.conf import settings
+from django.conf.urls.static import static
 
 def health_check(request):
     return JsonResponse({"status": "healthy", "service": "gestionale-agenzia"})
@@ -20,3 +22,7 @@ urlpatterns = [
     path('logout/complete/', TemplateView.as_view(template_name='app/logout.html'), name='logout_complete'),
     path('', include('app.urls')),
 ]
+
+# Serve static files in development
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.BASE_DIR / 'static')

@@ -1,6 +1,6 @@
 from django import forms
 from django.utils import timezone
-from .models import Cliente, Movimento, DistintaCassa, Comunicazione, ContoFinanziario, BilancioPeriodico
+from .models import Cliente, Movimento, DistintaCassa, Comunicazione, ContoFinanziario, BilancioPeriodico, RiepilogoGiornaliero
 
 
 class ClienteForm(forms.ModelForm):
@@ -203,10 +203,13 @@ class FiltroDistinteForm(forms.Form):
 class ContoFinanziarioForm(forms.ModelForm):
     class Meta:
         model = ContoFinanziario
-        fields = ['nome', 'tipo', 'saldo', 'descrizione']
+        fields = ['nome', 'tipo', 'saldo', 'notifica_telegram', 'descrizione']
         widgets = {
             'descrizione': forms.Textarea(attrs={'rows': 3}),
             'saldo': forms.NumberInput(attrs={'step': '0.01'}),
+        }
+        labels = {
+            'notifica_telegram': 'Notifica Telegram sui movimenti',
         }
 
 
@@ -275,3 +278,130 @@ class BilancioPeriodoForm(forms.ModelForm):
         widgets = {
             'note': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Inserisci note aggiuntive sul bilancio'}),
         }
+
+
+class RiepilogoGiornalieroForm(forms.ModelForm):
+    """Form per creare e modificare riepiloghi giornalieri"""
+
+    class Meta:
+        model = RiepilogoGiornaliero
+        fields = [
+            'data',
+            'saldo_ced',
+            'saldo_pvonline',
+            'giroconto_ced',
+            'giroconto_online',
+            'sovvenzione',
+            'restituzione'
+        ]
+        widgets = {
+            'data': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control'
+            }),
+            'saldo_ced': forms.NumberInput(attrs={
+                'step': '0.01',
+                'min': '0',
+                'class': 'form-control'
+            }),
+            'saldo_pvonline': forms.NumberInput(attrs={
+                'step': '0.01',
+                'min': '0',
+                'class': 'form-control'
+            }),
+            'giroconto_ced': forms.NumberInput(attrs={
+                'step': '0.01',
+                'min': '0',
+                'class': 'form-control'
+            }),
+            'giroconto_online': forms.NumberInput(attrs={
+                'step': '0.01',
+                'min': '0',
+                'class': 'form-control'
+            }),
+            'sovvenzione': forms.NumberInput(attrs={
+                'step': '0.01',
+                'min': '0',
+                'class': 'form-control'
+            }),
+            'restituzione': forms.NumberInput(attrs={
+                'step': '0.01',
+                'min': '0',
+                'class': 'form-control'
+            }),
+        }
+        labels = {
+            'data': 'Data',
+            'saldo_ced': 'Saldo CED',
+            'saldo_pvonline': 'Saldo PV Online',
+            'giroconto_ced': 'Giroconto CED',
+            'giroconto_online': 'Giroconto Online',
+            'sovvenzione': 'Sovvenzione',
+            'restituzione': 'Restituzione',
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+        # Se stiamo modificando, mostra anche i campi calcolati come readonly
+        if self.instance and self.instance.pk:
+            # Aggiungi i campi readonly per visualizzare i valori calcolati
+            self.fields['saldo_crediti_display'] = forms.DecimalField(
+                label='Saldo Totale Crediti',
+                required=False,
+                disabled=True,
+                initial=self.instance.saldo_crediti,
+                widget=forms.NumberInput(attrs={'class': 'form-control', 'readonly': 'readonly'})
+            )
+            self.fields['saldo_cassa_display'] = forms.DecimalField(
+                label='Saldo Cassa',
+                required=False,
+                disabled=True,
+                initial=self.instance.saldo_cassa,
+                widget=forms.NumberInput(attrs={'class': 'form-control', 'readonly': 'readonly'})
+            )
+            self.fields['cassa_2_display'] = forms.DecimalField(
+                label='Cassa 2 (Bevande)',
+                required=False,
+                disabled=True,
+                initial=self.instance.cassa_2,
+                widget=forms.NumberInput(attrs={'class': 'form-control', 'readonly': 'readonly'})
+            )
+            self.fields['differenza_distinta_display'] = forms.DecimalField(
+                label='Differenza Distinta',
+                required=False,
+                disabled=True,
+                initial=self.instance.differenza_distinta,
+                widget=forms.NumberInput(attrs={'class': 'form-control', 'readonly': 'readonly'})
+            )
+            self.fields['totale_display'] = forms.DecimalField(
+                label='Totale',
+                required=False,
+                disabled=True,
+                initial=self.instance.totale,
+                widget=forms.NumberInput(attrs={'class': 'form-control', 'readonly': 'readonly'})
+            )
+            self.fields['saldo_progressivo_display'] = forms.DecimalField(
+                label='Saldo Progressivo',
+                required=False,
+                disabled=True,
+                initial=self.instance.saldo_progressivo,
+                widget=forms.NumberInput(attrs={'class': 'form-control', 'readonly': 'readonly'})
+            )
+
+
+class FiltroRiepiloghiForm(forms.Form):
+    """Form per filtrare i riepiloghi giornalieri"""
+
+    data_da = forms.DateField(
+        required=False,
+        label="Data Da",
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    data_a = forms.DateField(
+        required=False,
+        label="Data A",
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
