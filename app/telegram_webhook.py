@@ -27,7 +27,8 @@ AIUTO = (
     "Comandi disponibili:\n"
     "• <code>soglia</code> — mostra la soglia cassa attuale\n"
     "• <code>soglia 5000</code> — imposta la soglia a 5000 €\n"
-    "• <code>soglia off</code> — disattiva l'alert cassa"
+    "• <code>soglia off</code> — disattiva l'alert cassa\n"
+    "Se la chat è condivisa da più agenzie, indica l'agenzia: <code>soglia goldbet 5000</code>"
 )
 
 
@@ -63,9 +64,9 @@ def telegram_webhook(request, secret):
     if chat_id is None or not testo:
         return HttpResponse(status=200)
 
-    # Identifica l'agenzia dalla chat
-    agenzia = Agenzia.objects.using('default').filter(telegram_chat_id=str(chat_id)).first()
-    if not agenzia:
+    # Identifica le agenzie associate alla chat (una chat puo' servire piu' agenzie)
+    agenzie = list(Agenzia.objects.using('default').filter(telegram_chat_id=str(chat_id)))
+    if not agenzie:
         # Chat non associata ad alcuna agenzia: logga il chat_id (utile per configurarla) e ignora
         logger.info(f"Telegram webhook: messaggio da chat non associata {chat_id}: {testo!r}")
         return HttpResponse(status=200)
@@ -74,31 +75,55 @@ def telegram_webhook(request, secret):
     parti = testo.split()
     comando = parti[0].lstrip('/').split('@')[0].lower()
 
-    if comando == 'soglia':
-        if len(parti) == 1:
-            # Mostra la soglia attuale
-            if agenzia.soglia_cassa is not None:
-                risposta = f"Soglia cassa attuale per {agenzia.nome}: <b>{agenzia.soglia_cassa:.2f} €</b>"
-            else:
-                risposta = f"Nessuna soglia cassa impostata per {agenzia.nome}."
-        elif parti[1].lower() in ('off', 'no', 'disattiva'):
-            agenzia.soglia_cassa = None
-            agenzia.save(using='default', update_fields=['soglia_cassa'])
-            risposta = f"Alert cassa disattivato per {agenzia.nome}."
+    if comando != 'soglia':
+        telegram_utils.invia_messaggio(str(chat_id), AIUTO)
+        return HttpResponse(status=200)
+
+    args = parti[1:]
+
+    # Selettore agenzia opzionale come primo argomento (nome o codice), utile se la
+    # chat e' condivisa da piu' agenzie: es. "soglia goldbet 5000".
+    target = None
+    if args:
+        sel = args[0].lower()
+        for a in agenzie:
+            if sel == a.nome.lower() or sel == (a.codice or '').lower():
+                target = a
+                args = args[1:]
+                break
+
+    if target is None:
+        if len(agenzie) == 1:
+            target = agenzie[0]
         else:
-            valore = _parse_importo(parti[1])
-            if valore is None or valore < 0:
-                risposta = f"Valore non valido. Esempio: <code>soglia 5000</code>\n\n{AIUTO}"
-            elif valore == 0:
-                agenzia.soglia_cassa = None
-                agenzia.save(using='default', update_fields=['soglia_cassa'])
-                risposta = f"Alert cassa disattivato per {agenzia.nome}."
-            else:
-                agenzia.soglia_cassa = valore
-                agenzia.save(using='default', update_fields=['soglia_cassa'])
-                risposta = f"Soglia cassa per {agenzia.nome} impostata a <b>{valore:.2f} €</b>."
+            nomi = ', '.join(a.nome for a in agenzie)
+            risposta = (f"Questa chat è associata a più agenzie ({nomi}).\n"
+                        f"Specifica l'agenzia: <code>soglia &lt;agenzia&gt; &lt;valore&gt;</code>")
+            telegram_utils.invia_messaggio(str(chat_id), risposta)
+            return HttpResponse(status=200)
+
+    if not args:
+        # Mostra la soglia attuale dell'agenzia selezionata
+        if target.soglia_cassa is not None:
+            risposta = f"Soglia cassa attuale per {target.nome}: <b>{target.soglia_cassa:.2f} €</b>"
+        else:
+            risposta = f"Nessuna soglia cassa impostata per {target.nome}."
+    elif args[0].lower() in ('off', 'no', 'disattiva'):
+        target.soglia_cassa = None
+        target.save(using='default', update_fields=['soglia_cassa'])
+        risposta = f"Alert cassa disattivato per {target.nome}."
     else:
-        risposta = AIUTO
+        valore = _parse_importo(args[0])
+        if valore is None or valore < 0:
+            risposta = f"Valore non valido. Esempio: <code>soglia 5000</code>\n\n{AIUTO}"
+        elif valore == 0:
+            target.soglia_cassa = None
+            target.save(using='default', update_fields=['soglia_cassa'])
+            risposta = f"Alert cassa disattivato per {target.nome}."
+        else:
+            target.soglia_cassa = valore
+            target.save(using='default', update_fields=['soglia_cassa'])
+            risposta = f"Soglia cassa per {target.nome} impostata a <b>{valore:.2f} €</b>."
 
     telegram_utils.invia_messaggio(str(chat_id), risposta)
     return HttpResponse(status=200)
