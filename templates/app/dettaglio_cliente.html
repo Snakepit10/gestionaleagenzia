@@ -246,8 +246,8 @@
                                 <span class="text-muted">-</span>
                             {% endif %}
                         </td>
-                        <td class="fw-bold {% if movimento.saldo_progressivo < 0 %}text-danger{% else %}text-success{% endif %}">
-                            {{ movimento.saldo_progressivo|floatformat:2 }} €
+                        <td class="fw-bold {% if movimento.saldo_prog < 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ movimento.saldo_prog|floatformat:2 }} €
                         </td>
                         <td>
                             <a href="{% url 'dettaglio_movimento' movimento.id %}" class="btn btn-sm btn-info" title="Visualizza Dettagli">

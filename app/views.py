@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponseForbidden
 from django.utils import timezone
-from django.db.models import Sum, Q, F
+from django.db.models import Sum, Q, F, Window
 from django.core.paginator import Paginator
 from decimal import Decimal
 
@@ -173,22 +173,17 @@ def dettaglio_cliente(request, pk):
     # Aggiorna il saldo del cliente
     cliente.aggiorna_saldo(user=request.user)
 
-    # Recupera i movimenti del cliente con saldo progressivo
-    # Prima otteniamo tutti i movimenti in ordine cronologico crescente per calcolare il saldo progressivo
-    tutti_movimenti = cliente.movimenti.all().order_by('data', 'id')
-    
-    # Calcola il saldo progressivo per ogni movimento
-    movimenti_con_saldo = []
-    saldo_progressivo = 0
-    
-    for movimento in tutti_movimenti:
-        saldo_progressivo += movimento.importo
-        movimento.saldo_progressivo = saldo_progressivo
-        movimenti_con_saldo.append(movimento)
+    # Movimenti del cliente con saldo progressivo calcolato dal database (window function).
+    # La paginazione carica solo le righe della pagina, non l'intera storia: evita
+    # i timeout sui clienti con migliaia di movimenti.
+    movimenti_qs = cliente.movimenti.annotate(
+        saldo_prog=Window(
+            expression=Sum('importo'),
+            order_by=[F('data').asc(), F('id').asc()],
+        )
+    ).order_by('-data', '-id')
 
-    # Tutti i movimenti in ordine cronologico decrescente, con paginazione
-    movimenti_ordinati = list(reversed(movimenti_con_saldo))
-    paginator = Paginator(movimenti_ordinati, 50)
+    paginator = Paginator(movimenti_qs, 50)
     page_number = request.GET.get('page')
     movimenti = paginator.get_page(page_number)
 
@@ -1878,37 +1873,45 @@ def elimina_riepilogo(request, pk):
 def riepilogo_crediti(request):
     """Tabella riepilogativa per data: crediti clienti, cassa finale, bevande, differenza distinta"""
     db = DatabaseManager(request.user)
+    alias = db.user_db
 
-    # Recupera tutte le date distinte presenti nelle distinte, ordinate per data decrescente
-    date = db.get_queryset(DistintaCassa).values_list('data', flat=True).distinct().order_by('-data')
+    # 1) Tutte le distinte (campi minimi) in UNA query, aggregate in Python per giorno:
+    #    somma bevande/differenza e cassa finale (ultima distinta del giorno per ora_inizio).
+    per_giorno = {}
+    distinte = (db.get_queryset(DistintaCassa)
+                .values('data', 'cassa_finale', 'totale_bevande', 'differenza_cassa')
+                .order_by('data', 'ora_inizio'))
+    for d in distinte:
+        info = per_giorno.setdefault(
+            d['data'],
+            {'bevande': Decimal('0'), 'diff': Decimal('0'), 'cassa_finale': None}
+        )
+        info['bevande'] += d['totale_bevande'] or Decimal('0')
+        info['diff'] += d['differenza_cassa'] or Decimal('0')
+        # le distinte sono ordinate per ora_inizio crescente: l'ultima vista è quella più tarda
+        info['cassa_finale'] = d['cassa_finale']
 
-    righe = []
-    for data in date:
-        distinte_del_giorno = db.get_queryset(DistintaCassa).filter(data=data)
+    # 2) Crediti per giorno = saldo_progressivo dell'ultimo movimento del giorno.
+    #    Una sola query indicizzata su (data, id): scorrendo in ordine crescente,
+    #    l'ultimo valore scritto per ciascun giorno è quello dell'ultimo movimento.
+    crediti_map = {}
+    for m in (Movimento.objects.using(alias)
+              .values('data', 'saldo_progressivo')
+              .order_by('data', 'id')):
+        giorno = timezone.localtime(m['data']).date()
+        crediti_map[giorno] = m['saldo_progressivo']
 
-        # Cassa finale: ultima distinta del giorno (per ora_inizio)
-        ultima_distinta = distinte_del_giorno.order_by('-ora_inizio').first()
-        cassa_finale = ultima_distinta.cassa_finale if ultima_distinta else None
-
-        # Somma saldo bevande delle distinte del giorno
-        saldo_bevande = distinte_del_giorno.aggregate(total=Sum('totale_bevande'))['total'] or 0
-
-        # Somma differenza distinta del giorno
-        differenza_distinta = distinte_del_giorno.aggregate(total=Sum('differenza_cassa'))['total'] or 0
-
-        # Crediti clienti: saldo_progressivo dell'ultimo movimento del giorno
-        ultimo_movimento = db.get_queryset(Movimento).filter(
-            data__date=data
-        ).order_by('-data', '-id').first()
-        crediti = ultimo_movimento.saldo_progressivo if ultimo_movimento else None
-
-        righe.append({
-            'data': data,
-            'crediti': crediti,
-            'cassa_finale': cassa_finale,
-            'saldo_bevande': saldo_bevande,
-            'differenza_distinta': differenza_distinta,
-        })
+    # 3) Costruisce le righe ordinate per data decrescente
+    righe = [
+        {
+            'data': giorno,
+            'crediti': crediti_map.get(giorno),
+            'cassa_finale': info['cassa_finale'],
+            'saldo_bevande': info['bevande'],
+            'differenza_distinta': info['diff'],
+        }
+        for giorno, info in sorted(per_giorno.items(), reverse=True)
+    ]
 
     context = {'righe': righe}
     return render(request, 'app/riepilogo_crediti.html', context)
