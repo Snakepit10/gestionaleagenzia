@@ -185,9 +185,12 @@ def dettaglio_cliente(request, pk):
         saldo_progressivo += movimento.importo
         movimento.saldo_progressivo = saldo_progressivo
         movimenti_con_saldo.append(movimento)
-    
-    # Prende gli ultimi 20 movimenti in ordine cronologico decrescente
-    movimenti = list(reversed(movimenti_con_saldo[-20:]))
+
+    # Tutti i movimenti in ordine cronologico decrescente, con paginazione
+    movimenti_ordinati = list(reversed(movimenti_con_saldo))
+    paginator = Paginator(movimenti_ordinati, 50)
+    page_number = request.GET.get('page')
+    movimenti = paginator.get_page(page_number)
 
     # Recupera le comunicazioni del cliente
     comunicazioni = cliente.comunicazioni.all().order_by('-data')[:10]

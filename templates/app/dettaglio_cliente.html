@@ -187,7 +187,7 @@
 <div class="card mb-4">
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
         <h5 class="mb-0">
-            <i class="fas fa-exchange-alt me-2"></i>Ultimi Movimenti
+            <i class="fas fa-exchange-alt me-2"></i>Movimenti
         </h5>
         <a href="{% url 'lista_movimenti' %}?cliente={{ cliente.id }}" class="btn btn-sm btn-light">
             <i class="fas fa-list me-2"></i>Vedi Tutti
@@ -274,6 +274,32 @@
                 </tbody>
             </table>
         </div>
+        {% if movimenti.paginator.num_pages > 1 %}
+        <div class="card-footer d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+                {{ movimenti.paginator.count }} movimenti totali &middot; pagina {{ movimenti.number }} di {{ movimenti.paginator.num_pages }}
+            </small>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    {% if movimenti.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page=1">&laquo;</a></li>
+                    <li class="page-item"><a class="page-link" href="?page={{ movimenti.previous_page_number }}">&lsaquo;</a></li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                    <li class="page-item disabled"><span class="page-link">&lsaquo;</span></li>
+                    {% endif %}
+                    <li class="page-item active"><span class="page-link">{{ movimenti.number }}</span></li>
+                    {% if movimenti.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ movimenti.next_page_number }}">&rsaquo;</a></li>
+                    <li class="page-item"><a class="page-link" href="?page={{ movimenti.paginator.num_pages }}">&raquo;</a></li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">&rsaquo;</span></li>
+                    <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
         {% else %}
         <div class="card-body text-center py-4">
             <i class="fas fa-ban text-muted fa-3x mb-3"></i>
