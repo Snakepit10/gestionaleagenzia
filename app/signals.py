@@ -122,10 +122,14 @@ def sync_user_on_delete(sender, instance, using, **kwargs):
 # ===========================================================================
 
 @receiver(pre_save, sender=Cliente)
-def cliente_memorizza_fido_precedente(sender, instance, using, **kwargs):
+def cliente_memorizza_fido_precedente(sender, instance, using, update_fields=None, **kwargs):
     """Salva il fido attuale (da DB) sull'istanza per rilevare un eventuale aumento."""
+    instance._old_fido = None
     if instance.pk is None:
-        instance._old_fido = None
+        return
+    # Se il salvataggio non tocca il fido (es. aggiorna_saldo usa update_fields=['saldo']),
+    # evita la query: il fido non può essere cambiato.
+    if update_fields is not None and 'fido_massimo' not in update_fields:
         return
     try:
         precedente = Cliente.objects.using(using).filter(pk=instance.pk).first()

@@ -56,9 +56,8 @@ def dashboard(request):
     # Usa il nuovo DatabaseManager
     db = DatabaseManager(request.user)
     
-    # Assicuriamoci che tutti i saldi siano aggiornati
-    for cliente in db.get_queryset(Cliente):
-        cliente.aggiorna_saldo(user=request.user)
+    # Il saldo di ogni cliente è mantenuto aggiornato a ogni scrittura di movimento
+    # (Movimento.save/delete/salda chiamano aggiorna_saldo): non serve ricalcolarlo qui.
 
     # Recupera i clienti con fido superato (saldo negativo che supera il fido massimo in valore assoluto)
     clienti_fido_superato = db.get_queryset(Cliente).filter(saldo__lt=0).filter(saldo__lt=-F('fido_massimo'))
@@ -134,10 +133,8 @@ def lista_clienti(request):
     # Usa il nuovo DatabaseManager
     db = DatabaseManager(request.user)
     
-    # Aggiorna i saldi di tutti i clienti
-    for cliente in db.get_queryset(Cliente):
-        cliente.aggiorna_saldo(user=request.user)
-
+    # Il saldo è già mantenuto aggiornato a ogni scrittura di movimento:
+    # nessun ricalcolo per-richiesta (causava query O(N) su DB remoto).
     clienti = db.get_queryset(Cliente)
 
     # Filtraggio clienti
@@ -260,9 +257,8 @@ def lista_movimenti(request):
     # Usa il nuovo DatabaseManager per gestire tutto
     db = DatabaseManager(request.user)
     
-    # Aggiorna i saldi di tutti i clienti prima di mostrare i movimenti
-    for cliente in db.get_queryset(Cliente):
-        cliente.aggiorna_saldo(user=request.user)
+    # Il saldo è già mantenuto aggiornato a ogni scrittura di movimento:
+    # nessun ricalcolo per-richiesta (causava query O(N) su DB remoto).
 
     # Ottieni tutti i movimenti con relazioni precaricate
     movimenti = db.get_queryset(
