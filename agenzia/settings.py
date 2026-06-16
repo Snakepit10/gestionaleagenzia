@@ -202,7 +202,9 @@ LOGGING = {
         },
         'django.db.backends': {
             'handlers': ['console'],
-            'level': 'DEBUG' if DEBUG else 'INFO',
+            # Mai loggare le singole query SQL: in produzione inonderebbe i log
+            # (limite Railway 500 log/sec) anche con DEBUG=True.
+            'level': 'WARNING',
             'propagate': False,
         },
     },
