@@ -64,6 +64,10 @@ class Cliente(MultiDatabaseMixin, models.Model):
     saldo = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     fido_massimo = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     rating = models.CharField(max_length=1, choices=RATING_CHOICES, default='C')
+    notifica_movimenti = models.BooleanField(
+        default=False,
+        help_text="Invia una notifica Telegram per ogni movimento di questo cliente (anche senza superamento del fido)"
+    )
     note = models.TextField(blank=True, null=True)
     data_creazione = models.DateTimeField(auto_now_add=True)
     data_modifica = models.DateTimeField(auto_now=True)

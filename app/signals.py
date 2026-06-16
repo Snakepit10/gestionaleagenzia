@@ -153,27 +153,30 @@ def cliente_notifica_telegram(sender, instance, created, using, **kwargs):
 
 
 @receiver(post_save, sender=Movimento)
-def movimento_notifica_fido_superato(sender, instance, created, using, **kwargs):
+def movimento_notifica(sender, instance, created, using, **kwargs):
     """
-    Trigger #1: notifica quando, dopo questo movimento, il cliente è sopra il fido.
-    Notifica a ogni movimento successivo finché il saldo resta oltre il fido.
+    Trigger #1: cliente sopra il fido (a ogni movimento finché resta sopra).
+    Trigger #5: cliente monitorato (ogni movimento creato, anche senza fido superato).
     """
     try:
-        # Ignora i movimenti di compensazione/saldo: non sono nuovo debito.
-        if instance.saldato or instance.movimento_origine_id:
-            return
-
         cliente = instance.cliente
         # In Movimento.save() il post_save scatta PRIMA di aggiorna_saldo(): ricalcolo qui.
         saldo = Movimento.objects.using(using).filter(
             cliente=cliente, saldato=False
         ).aggregate(tot=Sum('importo'))['tot'] or 0
 
-        if saldo < 0 and abs(saldo) > cliente.fido_massimo:
+        # Cliente monitorato: notifica ogni nuovo movimento, indipendentemente dal fido.
+        if created and getattr(cliente, 'notifica_movimenti', False):
+            testo = telegram_utils.msg_movimento_cliente(instance, saldo, using)
+            transaction.on_commit(lambda t=testo: telegram_utils.notifica(using, t), using=using)
+
+        # Fido superato: esclude i movimenti di compensazione/saldo (non sono nuovo debito).
+        is_compensazione = instance.saldato or instance.movimento_origine_id
+        if not is_compensazione and saldo < 0 and abs(saldo) > cliente.fido_massimo:
             testo = telegram_utils.msg_fido_superato(cliente, saldo, instance, using)
-            transaction.on_commit(lambda: telegram_utils.notifica(using, testo), using=using)
+            transaction.on_commit(lambda t=testo: telegram_utils.notifica(using, t), using=using)
     except Exception as e:
-        logger.error(f"Telegram: errore notifica fido superato movimento {instance.pk}: {e}")
+        logger.error(f"Telegram: errore notifica movimento {instance.pk}: {e}")
 
 
 @receiver(post_save, sender=MovimentoConti)

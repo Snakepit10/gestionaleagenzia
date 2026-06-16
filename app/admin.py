@@ -63,8 +63,8 @@ class DatabaseSelectorMixin:
 
 @admin.register(Cliente)
 class ClienteAdmin(DatabaseSelectorMixin, admin.ModelAdmin):
-    list_display = ('cognome', 'nome', 'saldo', 'fido_massimo', 'rating', 'telefono')
-    list_filter = ('rating',)
+    list_display = ('cognome', 'nome', 'saldo', 'fido_massimo', 'rating', 'telefono', 'notifica_movimenti')
+    list_filter = ('rating', 'notifica_movimenti')
     search_fields = ('cognome', 'nome', 'email', 'telefono')
     fieldsets = (
         ('Informazioni Personali', {
@@ -72,6 +72,10 @@ class ClienteAdmin(DatabaseSelectorMixin, admin.ModelAdmin):
         }),
         ('Dati Contabili', {
             'fields': ('saldo', 'fido_massimo', 'rating')
+        }),
+        ('Notifiche', {
+            'fields': ('notifica_movimenti',),
+            'description': 'Se attivo, invia una notifica Telegram per ogni movimento del cliente.'
         }),
         ('Note', {
             'fields': ('note',)

@@ -134,3 +134,13 @@ def msg_movimento_conto(movimento, using):
         f"💸 <b>Movimento conto</b> ({_nome_agenzia(using)})\n"
         f"{movimento}"
     )
+
+
+def msg_movimento_cliente(movimento, saldo, using):
+    cliente = movimento.cliente
+    return (
+        f"📝 <b>Movimento cliente</b> ({_nome_agenzia(using)})\n"
+        f"Cliente: <b>{cliente.nome_completo}</b>\n"
+        f"Operazione: {movimento.get_tipo_display()} {movimento.importo:.2f} €\n"
+        f"Saldo aggiornato: {saldo:.2f} €"
+    )

@@ -6,15 +6,19 @@ from .models import Cliente, Movimento, DistintaCassa, Comunicazione, ContoFinan
 class ClienteForm(forms.ModelForm):
     class Meta:
         model = Cliente
-        fields = ['nome', 'cognome', 'email', 'telefono', 'fido_massimo', 'note']
-        
+        fields = ['nome', 'cognome', 'email', 'telefono', 'fido_massimo', 'notifica_movimenti', 'note']
+        labels = {
+            'notifica_movimenti': 'Notifica Telegram su ogni movimento',
+        }
+
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        
-        # Disabilita il campo fido_massimo per gli operatori
+
+        # Disabilita i campi riservati ai gestori per gli operatori
         if user and not (user.is_superuser or user.groups.filter(name__in=['Manager', 'Amministratore']).exists()):
             self.fields['fido_massimo'].disabled = True
+            self.fields['notifica_movimenti'].disabled = True
 
 
 class MovimentoForm(forms.ModelForm):

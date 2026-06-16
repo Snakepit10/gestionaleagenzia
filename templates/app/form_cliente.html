@@ -65,8 +65,14 @@
                 {% endif %}
             </div>
             
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    {{ form.notifica_movimenti|as_crispy_field }}
+                </div>
+            </div>
+
             {{ form.note|as_crispy_field }}
-            
+
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save me-2"></i>{% if cliente %}Aggiorna{% else %}Salva{% endif %} Cliente
