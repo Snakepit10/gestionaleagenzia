@@ -142,14 +142,19 @@ def _riga_note(movimento):
 
 def msg_fido_superato(cliente, saldo, movimento, using):
     sforamento = abs(saldo) - cliente.fido_massimo
-    return (
-        f"⚠️ <b>Fido superato</b> ({_nome_agenzia(using)})\n"
-        f"Cliente: <b>{cliente.nome_completo}</b>\n"
-        f"Saldo: {saldo:.2f} € | Fido: {cliente.fido_massimo:.2f} €\n"
-        f"Sforamento: <b>{sforamento:.2f} €</b>\n"
-        f"Ultimo movimento: {movimento.get_tipo_display()} {movimento.importo:.2f} €"
-        f"{_riga_note(movimento)}"
-    )
+    operatore = movimento.creato_da.username if getattr(movimento, 'creato_da', None) else "-"
+    parti = [
+        f"⚠️ <b>Fido superato</b> ({_nome_agenzia(using)})",
+        f"Cliente: <b>{cliente.nome_completo}</b>",
+        f"Ultimo movimento: {movimento.get_tipo_display()} {movimento.importo:.2f} €",
+        f"Saldo: {saldo:.2f} € | Fido: {cliente.fido_massimo:.2f} €",
+        f"Sforamento: <b>{sforamento:.2f} €</b>",
+    ]
+    note = (getattr(movimento, 'note', None) or '').strip()
+    if note:
+        parti.append(f"Note: {note}")
+    parti.append(f"Operatore: {operatore}")
+    return "\n\n".join(parti)
 
 
 def msg_movimento_conto(movimento, using):
