@@ -1006,26 +1006,17 @@ def chiudi_distinta(request, pk):
             distinta.totale_entrate = totale_entrate
             distinta.totale_uscite = totale_uscite
 
-            # Se il form ha inviato un valore per differenza_cassa, usa quello
-            # altrimenti ricalcola
-            if form.cleaned_data.get('differenza_cassa') is None:
-                # Verifica che cassa_finale sia stato impostato prima di calcolare
-                if distinta.cassa_finale is not None:
-                    # Calcola saldo totale secondo la formula: cassa finale - entrate + uscite - bevande
-                    saldo_totale = (
-                        distinta.cassa_finale - totale_entrate + totale_uscite - distinta.totale_bevande
-                    )
-
-                    # Calcola differenza cassa (saldo totale - saldo terminale)
-                    distinta.differenza_cassa = saldo_totale
-
-                    # Se c'è un saldo terminale, consideralo nella differenza
-                    if distinta.saldo_terminale:
-                        distinta.differenza_cassa -= distinta.saldo_terminale
-                else:
-                    # Se cassa_finale non è impostato, imposta differenza_cassa a 0 come valore predefinito
-                    distinta.differenza_cassa = 0
-                    messages.warning(request, 'Cassa finale non impostata. La differenza di cassa è stata impostata a 0.')
+            # Ricalcola SEMPRE la differenza cassa lato server in Decimal.
+            # Il valore eventualmente inviato dal form è calcolato in JavaScript
+            # (virgola mobile + parsing del numero localizzato con la virgola) e può
+            # divergere di centesimi: la fonte autorevole è questo calcolo.
+            # cassa_finale e totale_bevande sono già stati normalizzati a 0 se None.
+            saldo_totale = (
+                distinta.cassa_finale - totale_entrate + totale_uscite - distinta.totale_bevande
+            )
+            distinta.differenza_cassa = saldo_totale
+            if distinta.saldo_terminale:
+                distinta.differenza_cassa -= distinta.saldo_terminale
 
             # Dati prima della chiusura per il log
             distinta_before = {

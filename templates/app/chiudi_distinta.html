@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 {% load tz %}
+{% load l10n %}
 
 {% block title %}Chiudi Distinta #{{ distinta.id }} - Gestionale Agenzia{% endblock %}
 
@@ -119,8 +120,8 @@
 
 <script>
 function calcolaDifferenzaCassa() {
-    const totaleEntrate = parseFloat("{{ totale_entrate|default:0 }}") || 0;
-    const totaleUscite = parseFloat("{{ totale_uscite|default:0 }}") || 0;
+    const totaleEntrate = parseFloat("{{ totale_entrate|default:0|unlocalize }}") || 0;
+    const totaleUscite = parseFloat("{{ totale_uscite|default:0|unlocalize }}") || 0;
     
     const cassaFinale = parseFloat(document.getElementById('id_cassa_finale').value) || 0;
     const totaleBevande = parseFloat(document.getElementById('id_totale_bevande').value) || 0;
