@@ -353,12 +353,17 @@ def nuovo_movimento(request):
                 importo_firmato = -abs(movimento.importo)
             else:
                 importo_firmato = abs(movimento.importo)
+            # Il confronto considera SOLO i movimenti inseriti dal form: quelli di
+            # compensazione creati da 'salda'/'salda tutti' hanno movimento_origine
+            # valorizzato e vanno ignorati, altrimenti un inserimento manuale legittimo
+            # subito dopo un salda verrebbe scambiato per doppio click.
             duplicato = db.get_queryset(Movimento).filter(
                 cliente=movimento.cliente,
                 tipo=movimento.tipo,
                 importo=importo_firmato,
                 distinta=distinta,
                 creato_da_id=request.user.id,
+                movimento_origine__isnull=True,
                 data_creazione__gte=timezone.now() - timedelta(seconds=10)
             ).exists()
             if duplicato:
