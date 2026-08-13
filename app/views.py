@@ -345,6 +345,36 @@ def nuovo_movimento(request):
             if request.POST.get('note'):
                 movimento.note = request.POST.get('note')
 
+            # Anti doppio invio: se un movimento identico (stesso cliente, tipo, importo,
+            # distinta e operatore) è stato creato negli ultimi 10 secondi, è quasi
+            # certamente un doppio click con server lento: non salvare il duplicato.
+            from datetime import timedelta
+            if movimento.tipo in ['schedina', 'ricarica', 'pagamento_debito']:
+                importo_firmato = -abs(movimento.importo)
+            else:
+                importo_firmato = abs(movimento.importo)
+            duplicato = db.get_queryset(Movimento).filter(
+                cliente=movimento.cliente,
+                tipo=movimento.tipo,
+                importo=importo_firmato,
+                distinta=distinta,
+                creato_da_id=request.user.id,
+                data_creazione__gte=timezone.now() - timedelta(seconds=10)
+            ).exists()
+            if duplicato:
+                msg_duplicato = (
+                    f'Movimento {movimento.get_tipo_display()} di {abs(movimento.importo)} € '
+                    f'per {movimento.cliente} già registrato pochi istanti fa: doppio invio ignorato.'
+                )
+                if is_ajax:
+                    return JsonResponse({'success': False, 'message': msg_duplicato}, status=409)
+                messages.warning(request, msg_duplicato)
+                redirect_to = request.POST.get('redirect_to')
+                if redirect_to:
+                    return redirect(redirect_to)
+                from django.urls import reverse
+                return redirect(reverse('dettaglio_distinta', args=[distinta.pk]) + '?apri_form=1')
+
             # Salva il movimento
             db.save_object(movimento)
 

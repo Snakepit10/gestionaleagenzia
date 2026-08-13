@@ -167,6 +167,37 @@
                 }, 0);
             });
 
+            // Anti doppio invio: al primo submit di un form POST disabilita i pulsanti
+            // submit (con spinner) e blocca ogni submit successivo dello stesso form.
+            // Evita movimenti/registrazioni duplicati quando il server è lento e
+            // l'operatore clicca due volte.
+            $(document).on('submit', 'form[method="post" i]', function(e) {
+                var form = this;
+                if (form.dataset.inviato === '1') {
+                    e.preventDefault();
+                    return false;
+                }
+                form.dataset.inviato = '1';
+                $(form).find('button[type="submit"], input[type="submit"]').each(function() {
+                    this.disabled = true;
+                    if (this.tagName === 'BUTTON') {
+                        this.dataset.htmlOriginale = this.innerHTML;
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Attendere...';
+                    }
+                });
+                // Rete di sicurezza: se dopo 15s la pagina non è cambiata (errore di rete,
+                // validazione server), riabilita il form per permettere un nuovo tentativo.
+                setTimeout(function() {
+                    form.dataset.inviato = '';
+                    $(form).find('button[type="submit"], input[type="submit"]').each(function() {
+                        this.disabled = false;
+                        if (this.dataset.htmlOriginale) {
+                            this.innerHTML = this.dataset.htmlOriginale;
+                        }
+                    });
+                }, 15000);
+            });
+
             // Chiudi automaticamente i messaggi di alert dopo 5 secondi
             setTimeout(function() {
                 $('.alert').alert('close');
