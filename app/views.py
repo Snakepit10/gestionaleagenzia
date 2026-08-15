@@ -2161,19 +2161,26 @@ def api_giorni_mancanti(request):
     if not agenzia:
         return _cors(JsonResponse({'errore': 'token non valido'}, status=403))
 
+    # Numero di giorni indietro da coprire (default 30, max 400)
+    try:
+        ngiorni = int(request.GET.get('giorni', 30))
+    except (TypeError, ValueError):
+        ngiorni = 30
+    ngiorni = max(1, min(ngiorni, 400))
+
     oggi = timezone.localdate()
     presenti = set(
         SaldoEsterno.objects.using('default')
-        .filter(agenzia=agenzia, tipo='cast_agent', data__gte=oggi - timedelta(days=30))
+        .filter(agenzia=agenzia, tipo='cast_agent', data__gte=oggi - timedelta(days=ngiorni))
         .values_list('data', flat=True)
     )
     giorni = sorted(
         {oggi} | {
-            oggi - timedelta(days=i) for i in range(1, 31)
+            oggi - timedelta(days=i) for i in range(1, ngiorni + 1)
             if (oggi - timedelta(days=i)) not in presenti
         }
     )
-    inizio = oggi - timedelta(days=30)
+    inizio = oggi - timedelta(days=ngiorni)
     return _cors(JsonResponse({
         'giorni': [g.isoformat() for g in giorni],
         'range': {'inizio': inizio.isoformat(), 'fine': oggi.isoformat()},

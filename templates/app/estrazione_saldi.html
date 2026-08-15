@@ -29,6 +29,15 @@
                     Il portale CAST è raggiungibile solo dal browser dell'agenzia. L'estrazione avviene
                     quindi dal tuo browser (già connesso al portale), con un clic.
                 </p>
+                <div class="row g-2 align-items-end mb-3">
+                    <div class="col-auto">
+                        <label class="form-label small mb-0">Giorni da recuperare</label>
+                        <input type="number" id="cast-giorni" class="form-control form-control-sm" value="30" min="1" max="400" style="width:110px;">
+                    </div>
+                    <div class="col small text-muted">
+                        Imposta quanti giorni indietro estrarre, poi (ri)trascina il pulsante nei preferiti.
+                    </div>
+                </div>
                 <ol class="small mb-3">
                     <li class="mb-2">
                         Trascina questo pulsante nella <strong>barra dei preferiti</strong> del browser
@@ -52,13 +61,14 @@
         (function() {
             var GEST = JSON.stringify(location.origin);
             var TOKEN = JSON.stringify("{{ token_estrazione }}");
-            var bm = "javascript:(async()=>{try{"
+            function build(GIORNI) {
+            return "javascript:(async()=>{try{"
               + "var GEST=" + GEST + ",TOKEN=" + TOKEN + ";var host=location.hostname;var dati={};var nota='';"
               + "if(host.indexOf('cast-agent')>=0){"
               + "function findId(){var re=/BalanceAccount\\?id=([A-Za-z0-9._-]+)/;"
               + "var e=performance.getEntriesByType('resource');for(var i=0;i<e.length;i++){var m=e[i].name.match(re);if(m)return m[1];}"
               + "var h=(document.documentElement.outerHTML||'').match(re);return h?h[1]:null;}"
-              + "var gr=await fetch(GEST+'/api/cast/giorni/?token='+TOKEN);var gj=await gr.json();"
+              + "var gr=await fetch(GEST+'/api/cast/giorni/?token='+TOKEN+'&giorni=" + GIORNI + "');var gj=await gr.json();"
               + "var giorni=gj.giorni||[];var rng=gj.range||{};"
               + "var id=findId();"
               + "if(id&&giorni.length){var sc={};for(var i=0;i<giorni.length;i++){var g=giorni[i];var d=g.replace(/-/g,'/')+' 00:00:00';"
@@ -80,7 +90,7 @@
               + "XP.setRequestHeader=function(k,v){try{this.__h[k]=v;}catch(e){}return _h.apply(this,arguments);};"
               + "XP.send=function(b){try{if(this.__u&&(''+this.__u).indexOf('getestrattocontocassapv')>=0&&b){window.__pvTpl={url:this.__u,headers:this.__h,body:b,method:this.__m};}}catch(e){}return _s.apply(this,arguments);};"
               + "alert('Attivato su PV Online. Ora premi CERCA (o ricarica) nella pagina Estratto Conto, poi riclicca il preferito.');return;}"
-              + "var tpl=window.__pvTpl;var body=JSON.parse(tpl.body);var o=new Date();var ini=new Date(o.getTime()-30*86400000);"
+              + "var tpl=window.__pvTpl;var body=JSON.parse(tpl.body);var o=new Date();var ini=new Date(o.getTime()-" + GIORNI + "*86400000);"
               + "var iso=function(x){return x.getFullYear()+'-'+('0'+(x.getMonth()+1)).slice(-2)+'-'+('0'+x.getDate()).slice(-2);};"
               + "body.dataDa=iso(ini)+'T00:00:00';body.dataA=iso(o)+'T23:59:59';try{if(window.crypto&&crypto.randomUUID){body.codiceTransazione=crypto.randomUUID();}}catch(e){}"
               + "var r=await fetch(tpl.url,{method:tpl.method||'POST',headers:tpl.headers,body:JSON.stringify(body),credentials:'include'});var j=await r.json();"
@@ -92,8 +102,17 @@
               + "var pr=await fetch(GEST+'/api/cast/saldi/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:TOKEN,dati:dati})});"
               + "var pj=await pr.json();alert('Fatto! Valori registrati: '+pj.salvati+'.'+nota);"
               + "}catch(e){alert('Errore: '+e.message);}})()";
-            document.getElementById('cast-bm').href = bm;
-            document.getElementById('cast-bm-text').value = bm;
+            }
+            function aggiorna() {
+                var g = parseInt(document.getElementById('cast-giorni').value, 10);
+                if (isNaN(g) || g < 1) g = 30;
+                if (g > 400) g = 400;
+                var bm = build(g);
+                document.getElementById('cast-bm').href = bm;
+                document.getElementById('cast-bm-text').value = bm;
+            }
+            document.getElementById('cast-giorni').addEventListener('input', aggiorna);
+            aggiorna();
         })();
         </script>
     </div>
