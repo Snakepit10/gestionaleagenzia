@@ -159,11 +159,19 @@
             tr.querySelector('.cella-totale').textContent = fmt(t);
             return t;
         });
-        // Differenza = totale del giorno - totale del giorno precedente (riga successiva in ordine decrescente)
+        // Differenza rispetto al giorno precedente: totale_oggi - totale_ieri
+        // meno le componenti di flusso di ieri (bevande, diff. distinta, giroconti,
+        // versamenti) e più i prelievi di ieri.
         righe.forEach(function(tr, i) {
             var cella = tr.querySelector('.cella-differenza');
             if (i + 1 < righe.length) {
-                var diff = totali[i] - totali[i + 1];
+                var y = righe[i + 1], yd = y.dataset;
+                var ypre = n(y.querySelector('[data-tipo="prelievi"]').value);
+                var yver = n(y.querySelector('[data-tipo="versamenti"]').value);
+                var diff = totali[i] - totali[i + 1]
+                           - n(yd.bevande) - n(yd.diffdistinta)
+                           - n(yd.giroonline) - n(yd.giroterrestre)
+                           - yver + ypre;
                 var ok = diff >= -0.01 && diff <= 0.01;
                 cella.innerHTML = '<span class="badge bg-' + (ok ? 'success' : 'danger') + '">' + fmt(diff) + '</span>';
             } else {

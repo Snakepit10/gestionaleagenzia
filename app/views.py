@@ -1982,9 +1982,22 @@ def riepilogo_crediti(request):
         )
         righe.append(r)
 
-    # Differenza = totale del giorno - totale del giorno precedente (riga successiva, ordine decrescente)
+    # Differenza rispetto al giorno precedente (riga successiva in ordine decrescente):
+    # -(totale_ieri - totale_oggi + bevande_ieri + diff_distinta_ieri + giroconti_ieri
+    #   + versamenti_ieri - prelievi_ieri)
+    # = totale_oggi - totale_ieri - bevande_ieri - diff_distinta_ieri
+    #   - giroconto_online_ieri - giroconto_terrestre_ieri - versamenti_ieri + prelievi_ieri
     for i, r in enumerate(righe):
-        r['differenza'] = (r['totale'] - righe[i + 1]['totale']) if i + 1 < len(righe) else None
+        if i + 1 < len(righe):
+            y = righe[i + 1]  # ieri
+            r['differenza'] = (
+                r['totale'] - y['totale']
+                - num(y['saldo_bevande']) - num(y['differenza_distinta'])
+                - num(y['giroconto_online']) - num(y['giroconto_terrestre'])
+                - num(y['versamenti']) + num(y['prelievi'])
+            )
+        else:
+            r['differenza'] = None
 
     context = {'righe': righe}
     return render(request, 'app/riepilogo_crediti.html', context)
