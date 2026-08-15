@@ -38,9 +38,9 @@
                             <i class="fas fa-download me-1"></i>Estrai saldi CAST
                         </a>
                     </li>
-                    <li class="mb-2">Apri <a href="https://cast-agent.goldbet.it/balanceaccount" target="_blank" rel="noopener">il portale CAST</a>, fai <strong>login</strong> e vai su <strong>Estratto Conto</strong> (pagina "balanceaccount"), attendendo che la <strong>tabella si carichi</strong>.</li>
-                    <li>Su quella pagina, clicca il preferito <strong>"Estrai saldi CAST"</strong>:
-                        i saldi dei giorni mancanti verranno inviati qui automaticamente.</li>
+                    <li class="mb-2"><strong>Saldo CAST + Giroconti:</strong> apri <a href="https://cast-agent.goldbet.it/balanceaccount" target="_blank" rel="noopener">il portale CAST</a>, fai login, vai su <strong>Estratto Conto</strong> (pagina "balanceaccount") e attendi il caricamento della tabella; poi clicca il preferito su quella pagina.</li>
+                    <li class="mb-2"><strong>Saldo Online:</strong> apri il tuo portale <strong>PV Online</strong> (pvonline.lottomatica.it / goldbet.it / planetwin365.it), fai login, vai su <strong>Estratto Conto</strong> e clicca lo stesso preferito su quella pagina.</li>
+                    <li>Il bookmarklet capisce da solo su quale portale sei e invia i valori corrispondenti al gestionale.</li>
                 </ol>
                 <div class="alert alert-light border small mb-0">
                     In alternativa, copia questo codice e crea un nuovo preferito con esso come indirizzo:
@@ -53,17 +53,19 @@
             var GEST = JSON.stringify(location.origin);
             var TOKEN = JSON.stringify("{{ token_estrazione }}");
             var bm = "javascript:(async()=>{try{"
-              + "var GEST=" + GEST + ",TOKEN=" + TOKEN + ";"
+              + "var GEST=" + GEST + ",TOKEN=" + TOKEN + ";var host=location.hostname;var dati={};var nota='';"
+              + "if(host.indexOf('cast-agent')>=0){"
               + "function findId(){var re=/BalanceAccount\\?id=([A-Za-z0-9._-]+)/;"
               + "var e=performance.getEntriesByType('resource');for(var i=0;i<e.length;i++){var m=e[i].name.match(re);if(m)return m[1];}"
               + "var h=(document.documentElement.outerHTML||'').match(re);return h?h[1]:null;}"
               + "var gr=await fetch(GEST+'/api/cast/giorni/?token='+TOKEN);var gj=await gr.json();"
-              + "var giorni=gj.giorni||[];var rng=gj.range||{};var dati={};"
+              + "var giorni=gj.giorni||[];var rng=gj.range||{};"
               + "var id=findId();"
               + "if(id&&giorni.length){var sc={};for(var i=0;i<giorni.length;i++){var g=giorni[i];var d=g.replace(/-/g,'/')+' 00:00:00';"
               + "var u='/api/BalanceAccount?id='+encodeURIComponent(id)+'&dataInizio='+encodeURIComponent(d)+'&dataFine='+encodeURIComponent(d)+'&idOperatore=&idProdotto=&idTipoOperazione=&_='+Date.now();"
               + "var r=await fetch(u,{credentials:'include'});var j=await r.json();var dt=j.data||[];"
               + "if(dt.length){var b=dt[0];for(var k=0;k<dt.length;k++){if(new Date(dt[k].DataOra)>new Date(b.DataOra))b=dt[k];}sc[g]=b.Saldo;}}dati.cast_agent=sc;}"
+              + "else if(giorni.length){nota=' NB: Saldo CAST non incluso, apri la pagina Estratto Conto per estrarlo.';}"
               + "async function giro(ep){var di=(rng.inizio||'').replace(/-/g,'/')+' 00:00:00';var df=(rng.fine||'').replace(/-/g,'/')+' 23:59:59';"
               + "var u='/api/'+ep+'?skip=0&take=1000&requireTotalCount=true&dataInizio='+encodeURIComponent(di)+'&dataFine='+encodeURIComponent(df)+'&_='+Date.now();"
               + "var r=await fetch(u,{credentials:'include'});var j=await r.json();var dt=j.data||[];var m={};"
@@ -71,9 +73,15 @@
               + "for(var kk in m){m[kk]=Math.round(m[kk]*100)/100;}return m;}"
               + "dati.giroconto_online=await giro('GiroAccountOnlineRequest');"
               + "dati.giroconto_terrestre=await giro('GiroAccountRequest');"
+              + "}else if(host.indexOf('pvonline')>=0){"
+              + "var r=await fetch('/api/pam/portaleesercenti/getestrattocontocassapv',{credentials:'include'});var j=await r.json();"
+              + "var mov=j.EstrattoContoCassa||[];var best={};"
+              + "for(var i=0;i<mov.length;i++){var v=mov[i];var day=(v.DataMovimento||'').slice(0,10);if(!day)continue;var dt=new Date(v.DataMovimento);"
+              + "if(!best[day]||dt>best[day].dt){best[day]={dt:dt,saldo:v.Saldo/100};}}"
+              + "var so={};for(var d in best){so[d]=Math.round(best[d].saldo*100)/100;}dati.saldo_online=so;"
+              + "}else{alert('Apri il portale CAST (cast-agent...) oppure PV Online (pvonline...) e clicca il preferito su quella pagina.');return;}"
               + "var pr=await fetch(GEST+'/api/cast/saldi/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:TOKEN,dati:dati})});"
-              + "var pj=await pr.json();var msg='Fatto! Valori registrati: '+pj.salvati+'.';"
-              + "if(!id&&giorni.length){msg+=' NB: Saldo CAST non incluso, apri la pagina Estratto Conto per estrarlo.';}alert(msg);"
+              + "var pj=await pr.json();alert('Fatto! Valori registrati: '+pj.salvati+'.'+nota);"
               + "}catch(e){alert('Errore: '+e.message);}})()";
             document.getElementById('cast-bm').href = bm;
             document.getElementById('cast-bm-text').value = bm;
