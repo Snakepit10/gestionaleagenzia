@@ -2213,3 +2213,45 @@ def api_ricevi_saldi(request):
             salvati += 1
 
     return _cors(JsonResponse({'salvati': salvati, 'scartati': scartati}))
+
+
+@login_required
+@user_passes_test(is_manager_or_admin)
+def salva_valore_esterno(request):
+    """Salva/aggiorna un singolo valore esterno (editing inline dal riepilogo crediti)."""
+    from datetime import date as _date
+    from .models import SaldoEsterno
+
+    if request.method != 'POST':
+        return JsonResponse({'ok': False}, status=405)
+    try:
+        agenzia = request.user.profiloutente.agenzia
+    except Exception:
+        agenzia = None
+    if not agenzia:
+        return JsonResponse({'ok': False, 'errore': 'Nessuna agenzia associata'}, status=400)
+
+    tipo = request.POST.get('tipo')
+    if tipo not in {t for t, _ in SaldoEsterno.TIPO_CHOICES}:
+        return JsonResponse({'ok': False, 'errore': 'tipo non valido'}, status=400)
+    try:
+        giorno = _date.fromisoformat(request.POST.get('data', ''))
+    except Exception:
+        return JsonResponse({'ok': False, 'errore': 'data non valida'}, status=400)
+
+    valore_str = (request.POST.get('valore', '') or '').strip().replace(',', '.')
+    if valore_str == '':
+        # Valore svuotato: rimuovi la registrazione
+        SaldoEsterno.objects.using('default').filter(
+            agenzia=agenzia, tipo=tipo, data=giorno
+        ).delete()
+        return JsonResponse({'ok': True, 'vuoto': True})
+    try:
+        valore = Decimal(valore_str).quantize(Decimal('0.01'))
+    except Exception:
+        return JsonResponse({'ok': False, 'errore': 'valore non valido'}, status=400)
+
+    SaldoEsterno.objects.using('default').update_or_create(
+        agenzia=agenzia, tipo=tipo, data=giorno, defaults={'saldo': valore}
+    )
+    return JsonResponse({'ok': True})

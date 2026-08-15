@@ -59,7 +59,7 @@ class SaldoEsterno(models.Model):
     """Valore giornaliero rilevato da un portale esterno (saldo o flusso), per agenzia."""
 
     TIPO_CHOICES = [
-        ('cast_agent', 'Saldo CAST'),
+        ('cast_agent', 'Saldo CED'),
         ('giroconto_online', 'Giroconto Online'),
         ('giroconto_terrestre', 'Giroconto Terrestre'),
         ('saldo_online', 'Saldo Online'),

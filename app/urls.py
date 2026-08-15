@@ -46,6 +46,7 @@ urlpatterns = [
     path('saldi-esterni/', views.estrazione_saldi, name='estrazione_saldi'),
     path('api/cast/giorni/', views.api_giorni_mancanti, name='api_giorni_mancanti'),
     path('api/cast/saldi/', views.api_ricevi_saldi, name='api_ricevi_saldi'),
+    path('api/saldo-esterno/salva/', views.salva_valore_esterno, name='salva_valore_esterno'),
 
     # Riepiloghi Giornalieri
     path('riepiloghi/', views.lista_riepiloghi, name='lista_riepiloghi'),

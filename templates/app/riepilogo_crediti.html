@@ -3,6 +3,7 @@
 {% block title %}Riepilogo Crediti - Gestionale Agenzia{% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="row mb-4">
     <div class="col">
         <h1 class="h3 mb-0">
@@ -33,7 +34,7 @@
                         <th class="text-end">Cassa Finale</th>
                         <th class="text-end">Saldo Bevande</th>
                         <th class="text-end">Differenza Distinta</th>
-                        <th class="text-end">Saldo CAST</th>
+                        <th class="text-end">Saldo CED</th>
                         <th class="text-end">Giroconto Online</th>
                         <th class="text-end">Giroconto Terrestre</th>
                         <th class="text-end">Saldo Online</th>
@@ -91,11 +92,17 @@
                         <td class="text-end">
                             {% if riga.saldo_online is not None %}{{ riga.saldo_online|floatformat:2 }} €{% else %}<span class="text-muted">—</span>{% endif %}
                         </td>
-                        <td class="text-end">
-                            {% if riga.prelievi is not None %}{{ riga.prelievi|floatformat:2 }} €{% else %}<span class="text-muted">—</span>{% endif %}
+                        <td class="text-end" style="min-width:110px;">
+                            <input type="text" inputmode="decimal" class="form-control form-control-sm text-end inline-valore"
+                                   data-tipo="prelievi" data-data="{{ riga.data|date:'Y-m-d' }}"
+                                   value="{% if riga.prelievi is not None %}{{ riga.prelievi|floatformat:2 }}{% endif %}"
+                                   placeholder="—">
                         </td>
-                        <td class="text-end">
-                            {% if riga.versamenti is not None %}{{ riga.versamenti|floatformat:2 }} €{% else %}<span class="text-muted">—</span>{% endif %}
+                        <td class="text-end" style="min-width:110px;">
+                            <input type="text" inputmode="decimal" class="form-control form-control-sm text-end inline-valore"
+                                   data-tipo="versamenti" data-data="{{ riga.data|date:'Y-m-d' }}"
+                                   value="{% if riga.versamenti is not None %}{{ riga.versamenti|floatformat:2 }}{% endif %}"
+                                   placeholder="—">
                         </td>
                         <td class="text-end fw-bold">{{ riga.totale|floatformat:2 }} €</td>
                         <td class="text-end fw-bold">
@@ -118,4 +125,38 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+(function() {
+    var tokenEl = document.querySelector('[name=csrfmiddlewaretoken]');
+    var csrftoken = tokenEl ? tokenEl.value : '';
+    document.querySelectorAll('.inline-valore').forEach(function(inp) {
+        var last = inp.value;
+        function salva() {
+            var val = inp.value.trim();
+            if (val === last) return;
+            last = val;
+            var fd = new FormData();
+            fd.append('tipo', inp.dataset.tipo);
+            fd.append('data', inp.dataset.data);
+            fd.append('valore', val);
+            inp.disabled = true;
+            fetch("{% url 'salva_valore_esterno' %}", {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrftoken },
+                body: fd,
+                credentials: 'same-origin'
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(j) {
+                if (j.ok) { location.reload(); }
+                else { alert('Errore: ' + (j.errore || 'salvataggio non riuscito')); inp.disabled = false; }
+            })
+            .catch(function(e) { alert('Errore di rete: ' + e.message); inp.disabled = false; });
+        }
+        inp.addEventListener('change', salva);
+        inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });
+    });
+})();
+</script>
 {% endblock %}
