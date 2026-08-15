@@ -180,7 +180,7 @@
                 var diff = totali[i] - totali[i + 1]
                            - n(yd.bevande) - n(yd.diffdistinta)
                            - n(yd.giroonline) - n(yd.giroterrestre)
-                           - yver + ypre - yalt;
+                           - yver + ypre + yalt;
                 var ok = diff >= -0.01 && diff <= 0.01;
                 cella.innerHTML = '<span class="badge bg-' + (ok ? 'success' : 'danger') + '">' + fmt(diff) + '</span>';
             } else {

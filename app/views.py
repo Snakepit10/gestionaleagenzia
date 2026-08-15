@@ -1995,7 +1995,7 @@ def riepilogo_crediti(request):
                 r['totale'] - y['totale']
                 - num(y['saldo_bevande']) - num(y['differenza_distinta'])
                 - num(y['giroconto_online']) - num(y['giroconto_terrestre'])
-                - num(y['versamenti']) + num(y['prelievi']) - num(y['altro'])
+                - num(y['versamenti']) + num(y['prelievi']) + num(y['altro'])
             )
         else:
             r['differenza'] = None
