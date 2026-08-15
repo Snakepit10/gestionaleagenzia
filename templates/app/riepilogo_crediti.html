@@ -146,7 +146,7 @@
         var pre = n(tr.querySelector('[data-tipo="prelievi"]').value);
         var ver = n(tr.querySelector('[data-tipo="versamenti"]').value);
         return -n(d.crediti) + n(d.cassa) + n(d.saldoonline) + n(d.saldoced)
-               - n(d.bevande) - n(d.diffdistinta) + n(d.giroonline) + n(d.giroterrestre)
+               - n(d.bevande) - n(d.diffdistinta) - n(d.giroonline) - n(d.giroterrestre)
                + pre - ver;
     }
 
