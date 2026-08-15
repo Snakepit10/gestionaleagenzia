@@ -57,17 +57,23 @@
               + "function findId(){var re=/BalanceAccount\\?id=([A-Za-z0-9._-]+)/;"
               + "var e=performance.getEntriesByType('resource');for(var i=0;i<e.length;i++){var m=e[i].name.match(re);if(m)return m[1];}"
               + "var h=(document.documentElement.outerHTML||'').match(re);return h?h[1]:null;}"
+              + "var gr=await fetch(GEST+'/api/cast/giorni/?token='+TOKEN);var gj=await gr.json();"
+              + "var giorni=gj.giorni||[];var rng=gj.range||{};var dati={};"
               + "var id=findId();"
-              + "if(!id){alert('Token non trovato. Apri la pagina Estratto Conto del portale (balanceaccount), attendi il caricamento della tabella e riprova su quella pagina.');return;}"
-              + "var gr=await fetch(GEST+'/api/cast/giorni/?token='+TOKEN);var gj=await gr.json();var giorni=gj.giorni||[];"
-              + "if(!giorni.length){alert('Nessun giorno da estrarre.');return;}"
-              + "var saldi={};"
-              + "for(var i=0;i<giorni.length;i++){var g=giorni[i];var d=g.replace(/-/g,'/')+' 00:00:00';"
+              + "if(id&&giorni.length){var sc={};for(var i=0;i<giorni.length;i++){var g=giorni[i];var d=g.replace(/-/g,'/')+' 00:00:00';"
               + "var u='/api/BalanceAccount?id='+encodeURIComponent(id)+'&dataInizio='+encodeURIComponent(d)+'&dataFine='+encodeURIComponent(d)+'&idOperatore=&idProdotto=&idTipoOperazione=&_='+Date.now();"
               + "var r=await fetch(u,{credentials:'include'});var j=await r.json();var dt=j.data||[];"
-              + "if(dt.length){var b=dt[0];for(var k=0;k<dt.length;k++){if(new Date(dt[k].DataOra)>new Date(b.DataOra))b=dt[k];}saldi[g]=b.Saldo;}}"
-              + "var pr=await fetch(GEST+'/api/cast/saldi/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:TOKEN,saldi:saldi})});"
-              + "var pj=await pr.json();alert('Fatto! Saldi registrati: '+pj.salvati+' giorni.');"
+              + "if(dt.length){var b=dt[0];for(var k=0;k<dt.length;k++){if(new Date(dt[k].DataOra)>new Date(b.DataOra))b=dt[k];}sc[g]=b.Saldo;}}dati.cast_agent=sc;}"
+              + "async function giro(ep){var di=(rng.inizio||'').replace(/-/g,'/')+' 00:00:00';var df=(rng.fine||'').replace(/-/g,'/')+' 23:59:59';"
+              + "var u='/api/'+ep+'?skip=0&take=1000&requireTotalCount=true&dataInizio='+encodeURIComponent(di)+'&dataFine='+encodeURIComponent(df)+'&_='+Date.now();"
+              + "var r=await fetch(u,{credentials:'include'});var j=await r.json();var dt=j.data||[];var m={};"
+              + "for(var i=0;i<dt.length;i++){var v=dt[i];var day=(v.Data||'').slice(0,10);if(!day)continue;var seg=(v.Direzione==='PRELIEVO')?-1:1;m[day]=(m[day]||0)+parseFloat(v.Importo)*seg;}"
+              + "for(var kk in m){m[kk]=Math.round(m[kk]*100)/100;}return m;}"
+              + "dati.giroconto_online=await giro('GiroAccountOnlineRequest');"
+              + "dati.giroconto_terrestre=await giro('GiroAccountRequest');"
+              + "var pr=await fetch(GEST+'/api/cast/saldi/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:TOKEN,dati:dati})});"
+              + "var pj=await pr.json();var msg='Fatto! Valori registrati: '+pj.salvati+'.';"
+              + "if(!id&&giorni.length){msg+=' NB: Saldo CAST non incluso, apri la pagina Estratto Conto per estrarlo.';}alert(msg);"
               + "}catch(e){alert('Errore: '+e.message);}})()";
             document.getElementById('cast-bm').href = bm;
             document.getElementById('cast-bm-text').value = bm;
@@ -85,12 +91,20 @@
                 <form method="post" class="row g-2 align-items-end">
                     {% csrf_token %}
                     <input type="hidden" name="azione" value="manuale">
+                    <div class="col-12">
+                        <label class="form-label">Voce</label>
+                        <select name="tipo_manuale" class="form-select">
+                            {% for val, label in tipi_saldo %}
+                            <option value="{{ val }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <div class="col-5">
                         <label class="form-label">Data</label>
                         <input type="date" name="data_manuale" class="form-control" required>
                     </div>
                     <div class="col-4">
-                        <label class="form-label">Saldo (€)</label>
+                        <label class="form-label">Valore (€)</label>
                         <input type="text" name="saldo_manuale" class="form-control" placeholder="es. 12500,50" required>
                     </div>
                     <div class="col-3">
@@ -154,11 +168,12 @@
     <div class="card-body p-0">
         {% if saldi_recenti %}
         <table class="table table-sm table-striped mb-0">
-            <thead><tr><th>Data</th><th>Saldo</th><th>Rilevato il</th></tr></thead>
+            <thead><tr><th>Data</th><th>Voce</th><th>Valore</th><th>Rilevato il</th></tr></thead>
             <tbody>
                 {% for s in saldi_recenti %}
                 <tr>
                     <td>{{ s.data|date:"d/m/Y" }}</td>
+                    <td>{{ s.get_tipo_display }}</td>
                     <td class="fw-bold">{{ s.saldo|floatformat:2 }} €</td>
                     <td class="text-muted">{{ s.rilevato_il|date:"d/m/Y H:i" }}</td>
                 </tr>

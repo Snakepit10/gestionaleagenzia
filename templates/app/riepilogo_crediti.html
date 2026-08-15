@@ -34,6 +34,11 @@
                         <th class="text-end">Saldo Bevande</th>
                         <th class="text-end">Differenza Distinta</th>
                         <th class="text-end">Saldo CAST</th>
+                        <th class="text-end">Giroconto Online</th>
+                        <th class="text-end">Giroconto Terrestre</th>
+                        <th class="text-end">Saldo Online</th>
+                        <th class="text-end">Prelievi</th>
+                        <th class="text-end">Versamenti</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -70,6 +75,25 @@
                             {% else %}
                                 <span class="text-muted">—</span>
                             {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if riga.giroconto_online is not None %}
+                                <span class="{% if riga.giroconto_online < 0 %}text-danger{% elif riga.giroconto_online > 0 %}text-success{% endif %}">{{ riga.giroconto_online|floatformat:2 }} €</span>
+                            {% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if riga.giroconto_terrestre is not None %}
+                                <span class="{% if riga.giroconto_terrestre < 0 %}text-danger{% elif riga.giroconto_terrestre > 0 %}text-success{% endif %}">{{ riga.giroconto_terrestre|floatformat:2 }} €</span>
+                            {% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if riga.saldo_online is not None %}{{ riga.saldo_online|floatformat:2 }} €{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if riga.prelievi is not None %}{{ riga.prelievi|floatformat:2 }} €{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if riga.versamenti is not None %}{{ riga.versamenti|floatformat:2 }} €{% else %}<span class="text-muted">—</span>{% endif %}
                         </td>
                     </tr>
                     {% endfor %}

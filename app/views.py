@@ -1940,17 +1940,17 @@ def riepilogo_crediti(request):
         giorno = timezone.localtime(m['data']).date()
         crediti_map[giorno] = m['saldo_progressivo']
 
-    # 2b) Saldi esterni (CAST Agent) per giorno, dal DB default per l'agenzia corrente
+    # 2b) Valori esterni per giorno e per tipo, dal DB default per l'agenzia corrente
     from .models import SaldoEsterno, Agenzia
-    cast_map = {}
+    esterni = {}  # tipo -> {data: valore}
     agenzia = Agenzia.objects.using('default').filter(database_name=alias).first()
     if agenzia:
-        cast_map = {
-            s['data']: s['saldo']
-            for s in SaldoEsterno.objects.using('default')
-            .filter(agenzia=agenzia, tipo='cast_agent')
-            .values('data', 'saldo')
-        }
+        for s in (SaldoEsterno.objects.using('default')
+                  .filter(agenzia=agenzia).values('tipo', 'data', 'saldo')):
+            esterni.setdefault(s['tipo'], {})[s['data']] = s['saldo']
+
+    def ext(tipo, giorno):
+        return esterni.get(tipo, {}).get(giorno)
 
     # 3) Costruisce le righe ordinate per data decrescente
     righe = [
@@ -1960,7 +1960,12 @@ def riepilogo_crediti(request):
             'cassa_finale': info['cassa_finale'],
             'saldo_bevande': info['bevande'],
             'differenza_distinta': info['diff'],
-            'saldo_cast': cast_map.get(giorno),
+            'saldo_cast': ext('cast_agent', giorno),
+            'giroconto_online': ext('giroconto_online', giorno),
+            'giroconto_terrestre': ext('giroconto_terrestre', giorno),
+            'saldo_online': ext('saldo_online', giorno),
+            'prelievi': ext('prelievi', giorno),
+            'versamenti': ext('versamenti', giorno),
         }
         for giorno, info in sorted(per_giorno.items(), reverse=True)
     ]
@@ -2034,19 +2039,25 @@ def estrazione_saldi(request):
 
     diagnostica = None
 
+    tipi_validi = {t for t, _ in SaldoEsterno.TIPO_CHOICES}
+
     if request.method == 'POST' and request.POST.get('azione') == 'manuale':
-        # Inserimento/correzione manuale di un giorno
+        # Inserimento/correzione manuale di un giorno per un tipo
         data_str = request.POST.get('data_manuale', '')
         saldo_str = (request.POST.get('saldo_manuale', '') or '').replace(',', '.')
+        tipo_manuale = request.POST.get('tipo_manuale', 'cast_agent')
+        if tipo_manuale not in tipi_validi:
+            tipo_manuale = 'cast_agent'
         try:
             from datetime import date as _date
             data_manuale = _date.fromisoformat(data_str)
             saldo_manuale = Decimal(saldo_str)
             SaldoEsterno.objects.using('default').update_or_create(
-                agenzia=agenzia, tipo='cast_agent', data=data_manuale,
+                agenzia=agenzia, tipo=tipo_manuale, data=data_manuale,
                 defaults={'saldo': saldo_manuale}
             )
-            messages.success(request, f'Saldo CAST del {data_manuale.strftime("%d/%m/%Y")} salvato: {saldo_manuale} €')
+            etichetta = dict(SaldoEsterno.TIPO_CHOICES).get(tipo_manuale, tipo_manuale)
+            messages.success(request, f'{etichetta} del {data_manuale.strftime("%d/%m/%Y")} salvato: {saldo_manuale} €')
             return redirect('estrazione_saldi')
         except Exception:
             messages.error(request, 'Data o importo non validi per l\'inserimento manuale.')
@@ -2055,8 +2066,8 @@ def estrazione_saldi(request):
     oggi = timezone.localdate()
     saldi_recenti = list(
         SaldoEsterno.objects.using('default')
-        .filter(agenzia=agenzia, tipo='cast_agent')
-        .order_by('-data')[:15]
+        .filter(agenzia=agenzia)
+        .order_by('-data', 'tipo')[:25]
     )
     presenti = set(
         SaldoEsterno.objects.using('default')
@@ -2075,6 +2086,7 @@ def estrazione_saldi(request):
         'saldi_recenti': saldi_recenti,
         'giorni_mancanti': giorni_mancanti,
         'token_estrazione': estrazione_token(agenzia),
+        'tipi_saldo': SaldoEsterno.TIPO_CHOICES,
     }
     return render(request, 'app/estrazione_saldi.html', context)
 
@@ -2132,7 +2144,11 @@ def api_giorni_mancanti(request):
             if (oggi - timedelta(days=i)) not in presenti
         }
     )
-    return _cors(JsonResponse({'giorni': [g.isoformat() for g in giorni]}))
+    inizio = oggi - timedelta(days=30)
+    return _cors(JsonResponse({
+        'giorni': [g.isoformat() for g in giorni],
+        'range': {'inizio': inizio.isoformat(), 'fine': oggi.isoformat()},
+    }))
 
 
 @csrf_exempt
@@ -2156,19 +2172,28 @@ def api_ricevi_saldi(request):
     if not agenzia:
         return _cors(JsonResponse({'errore': 'token non valido'}, status=403))
 
+    tipi_validi = {t for t, _ in SaldoEsterno.TIPO_CHOICES}
+    # Payload: {'dati': {tipo: {isodate: valore}}}. Compat: 'saldi' -> cast_agent.
+    dati = dict(corpo.get('dati') or {})
+    if corpo.get('saldi'):
+        dati.setdefault('cast_agent', {}).update(corpo['saldi'])
+
     salvati = 0
     scartati = []
-    for data_str, valore in (corpo.get('saldi') or {}).items():
-        try:
-            giorno = _date.fromisoformat(data_str)
-            saldo = Decimal(str(valore).replace(',', '.')).quantize(Decimal('0.01'))
-        except Exception:
-            scartati.append(data_str)
+    for tipo, valori in dati.items():
+        if tipo not in tipi_validi:
             continue
-        SaldoEsterno.objects.using('default').update_or_create(
-            agenzia=agenzia, tipo='cast_agent', data=giorno,
-            defaults={'saldo': saldo}
-        )
-        salvati += 1
+        for data_str, valore in (valori or {}).items():
+            try:
+                giorno = _date.fromisoformat(data_str)
+                saldo = Decimal(str(valore).replace(',', '.')).quantize(Decimal('0.01'))
+            except Exception:
+                scartati.append(f'{tipo}:{data_str}')
+                continue
+            SaldoEsterno.objects.using('default').update_or_create(
+                agenzia=agenzia, tipo=tipo, data=giorno,
+                defaults={'saldo': saldo}
+            )
+            salvati += 1
 
     return _cors(JsonResponse({'salvati': salvati, 'scartati': scartati}))

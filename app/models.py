@@ -56,10 +56,15 @@ class ProfiloUtente(models.Model):
 
 
 class SaldoEsterno(models.Model):
-    """Saldo giornaliero rilevato da un portale esterno (es. CAST Agent)."""
+    """Valore giornaliero rilevato da un portale esterno (saldo o flusso), per agenzia."""
 
     TIPO_CHOICES = [
-        ('cast_agent', 'CAST Agent (Goldbet/Lottomatica)'),
+        ('cast_agent', 'Saldo CAST'),
+        ('giroconto_online', 'Giroconto Online'),
+        ('giroconto_terrestre', 'Giroconto Terrestre'),
+        ('saldo_online', 'Saldo Online'),
+        ('prelievi', 'Prelievi'),
+        ('versamenti', 'Versamenti'),
     ]
 
     agenzia = models.ForeignKey(Agenzia, on_delete=models.CASCADE, related_name='saldi_esterni')
