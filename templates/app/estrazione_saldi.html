@@ -39,7 +39,7 @@
                         </a>
                     </li>
                     <li class="mb-2"><strong>Saldo CAST + Giroconti:</strong> apri <a href="https://cast-agent.goldbet.it/balanceaccount" target="_blank" rel="noopener">il portale CAST</a>, fai login, vai su <strong>Estratto Conto</strong> (pagina "balanceaccount") e attendi il caricamento della tabella; poi clicca il preferito su quella pagina.</li>
-                    <li class="mb-2"><strong>Saldo Online:</strong> apri il tuo portale <strong>PV Online</strong> (pvonline.lottomatica.it / goldbet.it / planetwin365.it), fai login, vai su <strong>Estratto Conto</strong> e clicca lo stesso preferito su quella pagina.</li>
+                    <li class="mb-2"><strong>Saldo Online:</strong> apri il tuo portale <strong>PV Online</strong> (pvonline.lottomatica.it / goldbet.it / planetwin365.it), fai login e vai su <strong>Estratto Conto</strong>. Clicca il preferito una <strong>prima volta</strong> (lo "arma"), poi premi <strong>Cerca</strong> sulla pagina, infine <strong>ri-clicca</strong> il preferito per inviare i saldi.</li>
                     <li>Il bookmarklet capisce da solo su quale portale sei e invia i valori corrispondenti al gestionale.</li>
                 </ol>
                 <div class="alert alert-light border small mb-0">
@@ -74,7 +74,16 @@
               + "dati.giroconto_online=await giro('GiroAccountOnlineRequest');"
               + "dati.giroconto_terrestre=await giro('GiroAccountRequest');"
               + "}else if(host.indexOf('pvonline')>=0){"
-              + "var r=await fetch('/api/pam/portaleesercenti/getestrattocontocassapv',{credentials:'include'});var j=await r.json();"
+              + "if(!window.__pvTpl){var _f=window.fetch;window.fetch=function(u,init){try{var uu=(typeof u==='string')?u:(u&&u.url);if(uu&&uu.indexOf('getestrattocontocassapv')>=0&&init&&init.body){window.__pvTpl={url:uu,headers:init.headers,body:init.body,method:init.method||'POST'};}}catch(e){}return _f.apply(this,arguments);};"
+              + "var XP=XMLHttpRequest.prototype,_o=XP.open,_s=XP.send,_h=XP.setRequestHeader;"
+              + "XP.open=function(m,u){this.__m=m;this.__u=u;this.__h={};return _o.apply(this,arguments);};"
+              + "XP.setRequestHeader=function(k,v){try{this.__h[k]=v;}catch(e){}return _h.apply(this,arguments);};"
+              + "XP.send=function(b){try{if(this.__u&&(''+this.__u).indexOf('getestrattocontocassapv')>=0&&b){window.__pvTpl={url:this.__u,headers:this.__h,body:b,method:this.__m};}}catch(e){}return _s.apply(this,arguments);};"
+              + "alert('Attivato su PV Online. Ora premi CERCA (o ricarica) nella pagina Estratto Conto, poi riclicca il preferito.');return;}"
+              + "var tpl=window.__pvTpl;var body=JSON.parse(tpl.body);var o=new Date();var ini=new Date(o.getTime()-30*86400000);"
+              + "var iso=function(x){return x.getFullYear()+'-'+('0'+(x.getMonth()+1)).slice(-2)+'-'+('0'+x.getDate()).slice(-2);};"
+              + "body.dataDa=iso(ini)+'T00:00:00';body.dataA=iso(o)+'T23:59:59';try{if(window.crypto&&crypto.randomUUID){body.codiceTransazione=crypto.randomUUID();}}catch(e){}"
+              + "var r=await fetch(tpl.url,{method:tpl.method||'POST',headers:tpl.headers,body:JSON.stringify(body),credentials:'include'});var j=await r.json();"
               + "var mov=j.EstrattoContoCassa||[];var best={};"
               + "for(var i=0;i<mov.length;i++){var v=mov[i];var day=(v.DataMovimento||'').slice(0,10);if(!day)continue;var dt=new Date(v.DataMovimento);"
               + "if(!best[day]||dt>best[day].dt){best[day]={dt:dt,saldo:v.Saldo/100};}}"
