@@ -18,50 +18,59 @@
 </div>
 
 <div class="row">
-    <!-- Estrazione automatica -->
+    <!-- Estrazione dal browser (bookmarklet) -->
     <div class="col-lg-6 mb-4">
         <div class="card h-100">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="fas fa-robot me-2"></i>Estrazione dal portale CAST</h5>
+                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Estrazione automatica dal portale</h5>
             </div>
             <div class="card-body">
                 <p class="text-muted small mb-3">
-                    Inserisci le credenziali del portale e il codice CAPTCHA mostrato qui sotto.
-                    Le credenziali non vengono salvate.
+                    Il portale CAST è raggiungibile solo dal browser dell'agenzia. L'estrazione avviene
+                    quindi dal tuo browser (già connesso al portale), con un clic.
                 </p>
-                <form method="post" autocomplete="off">
-                    {% csrf_token %}
-                    <input type="hidden" name="azione" value="estrai">
-                    <div class="mb-3">
-                        <label class="form-label">Username portale</label>
-                        <input type="text" name="username" class="form-control" required autocomplete="off">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Password portale</label>
-                        <input type="password" name="password" class="form-control" required autocomplete="new-password">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Codice CAPTCHA</label>
-                        <div class="d-flex align-items-center gap-3 mb-2">
-                            {% if captcha_b64 %}
-                            <img src="data:image/png;base64,{{ captcha_b64 }}" alt="captcha" class="border rounded" style="height: 48px;">
-                            {% else %}
-                            <span class="text-danger">CAPTCHA non disponibile (portale non raggiungibile)</span>
-                            {% endif %}
-                            <a href="{% url 'estrazione_saldi' %}" class="btn btn-sm btn-outline-secondary" title="Nuova immagine">
-                                <i class="fas fa-sync-alt"></i>
-                            </a>
-                        </div>
-                        <input type="text" name="codice_captcha" class="form-control" placeholder="Inserisci il codice" required autocomplete="off">
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary" {% if not captcha_b64 %}disabled{% endif %}>
-                            <i class="fas fa-sign-in-alt me-2"></i>Accedi ed estrai il saldo
-                        </button>
-                    </div>
-                </form>
+                <ol class="small mb-3">
+                    <li class="mb-2">
+                        Trascina questo pulsante nella <strong>barra dei preferiti</strong> del browser
+                        (una volta sola):<br>
+                        <a id="cast-bm" href="#" class="btn btn-warning btn-sm mt-2"
+                           onclick="return false;" draggable="true">
+                            <i class="fas fa-download me-1"></i>Estrai saldi CAST
+                        </a>
+                    </li>
+                    <li class="mb-2">Apri <a href="https://cast-agent.goldbet.it/" target="_blank" rel="noopener">cast-agent.goldbet.it</a> ed effettua il <strong>login</strong>.</li>
+                    <li>Mentre sei sul portale, clicca il preferito <strong>"Estrai saldi CAST"</strong>:
+                        i saldi dei giorni mancanti verranno inviati qui automaticamente.</li>
+                </ol>
+                <div class="alert alert-light border small mb-0">
+                    In alternativa, copia questo codice e crea un nuovo preferito con esso come indirizzo:
+                    <textarea id="cast-bm-text" class="form-control form-control-sm mt-2" rows="3" readonly onclick="this.select()"></textarea>
+                </div>
             </div>
         </div>
+        <script>
+        (function() {
+            var GEST = JSON.stringify(location.origin);
+            var TOKEN = JSON.stringify("{{ token_estrazione }}");
+            var bm = "javascript:(async()=>{try{"
+              + "var GEST=" + GEST + ",TOKEN=" + TOKEN + ";"
+              + "var gr=await fetch(GEST+'/api/cast/giorni/?token='+TOKEN);var gj=await gr.json();var giorni=gj.giorni||[];"
+              + "if(!giorni.length){alert('Nessun giorno da estrarre.');return;}"
+              + "var br=await fetch('/balanceaccount',{credentials:'include'});var bt=await br.text();"
+              + "var m=bt.match(/api\\/BalanceAccount\\?id=([^&\\\"'\\s]+)/);"
+              + "if(!m){alert('Apri il portale CAST ed esegui il login, poi riprova.');return;}"
+              + "var id=m[1],saldi={};"
+              + "for(var i=0;i<giorni.length;i++){var g=giorni[i];var d=g.replace(/-/g,'/')+' 00:00:00';"
+              + "var u='/api/BalanceAccount?id='+encodeURIComponent(id)+'&dataInizio='+encodeURIComponent(d)+'&dataFine='+encodeURIComponent(d)+'&idOperatore=&idProdotto=&idTipoOperazione=&_='+Date.now();"
+              + "var r=await fetch(u,{credentials:'include'});var j=await r.json();var dt=j.data||[];"
+              + "if(dt.length){var b=dt[0];for(var k=0;k<dt.length;k++){if(new Date(dt[k].DataOra)>new Date(b.DataOra))b=dt[k];}saldi[g]=b.Saldo;}}"
+              + "var pr=await fetch(GEST+'/api/cast/saldi/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:TOKEN,saldi:saldi})});"
+              + "var pj=await pr.json();alert('Fatto! Saldi registrati: '+pj.salvati+' giorni.');"
+              + "}catch(e){alert('Errore: '+e.message);}})()";
+            document.getElementById('cast-bm').href = bm;
+            document.getElementById('cast-bm-text').value = bm;
+        })();
+        </script>
     </div>
 
     <!-- Inserimento manuale + stato -->

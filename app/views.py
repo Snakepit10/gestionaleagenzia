@@ -14,6 +14,7 @@ from .models import (
 )
 from .database_utils import DatabaseManager, get_user_database, sync_user_to_agency_db
 from . import telegram_utils
+from django.views.decorators.csrf import csrf_exempt
 from .forms import (ClienteForm, MovimentoForm, DistintaCassaForm, ChiusuraDistintaForm,
                    VerificaDistintaForm, ComunicazioneForm, FiltroMovimentiForm, FiltroDistinteForm,
                    ContoFinanziarioForm, ModificaSaldoForm, BilancioPeriodoForm, GirocontoForm,
@@ -2033,87 +2034,24 @@ def estrazione_saldi(request):
 
     diagnostica = None
 
-    if request.method == 'POST':
-        azione = request.POST.get('azione', 'estrai')
-
-        if azione == 'manuale':
-            # Inserimento/correzione manuale di un giorno
-            data_str = request.POST.get('data_manuale', '')
-            saldo_str = (request.POST.get('saldo_manuale', '') or '').replace(',', '.')
-            try:
-                from datetime import date as _date
-                data_manuale = _date.fromisoformat(data_str)
-                saldo_manuale = Decimal(saldo_str)
-                SaldoEsterno.objects.using('default').update_or_create(
-                    agenzia=agenzia, tipo='cast_agent', data=data_manuale,
-                    defaults={'saldo': saldo_manuale}
-                )
-                messages.success(request, f'Saldo CAST del {data_manuale.strftime("%d/%m/%Y")} salvato: {saldo_manuale} €')
-                return redirect('estrazione_saldi')
-            except Exception:
-                messages.error(request, 'Data o importo non validi per l\'inserimento manuale.')
-
-        else:
-            # Estrazione automatica con login al portale
-            stato = request.session.pop('cast_stato', None)
-            username = (request.POST.get('username') or '').strip()
-            password = request.POST.get('password') or ''
-            codice = (request.POST.get('codice_captcha') or '').strip()
-
-            if not stato:
-                messages.error(request, 'Sessione CAPTCHA scaduta: riprova con la nuova immagine.')
-            elif not (username and password and codice):
-                messages.error(request, 'Compila utente, password e codice CAPTCHA.')
-            else:
-                esito = cast_agent.esegui_login(stato, username, password, codice)
-                if not esito['ok']:
-                    messages.error(request, f"Accesso non riuscito: {esito['errore']}")
-                else:
-                    # Estrae i giorni mancanti degli ultimi 30 + sempre oggi (aggiornamento)
-                    oggi = timezone.localdate()
-                    presenti = set(
-                        SaldoEsterno.objects.using('default')
-                        .filter(agenzia=agenzia, tipo='cast_agent', data__gte=oggi - timedelta(days=30))
-                        .values_list('data', flat=True)
-                    )
-                    giorni_da_estrarre = sorted(
-                        {oggi} | {
-                            oggi - timedelta(days=i) for i in range(1, 31)
-                            if (oggi - timedelta(days=i)) not in presenti
-                        }
-                    )
-                    estrazione = cast_agent.estrai_saldi_giornalieri(esito['session'], giorni_da_estrarre)
-                    if not estrazione['ok']:
-                        messages.error(request, f"Estrazione non riuscita: {estrazione['errore']}")
-                    else:
-                        risultati = []
-                        n_salvati = 0
-                        for giorno in giorni_da_estrarre:
-                            saldo = estrazione['saldi'].get(giorno)
-                            if saldo is not None:
-                                SaldoEsterno.objects.using('default').update_or_create(
-                                    agenzia=agenzia, tipo='cast_agent', data=giorno,
-                                    defaults={'saldo': saldo}
-                                )
-                                n_salvati += 1
-                            risultati.append({'data': giorno, 'saldo': saldo})
-                        diagnostica = {'risultati': risultati}
-                        messages.success(
-                            request,
-                            f'Accesso riuscito: registrati {n_salvati} saldi su {len(giorni_da_estrarre)} giorni richiesti.'
-                        )
-
-    # Prepara un nuovo CAPTCHA (a ogni caricamento: i token del portale sono monouso)
-    prep = cast_agent.prepara_login()
-    captcha_b64 = None
-    if prep['ok']:
-        request.session['cast_stato'] = prep['stato']
-        captcha_b64 = prep['captcha_b64']
-    else:
-        messages.error(request, f"Portale CAST non raggiungibile: {prep['errore']}")
+    if request.method == 'POST' and request.POST.get('azione') == 'manuale':
+        # Inserimento/correzione manuale di un giorno
+        data_str = request.POST.get('data_manuale', '')
+        saldo_str = (request.POST.get('saldo_manuale', '') or '').replace(',', '.')
+        try:
+            from datetime import date as _date
+            data_manuale = _date.fromisoformat(data_str)
+            saldo_manuale = Decimal(saldo_str)
+            SaldoEsterno.objects.using('default').update_or_create(
+                agenzia=agenzia, tipo='cast_agent', data=data_manuale,
+                defaults={'saldo': saldo_manuale}
+            )
+            messages.success(request, f'Saldo CAST del {data_manuale.strftime("%d/%m/%Y")} salvato: {saldo_manuale} €')
+            return redirect('estrazione_saldi')
+        except Exception:
+            messages.error(request, 'Data o importo non validi per l\'inserimento manuale.')
 
     # Saldi registrati di recente e giorni mancanti (ultimi 30 giorni)
-    from datetime import timedelta
     oggi = timezone.localdate()
     saldi_recenti = list(
         SaldoEsterno.objects.using('default')
@@ -2133,9 +2071,104 @@ def estrazione_saldi(request):
     context = {
         'titolo': 'Estrazione Saldi CAST',
         'agenzia': agenzia,
-        'captcha_b64': captcha_b64,
         'diagnostica': diagnostica,
         'saldi_recenti': saldi_recenti,
         'giorni_mancanti': giorni_mancanti,
+        'token_estrazione': estrazione_token(agenzia),
     }
     return render(request, 'app/estrazione_saldi.html', context)
+
+
+# ----- Estrazione dal browser dell'operatore (bookmarklet) -----
+# Il portale CAST è raggiungibile solo da IP italiani, quindi l'estrazione la fa
+# il browser dell'operatore (già loggato al portale) e invia i saldi al gestionale.
+
+def estrazione_token(agenzia):
+    """Token per-agenzia (derivato dalla SECRET_KEY) che autorizza l'invio dei saldi dal browser."""
+    import hashlib
+    import hmac
+    from django.conf import settings
+    return hmac.new(
+        settings.SECRET_KEY.encode(),
+        f'cast-estrazione-{agenzia.pk}'.encode(),
+        hashlib.sha256
+    ).hexdigest()[:32]
+
+
+def _cors(response):
+    response['Access-Control-Allow-Origin'] = '*'
+    response['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
+
+
+def _agenzia_da_token(token):
+    from .models import Agenzia
+    if not token:
+        return None
+    for agenzia in Agenzia.objects.using('default').all():
+        if estrazione_token(agenzia) == token:
+            return agenzia
+    return None
+
+
+def api_giorni_mancanti(request):
+    """Giorni da estrarre (mancanti ultimi 30 + oggi). Autenticazione via token."""
+    from datetime import timedelta
+    from .models import SaldoEsterno
+
+    agenzia = _agenzia_da_token(request.GET.get('token'))
+    if not agenzia:
+        return _cors(JsonResponse({'errore': 'token non valido'}, status=403))
+
+    oggi = timezone.localdate()
+    presenti = set(
+        SaldoEsterno.objects.using('default')
+        .filter(agenzia=agenzia, tipo='cast_agent', data__gte=oggi - timedelta(days=30))
+        .values_list('data', flat=True)
+    )
+    giorni = sorted(
+        {oggi} | {
+            oggi - timedelta(days=i) for i in range(1, 31)
+            if (oggi - timedelta(days=i)) not in presenti
+        }
+    )
+    return _cors(JsonResponse({'giorni': [g.isoformat() for g in giorni]}))
+
+
+@csrf_exempt
+def api_ricevi_saldi(request):
+    """Riceve i saldi estratti dal browser (bookmarklet) e li registra. Token per autenticazione."""
+    import json as _json
+    from datetime import date as _date
+    from .models import SaldoEsterno
+
+    if request.method == 'OPTIONS':
+        return _cors(JsonResponse({}))
+    if request.method != 'POST':
+        return _cors(JsonResponse({'errore': 'solo POST'}, status=405))
+
+    try:
+        corpo = _json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return _cors(JsonResponse({'errore': 'payload non valido'}, status=400))
+
+    agenzia = _agenzia_da_token(corpo.get('token'))
+    if not agenzia:
+        return _cors(JsonResponse({'errore': 'token non valido'}, status=403))
+
+    salvati = 0
+    scartati = []
+    for data_str, valore in (corpo.get('saldi') or {}).items():
+        try:
+            giorno = _date.fromisoformat(data_str)
+            saldo = Decimal(str(valore).replace(',', '.')).quantize(Decimal('0.01'))
+        except Exception:
+            scartati.append(data_str)
+            continue
+        SaldoEsterno.objects.using('default').update_or_create(
+            agenzia=agenzia, tipo='cast_agent', data=giorno,
+            defaults={'saldo': saldo}
+        )
+        salvati += 1
+
+    return _cors(JsonResponse({'salvati': salvati, 'scartati': scartati}))
