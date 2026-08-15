@@ -1970,15 +1970,16 @@ def riepilogo_crediti(request):
             'saldo_online': ext('saldo_online', giorno),
             'prelievi': ext('prelievi', giorno),
             'versamenti': ext('versamenti', giorno),
+            'altro': ext('altro', giorno),
         }
         # Totale (quadratura giornaliera):
         # -crediti + cassa finale + saldo online + saldo ced - bevande
-        # - differenza distinta + giroconto online + giroconto terrestre + prelievi - versamenti
+        # - differenza distinta - giroconto online - giroconto terrestre + prelievi - versamenti + altro
         r['totale'] = (
             -num(r['crediti']) + num(r['cassa_finale']) + num(r['saldo_online'])
             + num(r['saldo_cast']) - num(r['saldo_bevande']) - num(r['differenza_distinta'])
             - num(r['giroconto_online']) - num(r['giroconto_terrestre'])
-            + num(r['prelievi']) - num(r['versamenti'])
+            + num(r['prelievi']) - num(r['versamenti']) + num(r['altro'])
         )
         righe.append(r)
 
@@ -1994,7 +1995,7 @@ def riepilogo_crediti(request):
                 r['totale'] - y['totale']
                 - num(y['saldo_bevande']) - num(y['differenza_distinta'])
                 - num(y['giroconto_online']) - num(y['giroconto_terrestre'])
-                - num(y['versamenti']) + num(y['prelievi'])
+                - num(y['versamenti']) + num(y['prelievi']) - num(y['altro'])
             )
         else:
             r['differenza'] = None

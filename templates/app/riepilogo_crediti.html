@@ -41,6 +41,7 @@
                         <th class="text-end">Saldo Online</th>
                         <th class="text-end">Prelievi</th>
                         <th class="text-end">Versamenti</th>
+                        <th class="text-end">Altro</th>
                         <th class="text-end">Totale</th>
                         <th class="text-end">Differenza</th>
                     </tr>
@@ -112,6 +113,12 @@
                                    value="{% if riga.versamenti is not None %}{{ riga.versamenti|floatformat:2 }}{% endif %}"
                                    placeholder="—">
                         </td>
+                        <td class="text-end" style="min-width:110px;">
+                            <input type="text" inputmode="decimal" class="form-control form-control-sm text-end inline-valore"
+                                   data-tipo="altro" data-data="{{ riga.data|date:'Y-m-d' }}"
+                                   value="{% if riga.altro is not None %}{{ riga.altro|floatformat:2 }}{% endif %}"
+                                   placeholder="—">
+                        </td>
                         <td class="text-end fw-bold cella-totale">{{ riga.totale|floatformat:2 }} €</td>
                         <td class="text-end fw-bold cella-differenza">
                             {% if riga.differenza is not None %}
@@ -145,9 +152,10 @@
         var d = tr.dataset;
         var pre = n(tr.querySelector('[data-tipo="prelievi"]').value);
         var ver = n(tr.querySelector('[data-tipo="versamenti"]').value);
+        var alt = n(tr.querySelector('[data-tipo="altro"]').value);
         return -n(d.crediti) + n(d.cassa) + n(d.saldoonline) + n(d.saldoced)
                - n(d.bevande) - n(d.diffdistinta) - n(d.giroonline) - n(d.giroterrestre)
-               + pre - ver;
+               + pre - ver + alt;
     }
 
     function fmt(x) { return x.toFixed(2) + ' €'; }
@@ -168,10 +176,11 @@
                 var y = righe[i + 1], yd = y.dataset;
                 var ypre = n(y.querySelector('[data-tipo="prelievi"]').value);
                 var yver = n(y.querySelector('[data-tipo="versamenti"]').value);
+                var yalt = n(y.querySelector('[data-tipo="altro"]').value);
                 var diff = totali[i] - totali[i + 1]
                            - n(yd.bevande) - n(yd.diffdistinta)
                            - n(yd.giroonline) - n(yd.giroterrestre)
-                           - yver + ypre;
+                           - yver + ypre - yalt;
                 var ok = diff >= -0.01 && diff <= 0.01;
                 cella.innerHTML = '<span class="badge bg-' + (ok ? 'success' : 'danger') + '">' + fmt(diff) + '</span>';
             } else {

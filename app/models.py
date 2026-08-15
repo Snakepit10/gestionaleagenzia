@@ -65,6 +65,7 @@ class SaldoEsterno(models.Model):
         ('saldo_online', 'Saldo Online'),
         ('prelievi', 'Prelievi'),
         ('versamenti', 'Versamenti'),
+        ('altro', 'Altro'),
     ]
 
     agenzia = models.ForeignKey(Agenzia, on_delete=models.CASCADE, related_name='saldi_esterni')
