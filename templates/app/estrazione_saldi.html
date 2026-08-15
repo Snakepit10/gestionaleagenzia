@@ -38,8 +38,8 @@
                             <i class="fas fa-download me-1"></i>Estrai saldi CAST
                         </a>
                     </li>
-                    <li class="mb-2">Apri <a href="https://cast-agent.goldbet.it/" target="_blank" rel="noopener">cast-agent.goldbet.it</a> ed effettua il <strong>login</strong>.</li>
-                    <li>Mentre sei sul portale, clicca il preferito <strong>"Estrai saldi CAST"</strong>:
+                    <li class="mb-2">Apri <a href="https://cast-agent.goldbet.it/balanceaccount" target="_blank" rel="noopener">il portale CAST</a>, fai <strong>login</strong> e vai su <strong>Estratto Conto</strong> (pagina "balanceaccount"), attendendo che la <strong>tabella si carichi</strong>.</li>
+                    <li>Su quella pagina, clicca il preferito <strong>"Estrai saldi CAST"</strong>:
                         i saldi dei giorni mancanti verranno inviati qui automaticamente.</li>
                 </ol>
                 <div class="alert alert-light border small mb-0">
@@ -54,12 +54,14 @@
             var TOKEN = JSON.stringify("{{ token_estrazione }}");
             var bm = "javascript:(async()=>{try{"
               + "var GEST=" + GEST + ",TOKEN=" + TOKEN + ";"
+              + "function findId(){var re=/BalanceAccount\\?id=([A-Za-z0-9._-]+)/;"
+              + "var e=performance.getEntriesByType('resource');for(var i=0;i<e.length;i++){var m=e[i].name.match(re);if(m)return m[1];}"
+              + "var h=(document.documentElement.outerHTML||'').match(re);return h?h[1]:null;}"
+              + "var id=findId();"
+              + "if(!id){alert('Token non trovato. Apri la pagina Estratto Conto del portale (balanceaccount), attendi il caricamento della tabella e riprova su quella pagina.');return;}"
               + "var gr=await fetch(GEST+'/api/cast/giorni/?token='+TOKEN);var gj=await gr.json();var giorni=gj.giorni||[];"
               + "if(!giorni.length){alert('Nessun giorno da estrarre.');return;}"
-              + "var br=await fetch('/balanceaccount',{credentials:'include'});var bt=await br.text();"
-              + "var m=bt.match(/api\\/BalanceAccount\\?id=([^&\\\"'\\s]+)/);"
-              + "if(!m){alert('Apri il portale CAST ed esegui il login, poi riprova.');return;}"
-              + "var id=m[1],saldi={};"
+              + "var saldi={};"
               + "for(var i=0;i<giorni.length;i++){var g=giorni[i];var d=g.replace(/-/g,'/')+' 00:00:00';"
               + "var u='/api/BalanceAccount?id='+encodeURIComponent(id)+'&dataInizio='+encodeURIComponent(d)+'&dataFine='+encodeURIComponent(d)+'&idOperatore=&idProdotto=&idTipoOperazione=&_='+Date.now();"
               + "var r=await fetch(u,{credentials:'include'});var j=await r.json();var dt=j.data||[];"
