@@ -1952,9 +1952,13 @@ def riepilogo_crediti(request):
     def ext(tipo, giorno):
         return esterni.get(tipo, {}).get(giorno)
 
-    # 3) Costruisce le righe ordinate per data decrescente
-    righe = [
-        {
+    # 3) Costruisce le righe ordinate per data decrescente, con Totale e Differenza
+    def num(x):
+        return x if x is not None else Decimal('0')
+
+    righe = []
+    for giorno, info in sorted(per_giorno.items(), reverse=True):
+        r = {
             'data': giorno,
             'crediti': crediti_map.get(giorno),
             'cassa_finale': info['cassa_finale'],
@@ -1967,8 +1971,20 @@ def riepilogo_crediti(request):
             'prelievi': ext('prelievi', giorno),
             'versamenti': ext('versamenti', giorno),
         }
-        for giorno, info in sorted(per_giorno.items(), reverse=True)
-    ]
+        # Totale (quadratura giornaliera):
+        # -crediti + cassa finale + saldo online + saldo cast - bevande
+        # - differenza distinta - giroconto online - giroconto terrestre + prelievi - versamenti
+        r['totale'] = (
+            -num(r['crediti']) + num(r['cassa_finale']) + num(r['saldo_online'])
+            + num(r['saldo_cast']) - num(r['saldo_bevande']) - num(r['differenza_distinta'])
+            - num(r['giroconto_online']) - num(r['giroconto_terrestre'])
+            + num(r['prelievi']) - num(r['versamenti'])
+        )
+        righe.append(r)
+
+    # Differenza = totale del giorno - totale del giorno precedente (riga successiva, ordine decrescente)
+    for i, r in enumerate(righe):
+        r['differenza'] = (r['totale'] - righe[i + 1]['totale']) if i + 1 < len(righe) else None
 
     context = {'righe': righe}
     return render(request, 'app/riepilogo_crediti.html', context)

@@ -39,6 +39,8 @@
                         <th class="text-end">Saldo Online</th>
                         <th class="text-end">Prelievi</th>
                         <th class="text-end">Versamenti</th>
+                        <th class="text-end">Totale</th>
+                        <th class="text-end">Differenza</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -94,6 +96,14 @@
                         </td>
                         <td class="text-end">
                             {% if riga.versamenti is not None %}{{ riga.versamenti|floatformat:2 }} €{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="text-end fw-bold">{{ riga.totale|floatformat:2 }} €</td>
+                        <td class="text-end fw-bold">
+                            {% if riga.differenza is not None %}
+                                <span class="badge bg-{% if riga.differenza >= -0.01 and riga.differenza <= 0.01 %}success{% else %}danger{% endif %}">
+                                    {{ riga.differenza|floatformat:2 }} €
+                                </span>
+                            {% else %}<span class="text-muted">—</span>{% endif %}
                         </td>
                     </tr>
                     {% endfor %}
