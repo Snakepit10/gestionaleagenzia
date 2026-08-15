@@ -9,6 +9,11 @@
             <i class="fas fa-table me-2"></i>Riepilogo Crediti per Data
         </h1>
     </div>
+    <div class="col-auto">
+        <a href="{% url 'estrazione_saldi' %}" class="btn btn-outline-primary">
+            <i class="fas fa-cloud-download-alt me-2"></i>Estrazione Saldi CAST
+        </a>
+    </div>
 </div>
 
 <div class="card">
@@ -28,6 +33,7 @@
                         <th class="text-end">Cassa Finale</th>
                         <th class="text-end">Saldo Bevande</th>
                         <th class="text-end">Differenza Distinta</th>
+                        <th class="text-end">Saldo CAST</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -57,6 +63,13 @@
                             <span class="{% if riga.differenza_distinta < 0 %}text-danger{% elif riga.differenza_distinta > 0 %}text-success{% endif %}">
                                 {{ riga.differenza_distinta|floatformat:2 }} €
                             </span>
+                        </td>
+                        <td class="text-end">
+                            {% if riga.saldo_cast is not None %}
+                                {{ riga.saldo_cast|floatformat:2 }} €
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

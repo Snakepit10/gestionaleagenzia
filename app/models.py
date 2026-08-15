@@ -55,6 +55,29 @@ class ProfiloUtente(models.Model):
         return f"{self.user.username} - {self.agenzia.nome}"
 
 
+class SaldoEsterno(models.Model):
+    """Saldo giornaliero rilevato da un portale esterno (es. CAST Agent)."""
+
+    TIPO_CHOICES = [
+        ('cast_agent', 'CAST Agent (Goldbet/Lottomatica)'),
+    ]
+
+    agenzia = models.ForeignKey(Agenzia, on_delete=models.CASCADE, related_name='saldi_esterni')
+    tipo = models.CharField(max_length=30, choices=TIPO_CHOICES, default='cast_agent')
+    data = models.DateField()
+    saldo = models.DecimalField(max_digits=12, decimal_places=2)
+    rilevato_il = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Saldo Esterno"
+        verbose_name_plural = "Saldi Esterni"
+        unique_together = [('agenzia', 'tipo', 'data')]
+        ordering = ['-data']
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} {self.agenzia.nome} {self.data}: {self.saldo} €"
+
+
 class Cliente(MultiDatabaseMixin, models.Model):
     RATING_CHOICES = [
         ('A', 'Eccellente'),

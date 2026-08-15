@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titolo }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-cloud-download-alt me-2"></i>{{ titolo }}
+            <small class="text-muted fs-6">({{ agenzia.nome }})</small>
+        </h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'riepilogo_crediti' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Riepilogo Crediti
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Estrazione automatica -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-robot me-2"></i>Estrazione dal portale CAST</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    Inserisci le credenziali del portale e il codice CAPTCHA mostrato qui sotto.
+                    Le credenziali non vengono salvate.
+                </p>
+                <form method="post" autocomplete="off">
+                    {% csrf_token %}
+                    <input type="hidden" name="azione" value="estrai">
+                    <div class="mb-3">
+                        <label class="form-label">Username portale</label>
+                        <input type="text" name="username" class="form-control" required autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password portale</label>
+                        <input type="password" name="password" class="form-control" required autocomplete="new-password">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Codice CAPTCHA</label>
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            {% if captcha_b64 %}
+                            <img src="data:image/png;base64,{{ captcha_b64 }}" alt="captcha" class="border rounded" style="height: 48px;">
+                            {% else %}
+                            <span class="text-danger">CAPTCHA non disponibile (portale non raggiungibile)</span>
+                            {% endif %}
+                            <a href="{% url 'estrazione_saldi' %}" class="btn btn-sm btn-outline-secondary" title="Nuova immagine">
+                                <i class="fas fa-sync-alt"></i>
+                            </a>
+                        </div>
+                        <input type="text" name="codice_captcha" class="form-control" placeholder="Inserisci il codice" required autocomplete="off">
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary" {% if not captcha_b64 %}disabled{% endif %}>
+                            <i class="fas fa-sign-in-alt me-2"></i>Accedi ed estrai il saldo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inserimento manuale + stato -->
+    <div class="col-lg-6 mb-4">
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-pen me-2"></i>Inserimento manuale</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" class="row g-2 align-items-end">
+                    {% csrf_token %}
+                    <input type="hidden" name="azione" value="manuale">
+                    <div class="col-5">
+                        <label class="form-label">Data</label>
+                        <input type="date" name="data_manuale" class="form-control" required>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label">Saldo (€)</label>
+                        <input type="text" name="saldo_manuale" class="form-control" placeholder="es. 12500,50" required>
+                    </div>
+                    <div class="col-3">
+                        <button type="submit" class="btn btn-secondary w-100">Salva</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-calendar-times me-2"></i>Giorni senza saldo (ultimi 30)</h6>
+            </div>
+            <div class="card-body py-2">
+                {% if giorni_mancanti %}
+                <div class="d-flex flex-wrap gap-1">
+                    {% for g in giorni_mancanti %}
+                    <span class="badge bg-warning text-dark">{{ g|date:"d/m" }}</span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <span class="text-success"><i class="fas fa-check-circle me-1"></i>Tutti i giorni sono coperti</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if diagnostica %}
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0"><i class="fas fa-stethoscope me-2"></i>Diagnostica portale (per calibrare l'estrazione)</h5>
+    </div>
+    <div class="card-body">
+        <h6>Valori "saldo" trovati nella pagina</h6>
+        {% if diagnostica.candidati %}
+        <ul>
+            {% for etichetta, valore in diagnostica.candidati %}
+            <li><code>{{ etichetta }}</code> &rarr; <strong>{{ valore }} €</strong></li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">Nessun valore etichettato "saldo" individuato nella pagina principale.</p>
+        {% endif %}
+        <h6 class="mt-3">Sezioni del portale</h6>
+        <div class="d-flex flex-wrap gap-1">
+            {% for testo, href in diagnostica.link %}
+            <span class="badge bg-light text-dark border" title="{{ href }}">{{ testo }}</span>
+            {% endfor %}
+        </div>
+        <p class="text-muted small mt-2 mb-0">
+            Se il saldo corretto non è tra i valori sopra, comunica in quale sezione del portale si trova:
+            l'estrazione automatica verrà calibrata su quella pagina.
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="fas fa-history me-2"></i>Ultimi saldi registrati</h6>
+    </div>
+    <div class="card-body p-0">
+        {% if saldi_recenti %}
+        <table class="table table-sm table-striped mb-0">
+            <thead><tr><th>Data</th><th>Saldo</th><th>Rilevato il</th></tr></thead>
+            <tbody>
+                {% for s in saldi_recenti %}
+                <tr>
+                    <td>{{ s.data|date:"d/m/Y" }}</td>
+                    <td class="fw-bold">{{ s.saldo|floatformat:2 }} €</td>
+                    <td class="text-muted">{{ s.rilevato_il|date:"d/m/Y H:i" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-3 text-muted">Nessun saldo registrato finora.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

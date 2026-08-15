@@ -43,6 +43,7 @@ urlpatterns = [
 
     # Riepilogo Crediti
     path('riepilogo-crediti/', views.riepilogo_crediti, name='riepilogo_crediti'),
+    path('saldi-esterni/', views.estrazione_saldi, name='estrazione_saldi'),
 
     # Riepiloghi Giornalieri
     path('riepiloghi/', views.lista_riepiloghi, name='lista_riepiloghi'),

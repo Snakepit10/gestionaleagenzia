@@ -1939,6 +1939,18 @@ def riepilogo_crediti(request):
         giorno = timezone.localtime(m['data']).date()
         crediti_map[giorno] = m['saldo_progressivo']
 
+    # 2b) Saldi esterni (CAST Agent) per giorno, dal DB default per l'agenzia corrente
+    from .models import SaldoEsterno, Agenzia
+    cast_map = {}
+    agenzia = Agenzia.objects.using('default').filter(database_name=alias).first()
+    if agenzia:
+        cast_map = {
+            s['data']: s['saldo']
+            for s in SaldoEsterno.objects.using('default')
+            .filter(agenzia=agenzia, tipo='cast_agent')
+            .values('data', 'saldo')
+        }
+
     # 3) Costruisce le righe ordinate per data decrescente
     righe = [
         {
@@ -1947,6 +1959,7 @@ def riepilogo_crediti(request):
             'cassa_finale': info['cassa_finale'],
             'saldo_bevande': info['bevande'],
             'differenza_distinta': info['diff'],
+            'saldo_cast': cast_map.get(giorno),
         }
         for giorno, info in sorted(per_giorno.items(), reverse=True)
     ]
@@ -1992,3 +2005,119 @@ def genera_riepiloghi_mancanti(request):
     }
 
     return render(request, 'app/genera_riepiloghi.html', context)
+
+# ===== ESTRAZIONE SALDI DA PORTALI ESTERNI (CAST Agent) =====
+
+@login_required
+@user_passes_test(is_manager_or_admin)
+def estrazione_saldi(request):
+    """
+    Pagina per rilevare i saldi dal portale CAST Agent.
+    L'operatore inserisce utente, password e il codice CAPTCHA mostrato in
+    pagina; il sistema esegue l'accesso e registra il saldo. Le credenziali
+    non vengono salvate. E' possibile anche l'inserimento manuale per i
+    giorni mancanti.
+    """
+    from datetime import timedelta
+    from . import cast_agent
+    from .models import SaldoEsterno
+
+    # Agenzia dell'operatore (i saldi esterni sono per agenzia, sul DB default)
+    try:
+        agenzia = request.user.profiloutente.agenzia
+    except Exception:
+        agenzia = None
+    if not agenzia:
+        messages.error(request, 'Il tuo utente non è associato ad alcuna agenzia.')
+        return redirect('home')
+
+    diagnostica = None
+
+    if request.method == 'POST':
+        azione = request.POST.get('azione', 'estrai')
+
+        if azione == 'manuale':
+            # Inserimento/correzione manuale di un giorno
+            data_str = request.POST.get('data_manuale', '')
+            saldo_str = (request.POST.get('saldo_manuale', '') or '').replace(',', '.')
+            try:
+                from datetime import date as _date
+                data_manuale = _date.fromisoformat(data_str)
+                saldo_manuale = Decimal(saldo_str)
+                SaldoEsterno.objects.using('default').update_or_create(
+                    agenzia=agenzia, tipo='cast_agent', data=data_manuale,
+                    defaults={'saldo': saldo_manuale}
+                )
+                messages.success(request, f'Saldo CAST del {data_manuale.strftime("%d/%m/%Y")} salvato: {saldo_manuale} €')
+                return redirect('estrazione_saldi')
+            except Exception:
+                messages.error(request, 'Data o importo non validi per l\'inserimento manuale.')
+
+        else:
+            # Estrazione automatica con login al portale
+            stato = request.session.pop('cast_stato', None)
+            username = (request.POST.get('username') or '').strip()
+            password = request.POST.get('password') or ''
+            codice = (request.POST.get('codice_captcha') or '').strip()
+
+            if not stato:
+                messages.error(request, 'Sessione CAPTCHA scaduta: riprova con la nuova immagine.')
+            elif not (username and password and codice):
+                messages.error(request, 'Compila utente, password e codice CAPTCHA.')
+            else:
+                esito = cast_agent.esegui_login(stato, username, password, codice)
+                if not esito['ok']:
+                    messages.error(request, f"Accesso non riuscito: {esito['errore']}")
+                else:
+                    analisi = cast_agent.analizza_saldi(esito['session'])
+                    diagnostica = analisi
+                    if analisi['saldo'] is not None:
+                        oggi = timezone.localdate()
+                        SaldoEsterno.objects.using('default').update_or_create(
+                            agenzia=agenzia, tipo='cast_agent', data=oggi,
+                            defaults={'saldo': analisi['saldo']}
+                        )
+                        messages.success(request, f"Accesso riuscito: saldo CAST di oggi registrato ({analisi['saldo']} €).")
+                    else:
+                        messages.warning(
+                            request,
+                            'Accesso riuscito, ma il saldo non è stato individuato con certezza. '
+                            'Controlla la sezione diagnostica qui sotto: servirà a calibrare l\'estrazione automatica.'
+                        )
+
+    # Prepara un nuovo CAPTCHA (a ogni caricamento: i token del portale sono monouso)
+    prep = cast_agent.prepara_login()
+    captcha_b64 = None
+    if prep['ok']:
+        request.session['cast_stato'] = prep['stato']
+        captcha_b64 = prep['captcha_b64']
+    else:
+        messages.error(request, f"Portale CAST non raggiungibile: {prep['errore']}")
+
+    # Saldi registrati di recente e giorni mancanti (ultimi 30 giorni)
+    from datetime import timedelta
+    oggi = timezone.localdate()
+    saldi_recenti = list(
+        SaldoEsterno.objects.using('default')
+        .filter(agenzia=agenzia, tipo='cast_agent')
+        .order_by('-data')[:15]
+    )
+    presenti = set(
+        SaldoEsterno.objects.using('default')
+        .filter(agenzia=agenzia, tipo='cast_agent', data__gte=oggi - timedelta(days=30))
+        .values_list('data', flat=True)
+    )
+    giorni_mancanti = [
+        oggi - timedelta(days=i) for i in range(0, 31)
+        if (oggi - timedelta(days=i)) not in presenti
+    ]
+
+    context = {
+        'titolo': 'Estrazione Saldi CAST',
+        'agenzia': agenzia,
+        'captcha_b64': captcha_b64,
+        'diagnostica': diagnostica,
+        'saldi_recenti': saldi_recenti,
+        'giorni_mancanti': giorni_mancanti,
+    }
+    return render(request, 'app/estrazione_saldi.html', context)

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.html import format_html
-from .models import Cliente, Movimento, DistintaCassa, Comunicazione, Agenzia, ProfiloUtente, RiepilogoGiornaliero
+from .models import Cliente, Movimento, DistintaCassa, Comunicazione, Agenzia, ProfiloUtente, RiepilogoGiornaliero, SaldoEsterno
 from .database_utils import AGENZIA_DATABASE_MAP
 
 
@@ -189,6 +189,14 @@ class AgenziaAdmin(admin.ModelAdmin):
             'fields': ('data_creazione',)
         }),
     )
+
+
+@admin.register(SaldoEsterno)
+class SaldoEsternoAdmin(admin.ModelAdmin):
+    list_display = ('data', 'agenzia', 'tipo', 'saldo', 'rilevato_il')
+    list_filter = ('agenzia', 'tipo')
+    date_hierarchy = 'data'
+    ordering = ('-data',)
 
 
 @admin.register(ProfiloUtente)
