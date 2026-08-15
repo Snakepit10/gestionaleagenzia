@@ -2069,20 +2069,38 @@ def estrazione_saldi(request):
                 if not esito['ok']:
                     messages.error(request, f"Accesso non riuscito: {esito['errore']}")
                 else:
-                    analisi = cast_agent.analizza_saldi(esito['session'])
-                    diagnostica = analisi
-                    if analisi['saldo'] is not None:
-                        oggi = timezone.localdate()
-                        SaldoEsterno.objects.using('default').update_or_create(
-                            agenzia=agenzia, tipo='cast_agent', data=oggi,
-                            defaults={'saldo': analisi['saldo']}
-                        )
-                        messages.success(request, f"Accesso riuscito: saldo CAST di oggi registrato ({analisi['saldo']} €).")
+                    # Estrae i giorni mancanti degli ultimi 30 + sempre oggi (aggiornamento)
+                    oggi = timezone.localdate()
+                    presenti = set(
+                        SaldoEsterno.objects.using('default')
+                        .filter(agenzia=agenzia, tipo='cast_agent', data__gte=oggi - timedelta(days=30))
+                        .values_list('data', flat=True)
+                    )
+                    giorni_da_estrarre = sorted(
+                        {oggi} | {
+                            oggi - timedelta(days=i) for i in range(1, 31)
+                            if (oggi - timedelta(days=i)) not in presenti
+                        }
+                    )
+                    estrazione = cast_agent.estrai_saldi_giornalieri(esito['session'], giorni_da_estrarre)
+                    if not estrazione['ok']:
+                        messages.error(request, f"Estrazione non riuscita: {estrazione['errore']}")
                     else:
-                        messages.warning(
+                        risultati = []
+                        n_salvati = 0
+                        for giorno in giorni_da_estrarre:
+                            saldo = estrazione['saldi'].get(giorno)
+                            if saldo is not None:
+                                SaldoEsterno.objects.using('default').update_or_create(
+                                    agenzia=agenzia, tipo='cast_agent', data=giorno,
+                                    defaults={'saldo': saldo}
+                                )
+                                n_salvati += 1
+                            risultati.append({'data': giorno, 'saldo': saldo})
+                        diagnostica = {'risultati': risultati}
+                        messages.success(
                             request,
-                            'Accesso riuscito, ma il saldo non è stato individuato con certezza. '
-                            'Controlla la sezione diagnostica qui sotto: servirà a calibrare l\'estrazione automatica.'
+                            f'Accesso riuscito: registrati {n_salvati} saldi su {len(giorni_da_estrarre)} giorni richiesti.'
                         )
 
     # Prepara un nuovo CAPTCHA (a ogni caricamento: i token del portale sono monouso)

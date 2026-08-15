@@ -108,32 +108,30 @@
     </div>
 </div>
 
-{% if diagnostica %}
+{% if diagnostica.risultati %}
 <div class="card mb-4">
     <div class="card-header bg-info text-white">
-        <h5 class="mb-0"><i class="fas fa-stethoscope me-2"></i>Diagnostica portale (per calibrare l'estrazione)</h5>
+        <h5 class="mb-0"><i class="fas fa-list-check me-2"></i>Risultato estrazione</h5>
     </div>
-    <div class="card-body">
-        <h6>Valori "saldo" trovati nella pagina</h6>
-        {% if diagnostica.candidati %}
-        <ul>
-            {% for etichetta, valore in diagnostica.candidati %}
-            <li><code>{{ etichetta }}</code> &rarr; <strong>{{ valore }} €</strong></li>
-            {% endfor %}
-        </ul>
-        {% else %}
-        <p class="text-muted">Nessun valore etichettato "saldo" individuato nella pagina principale.</p>
-        {% endif %}
-        <h6 class="mt-3">Sezioni del portale</h6>
-        <div class="d-flex flex-wrap gap-1">
-            {% for testo, href in diagnostica.link %}
-            <span class="badge bg-light text-dark border" title="{{ href }}">{{ testo }}</span>
-            {% endfor %}
-        </div>
-        <p class="text-muted small mt-2 mb-0">
-            Se il saldo corretto non è tra i valori sopra, comunica in quale sezione del portale si trova:
-            l'estrazione automatica verrà calibrata su quella pagina.
-        </p>
+    <div class="card-body p-0">
+        <table class="table table-sm table-striped mb-0">
+            <thead><tr><th>Data</th><th>Ultimo saldo della giornata</th></tr></thead>
+            <tbody>
+                {% for r in diagnostica.risultati %}
+                <tr>
+                    <td>{{ r.data|date:"d/m/Y" }}</td>
+                    <td>
+                        {% if r.saldo is not None %}
+                        <span class="fw-bold text-success">{{ r.saldo|floatformat:2 }} €</span>
+                        <span class="badge bg-success ms-2">registrato</span>
+                        {% else %}
+                        <span class="text-muted">nessun movimento &rarr; non registrato</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endif %}
