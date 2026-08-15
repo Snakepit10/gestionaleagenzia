@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load l10n %}
 
 {% block title %}Riepilogo Crediti - Gestionale Agenzia{% endblock %}
 
@@ -46,7 +47,14 @@
                 </thead>
                 <tbody>
                     {% for riga in righe %}
-                    <tr>
+                    <tr data-crediti="{{ riga.crediti|default_if_none:0|unlocalize }}"
+                        data-cassa="{{ riga.cassa_finale|default_if_none:0|unlocalize }}"
+                        data-bevande="{{ riga.saldo_bevande|default_if_none:0|unlocalize }}"
+                        data-diffdistinta="{{ riga.differenza_distinta|default_if_none:0|unlocalize }}"
+                        data-saldoced="{{ riga.saldo_cast|default_if_none:0|unlocalize }}"
+                        data-giroonline="{{ riga.giroconto_online|default_if_none:0|unlocalize }}"
+                        data-giroterrestre="{{ riga.giroconto_terrestre|default_if_none:0|unlocalize }}"
+                        data-saldoonline="{{ riga.saldo_online|default_if_none:0|unlocalize }}">
                         <td>{{ riga.data|date:"d/m/Y" }}</td>
                         <td class="text-end">
                             {% if riga.crediti is not None %}
@@ -104,8 +112,8 @@
                                    value="{% if riga.versamenti is not None %}{{ riga.versamenti|floatformat:2 }}{% endif %}"
                                    placeholder="—">
                         </td>
-                        <td class="text-end fw-bold">{{ riga.totale|floatformat:2 }} €</td>
-                        <td class="text-end fw-bold">
+                        <td class="text-end fw-bold cella-totale">{{ riga.totale|floatformat:2 }} €</td>
+                        <td class="text-end fw-bold cella-differenza">
                             {% if riga.differenza is not None %}
                                 <span class="badge bg-{% if riga.differenza >= -0.01 and riga.differenza <= 0.01 %}success{% else %}danger{% endif %}">
                                     {{ riga.differenza|floatformat:2 }} €
@@ -130,6 +138,40 @@
 (function() {
     var tokenEl = document.querySelector('[name=csrfmiddlewaretoken]');
     var csrftoken = tokenEl ? tokenEl.value : '';
+
+    function n(v) { var x = parseFloat(('' + (v || '')).replace(',', '.')); return isNaN(x) ? 0 : x; }
+
+    function totaleRiga(tr) {
+        var d = tr.dataset;
+        var pre = n(tr.querySelector('[data-tipo="prelievi"]').value);
+        var ver = n(tr.querySelector('[data-tipo="versamenti"]').value);
+        return -n(d.crediti) + n(d.cassa) + n(d.saldoonline) + n(d.saldoced)
+               - n(d.bevande) - n(d.diffdistinta) + n(d.giroonline) + n(d.giroterrestre)
+               + pre - ver;
+    }
+
+    function fmt(x) { return x.toFixed(2) + ' €'; }
+
+    function ricalcola() {
+        var righe = Array.prototype.slice.call(document.querySelectorAll('tbody tr'));
+        var totali = righe.map(function(tr) {
+            var t = totaleRiga(tr);
+            tr.querySelector('.cella-totale').textContent = fmt(t);
+            return t;
+        });
+        // Differenza = totale del giorno - totale del giorno precedente (riga successiva in ordine decrescente)
+        righe.forEach(function(tr, i) {
+            var cella = tr.querySelector('.cella-differenza');
+            if (i + 1 < righe.length) {
+                var diff = totali[i] - totali[i + 1];
+                var ok = diff >= -0.01 && diff <= 0.01;
+                cella.innerHTML = '<span class="badge bg-' + (ok ? 'success' : 'danger') + '">' + fmt(diff) + '</span>';
+            } else {
+                cella.innerHTML = '<span class="text-muted">—</span>';
+            }
+        });
+    }
+
     document.querySelectorAll('.inline-valore').forEach(function(inp) {
         var last = inp.value;
         function salva() {
@@ -149,10 +191,11 @@
             })
             .then(function(r) { return r.json(); })
             .then(function(j) {
-                if (j.ok) { location.reload(); }
-                else { alert('Errore: ' + (j.errore || 'salvataggio non riuscito')); inp.disabled = false; }
+                inp.disabled = false;
+                if (j.ok) { ricalcola(); }
+                else { alert('Errore: ' + (j.errore || 'salvataggio non riuscito')); }
             })
-            .catch(function(e) { alert('Errore di rete: ' + e.message); inp.disabled = false; });
+            .catch(function(e) { inp.disabled = false; alert('Errore di rete: ' + e.message); });
         }
         inp.addEventListener('change', salva);
         inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });

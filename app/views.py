@@ -1972,12 +1972,12 @@ def riepilogo_crediti(request):
             'versamenti': ext('versamenti', giorno),
         }
         # Totale (quadratura giornaliera):
-        # -crediti + cassa finale + saldo online + saldo cast - bevande
-        # - differenza distinta - giroconto online - giroconto terrestre + prelievi - versamenti
+        # -crediti + cassa finale + saldo online + saldo ced - bevande
+        # - differenza distinta + giroconto online + giroconto terrestre + prelievi - versamenti
         r['totale'] = (
             -num(r['crediti']) + num(r['cassa_finale']) + num(r['saldo_online'])
             + num(r['saldo_cast']) - num(r['saldo_bevande']) - num(r['differenza_distinta'])
-            - num(r['giroconto_online']) - num(r['giroconto_terrestre'])
+            + num(r['giroconto_online']) + num(r['giroconto_terrestre'])
             + num(r['prelievi']) - num(r['versamenti'])
         )
         righe.append(r)
