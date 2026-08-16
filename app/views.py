@@ -120,12 +120,51 @@ def dashboard(request):
 
     aging_pct = {k: _pct(v) for k, v in aging.items()}
 
-    # Rigiro del credito (ultimi 7 giorni): credito rientrato / credito in essere
+    # Flussi ultimi 7 giorni
     sette = adesso - timedelta(days=7)
     mov7 = db.get_queryset(Movimento).filter(data__gte=sette, cliente__conto_servizio=False)
     rientrato_7 = mov7.filter(importo__gt=0).aggregate(t=Sum('importo'))['t'] or Decimal('0')
     erogato_7 = abs(mov7.filter(importo__lt=0).aggregate(t=Sum('importo'))['t'] or Decimal('0'))
+    volume_7 = erogato_7 + rientrato_7  # volume totale movimentato (valore assoluto)
     n_mov7 = mov7.count()
+
+    # Rigiro = volume totale movimentato / credito medio (uso il credito in essere come proxy)
+    rigiro_sett = (volume_7 / credito_in_essere * 100) if credito_in_essere else Decimal('0')
+    # Tasso di rientro = credito rientrato / credito in essere
+    tasso_rientro_sett = _pct(rientrato_7)
+
+    # Trend mensile (ultimi 6 mesi): erogato / rientrato / netto per mese
+    from django.db.models import Case, When, Count
+    from django.db.models.functions import TruncMonth
+
+    def _add_mesi(d, n):
+        m = d.month - 1 + n
+        return d.replace(year=d.year + m // 12, month=m % 12 + 1, day=1)
+
+    primo_mese_corrente = timezone.localdate().replace(day=1)
+    inizio_trend = _add_mesi(primo_mese_corrente, -5)
+    righe_trend = (mov7.model.objects.using(db.user_db)
+                   .filter(cliente__conto_servizio=False, data__date__gte=inizio_trend)
+                   .annotate(mese=TruncMonth('data'))
+                   .values('mese')
+                   .annotate(
+                       erogato=Sum(Case(When(importo__lt=0, then=F('importo')), default=Decimal('0'))),
+                       rientrato=Sum(Case(When(importo__gt=0, then=F('importo')), default=Decimal('0'))),
+                       n=Count('id'),
+                   ))
+    per_mese = {}
+    for r in righe_trend:
+        md = r['mese']
+        chiave = (md.year, md.month)
+        per_mese[chiave] = r
+    trend = []
+    for i in range(6):
+        md = _add_mesi(inizio_trend, i)
+        r = per_mese.get((md.year, md.month))
+        erog = abs(r['erogato']) if r and r['erogato'] else Decimal('0')
+        rientr = r['rientrato'] if r and r['rientrato'] else Decimal('0')
+        trend.append({'mese': md, 'erogato': erog, 'rientrato': rientr,
+                      'netto': rientr - erog, 'n': r['n'] if r else 0})
 
     kpi = {
         'credito_in_essere': credito_in_essere,
@@ -134,9 +173,12 @@ def dashboard(request):
         'aging_pct': aging_pct,
         'rientrato_7': rientrato_7,
         'erogato_7': erogato_7,
+        'volume_7': volume_7,
         'flusso_netto_7': rientrato_7 - erogato_7,
         'n_mov7': n_mov7,
-        'rigiro_sett': _pct(rientrato_7),
+        'rigiro_sett': rigiro_sett,
+        'tasso_rientro_sett': tasso_rientro_sett,
+        'trend': trend,
     }
     
     # Aggiorna automaticamente il saldo della cassa dalle distinte e recupera il valore

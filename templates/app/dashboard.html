@@ -179,14 +179,20 @@
                     <div class="text-muted small">{{ kpi.n_debitori }} clienti a debito</div>
                 </div>
             </div>
-            <!-- Rigiro settimanale -->
+            <!-- Rigiro settimanale (volume / credito medio) -->
             <div class="col-lg-3 col-md-6">
                 <div class="border rounded-3 p-3 h-100">
                     <div class="text-muted small">Rigiro credito (7 gg)</div>
-                    <div class="h4 mb-0 {% if kpi.rigiro_sett >= 20 %}text-success{% elif kpi.rigiro_sett >= 10 %}text-warning{% else %}text-danger{% endif %}">
+                    <div class="h4 mb-0 {% if kpi.rigiro_sett >= 40 %}text-success{% elif kpi.rigiro_sett >= 20 %}text-warning{% else %}text-danger{% endif %}">
                         {{ kpi.rigiro_sett|floatformat:1 }}%
                     </div>
-                    <div class="text-muted small">Rientrato {{ kpi.rientrato_7|floatformat:0 }} € / credito in essere</div>
+                    <div class="text-muted small">Volume {{ kpi.volume_7|floatformat:0 }} € / credito medio</div>
+                    <hr class="my-2">
+                    <div class="text-muted small">Tasso di rientro (7 gg)</div>
+                    <div class="h6 mb-0 {% if kpi.tasso_rientro_sett >= 20 %}text-success{% elif kpi.tasso_rientro_sett >= 10 %}text-warning{% else %}text-danger{% endif %}">
+                        {{ kpi.tasso_rientro_sett|floatformat:1 }}%
+                    </div>
+                    <div class="text-muted small">Rientrato / credito in essere</div>
                 </div>
             </div>
             <!-- Flusso settimana -->
@@ -226,6 +232,35 @@
                 <div class="col"><span class="badge bg-warning text-dark">1–3 mesi</span><br>{{ kpi.aging.m1_3|floatformat:2 }} €</div>
                 <div class="col"><span class="badge bg-warning">3–6 mesi</span><br>{{ kpi.aging.m3_6|floatformat:2 }} €</div>
                 <div class="col"><span class="badge bg-danger">oltre 6 mesi</span><br>{{ kpi.aging.m6|floatformat:2 }} €</div>
+            </div>
+        </div>
+
+        <!-- Trend mensile -->
+        <div class="mt-4">
+            <h6 class="text-muted mb-2"><i class="fas fa-calendar-alt me-1"></i>Trend mensile (ultimi 6 mesi)</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mese</th>
+                            <th class="text-end">Erogato</th>
+                            <th class="text-end">Rientrato</th>
+                            <th class="text-end">Netto</th>
+                            <th class="text-end">Movimenti</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in kpi.trend %}
+                        <tr>
+                            <td>{{ t.mese|date:"m/Y" }}</td>
+                            <td class="text-end text-danger">{{ t.erogato|floatformat:2 }} €</td>
+                            <td class="text-end text-success">{{ t.rientrato|floatformat:2 }} €</td>
+                            <td class="text-end fw-bold {% if t.netto < 0 %}text-danger{% else %}text-success{% endif %}">{{ t.netto|floatformat:2 }} €</td>
+                            <td class="text-end">{{ t.n }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
