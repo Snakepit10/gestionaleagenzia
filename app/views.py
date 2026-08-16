@@ -116,12 +116,21 @@ def dashboard(request):
     )
     credito_in_essere = Decimal('0')
     aging = {'recenti': Decimal('0'), 'm1_3': Decimal('0'), 'm3_6': Decimal('0'), 'm6': Decimal('0')}
+    aging_clienti = {'recenti': [], 'm1_3': [], 'm3_6': [], 'm6': []}
     n_debitori = 0
     for c in debitori:
         imp = -c.saldo  # importo positivo dovuto dal cliente
         credito_in_essere += imp
         n_debitori += 1
-        aging[_bucket(c.inizio_credito)] += imp
+        b = _bucket(c.inizio_credito)
+        aging[b] += imp
+        giorni = (adesso - c.inizio_credito).days if c.inizio_credito else None
+        aging_clienti[b].append({'nome': c.nome_completo, 'pk': c.pk, 'giorni': giorni, 'importo': imp})
+    for b in aging_clienti:
+        aging_clienti[b].sort(key=lambda x: x['importo'], reverse=True)
+    _etichette_aging = {'recenti': '< 1 mese', 'm1_3': '1–3 mesi', 'm3_6': '3–6 mesi', 'm6': 'oltre 6 mesi'}
+    aging_fasce = [{'key': k, 'label': _etichette_aging[k], 'clienti': aging_clienti[k],
+                    'totale': aging[k]} for k in ('recenti', 'm1_3', 'm3_6', 'm6')]
 
     def _pct(v):
         return (v / credito_in_essere * 100) if credito_in_essere else Decimal('0')
@@ -193,6 +202,8 @@ def dashboard(request):
         'n_debitori': n_debitori,
         'aging': aging,
         'aging_pct': aging_pct,
+        'aging_clienti': aging_clienti,
+        'aging_fasce': aging_fasce,
         'rientrato_7': rientrato_7,
         'erogato_7': erogato_7,
         'volume_7': volume_7,
