@@ -7,57 +7,44 @@ from .database_utils import AGENZIA_DATABASE_MAP
 
 
 class DatabaseSelectorMixin:
-    """Mixin per aggiungere selezione database"""
-    
+    """Mixin per aggiungere selezione database nell'admin.
+
+    Il database selezionato viene memorizzato in sessione: quando il parametro
+    'db' non è presente nell'URL (paginazione, ricerca, ordinamento, redirect) si
+    usa l'ultimo database scelto, invece di ricadere sul default.
+    """
+
+    DB_OPTIONS = [
+        ('default', 'Default'),
+        ('goldbet_db', 'Goldbet'),
+        ('better_db', 'Better'),
+        ('planet_db', 'Planet'),
+    ]
+    DB_DEFAULT = 'goldbet_db'
+
+    def _database_selezionato(self, request):
+        valid = {k for k, _ in self.DB_OPTIONS}
+        if 'db' in request.GET and request.GET['db'] in valid:
+            selected = request.GET['db']
+            request.session['admin_selected_db'] = selected
+            return selected
+        return request.session.get('admin_selected_db', self.DB_DEFAULT)
+
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
-        selected_db = request.GET.get('db', 'goldbet_db')
-        
-        # Se c'è un parametro 'e' ma non 'db', è un redirect - mantieni il database dalla sessione
-        if 'e' in request.GET and 'db' not in request.GET:
-            selected_db = request.session.get('admin_selected_db', 'goldbet_db')
-        else:
-            # Salva il database selezionato nella sessione
-            request.session['admin_selected_db'] = selected_db
-        
-        # Aggiungi informazioni database al context
+        selected_db = self._database_selezionato(request)
         extra_context['db_selector'] = {
             'current': selected_db,
-            'options': [
-                ('default', 'Default'),
-                ('goldbet_db', 'Goldbet'),
-                ('better_db', 'Better'),
-                ('planet_db', 'Planet')
-            ],
-            'current_label': dict([
-                ('default', 'Default'),
-                ('goldbet_db', 'Goldbet'),
-                ('better_db', 'Better'),
-                ('planet_db', 'Planet')
-            ]).get(selected_db, 'Unknown')
+            'options': self.DB_OPTIONS,
+            'current_label': dict(self.DB_OPTIONS).get(selected_db, 'Unknown'),
         }
-        
-        # Imposta il database selezionato come attributo per get_queryset
-        self._selected_db = selected_db
-        
         return super().changelist_view(request, extra_context)
-    
+
     def get_queryset(self, request):
-        # Prima prova a usare il database dalla changelist_view
-        if hasattr(self, '_selected_db'):
-            selected_db = self._selected_db
-        else:
-            # Fallback sui parametri GET o sessione
-            if 'e' in request.GET and 'db' not in request.GET:
-                selected_db = request.session.get('admin_selected_db', 'goldbet_db')
-            else:
-                selected_db = request.GET.get('db', 'goldbet_db')
-                request.session['admin_selected_db'] = selected_db
-        
+        selected_db = self._database_selezionato(request)
         try:
-            queryset = self.model.objects.using(selected_db).all()
-            return queryset
-        except Exception as e:
+            return self.model.objects.using(selected_db).all()
+        except Exception:
             return self.model.objects.using('default').none()
 
 
