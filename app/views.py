@@ -91,17 +91,16 @@ def dashboard(request):
     saldo_conti_servizio = Cliente.calcola_saldo_conti_servizio(request.user)
 
     # ===== KPI analisi crediti (solo clienti reali) =====
-    from django.db.models import Min
+    from django.db.models import Max
     from datetime import timedelta
     adesso = timezone.now()
     clienti_reali = db.get_queryset(Cliente).filter(conto_servizio=False)
 
-    # Fascia di anzianità del credito: si usa la DATA DI INIZIO del credito, cioè il
-    # movimento aperto (non saldato) più vecchio del cliente.
+    # Fascia di anzianità del credito: si usa la data dell'ULTIMO movimento del cliente.
     COLORI_AGING = {'recenti': '#28a745', 'm1_3': '#ffc107', 'm3_6': '#fd7e14', 'm6': '#dc3545'}
 
-    def _bucket(inizio):
-        giorni = (adesso - inizio).days if inizio else 99999
+    def _bucket(riferimento):
+        giorni = (adesso - riferimento).days if riferimento else 99999
         if giorni < 30:
             return 'recenti'
         elif giorni < 90:
@@ -110,10 +109,8 @@ def dashboard(request):
             return 'm3_6'
         return 'm6'
 
-    # Credito in essere e aging (crediti fermi) per data di inizio del credito
-    debitori = clienti_reali.filter(saldo__lt=0).annotate(
-        inizio_credito=Min('movimenti__data', filter=Q(movimenti__saldato=False))
-    )
+    # Credito in essere e aging (crediti fermi) per data dell'ultimo movimento
+    debitori = clienti_reali.filter(saldo__lt=0).annotate(ultimo_mov=Max('movimenti__data'))
     credito_in_essere = Decimal('0')
     aging = {'recenti': Decimal('0'), 'm1_3': Decimal('0'), 'm3_6': Decimal('0'), 'm6': Decimal('0')}
     aging_clienti = {'recenti': [], 'm1_3': [], 'm3_6': [], 'm6': []}
@@ -122,9 +119,9 @@ def dashboard(request):
         imp = -c.saldo  # importo positivo dovuto dal cliente
         credito_in_essere += imp
         n_debitori += 1
-        b = _bucket(c.inizio_credito)
+        b = _bucket(c.ultimo_mov)
         aging[b] += imp
-        giorni = (adesso - c.inizio_credito).days if c.inizio_credito else None
+        giorni = (adesso - c.ultimo_mov).days if c.ultimo_mov else None
         aging_clienti[b].append({'nome': c.nome_completo, 'pk': c.pk, 'giorni': giorni, 'importo': imp})
     for b in aging_clienti:
         aging_clienti[b].sort(key=lambda x: x['importo'], reverse=True)
@@ -151,7 +148,7 @@ def dashboard(request):
     # Distribuzione del credito tra i clienti: top debitori, colorati per anzianità del credito
     top_debitori = []
     for c in debitori.order_by('saldo')[:10]:
-        b = _bucket(c.inizio_credito)
+        b = _bucket(c.ultimo_mov)
         top_debitori.append({
             'nome': c.nome_completo,
             'importo': -c.saldo,
