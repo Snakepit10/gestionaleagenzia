@@ -128,10 +128,18 @@ def dashboard(request):
     volume_7 = erogato_7 + rientrato_7  # volume totale movimentato (valore assoluto)
     n_mov7 = mov7.count()
 
-    # Rigiro = volume totale movimentato / credito medio (uso il credito in essere come proxy)
-    rigiro_sett = (volume_7 / credito_in_essere * 100) if credito_in_essere else Decimal('0')
-    # Tasso di rientro = credito rientrato / credito in essere
-    tasso_rientro_sett = _pct(rientrato_7)
+    # Rigiro del credito (7 gg): credito rientrato / credito in essere (formula precedente)
+    rigiro_sett = _pct(rientrato_7)
+
+    # Distribuzione del credito tra i clienti: top debitori
+    top_debitori = []
+    for c in clienti_reali.filter(saldo__lt=0).order_by('saldo')[:10]:
+        top_debitori.append({'nome': c.nome_completo, 'importo': -c.saldo})
+    max_deb = top_debitori[0]['importo'] if top_debitori else Decimal('0')
+    for t in top_debitori:
+        t['pct_barra'] = (t['importo'] / max_deb * 100) if max_deb else Decimal('0')
+        t['pct_tot'] = _pct(t['importo'])
+    concentrazione_top5 = _pct(sum((t['importo'] for t in top_debitori[:5]), Decimal('0')))
 
     # Trend mensile (ultimi 6 mesi): erogato / rientrato / netto per mese
     from django.db.models import Case, When, Count
@@ -177,8 +185,9 @@ def dashboard(request):
         'flusso_netto_7': rientrato_7 - erogato_7,
         'n_mov7': n_mov7,
         'rigiro_sett': rigiro_sett,
-        'tasso_rientro_sett': tasso_rientro_sett,
         'trend': trend,
+        'top_debitori': top_debitori,
+        'concentrazione_top5': concentrazione_top5,
     }
     
     # Aggiorna automaticamente il saldo della cassa dalle distinte e recupera il valore
