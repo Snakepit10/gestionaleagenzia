@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% load l10n %}
 
-{% block title %}Riepilogo Crediti - Gestionale Agenzia{% endblock %}
+{% block title %}Saldi Finanziari - Gestionale Agenzia{% endblock %}
 
 {% block content %}
 {% csrf_token %}
 <div class="row mb-4">
     <div class="col">
         <h1 class="h3 mb-0">
-            <i class="fas fa-table me-2"></i>Riepilogo Crediti per Data
+            <i class="fas fa-table me-2"></i>Saldi Finanziari
         </h1>
     </div>
     <div class="col-auto">
@@ -50,6 +50,7 @@
                 <tbody>
                     {% for riga in righe %}
                     <tr data-crediti="{{ riga.crediti|default_if_none:0|unlocalize }}"
+                        data-contiservizio="{{ riga.conti_servizio|default_if_none:0|unlocalize }}"
                         data-cassa="{{ riga.cassa_finale|default_if_none:0|unlocalize }}"
                         data-bevande="{{ riga.saldo_bevande|default_if_none:0|unlocalize }}"
                         data-diffdistinta="{{ riga.differenza_distinta|default_if_none:0|unlocalize }}"
@@ -163,7 +164,7 @@
         var pre = n(tr.querySelector('[data-tipo="prelievi"]').value);
         var ver = n(tr.querySelector('[data-tipo="versamenti"]').value);
         var alt = n(tr.querySelector('[data-tipo="altro"]').value);
-        return -n(d.crediti) + n(d.cassa) + n(d.saldoonline) + n(d.saldoced)
+        return -n(d.crediti) - n(d.contiservizio) + n(d.cassa) + n(d.saldoonline) + n(d.saldoced)
                - n(d.bevande) - n(d.diffdistinta) - n(d.giroonline) - n(d.giroterrestre)
                + pre - ver + alt;
     }
