@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titolo }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0"><i class="fas fa-eraser me-2"></i>{{ titolo }}</h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'riepilogo_crediti' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Saldi Finanziari
+        </a>
+    </div>
+</div>
+
+<div class="alert alert-info small">
+    Verifica i movimenti aperti di ogni conto di servizio spuntandoli. Quando sono tutti
+    spuntati, il pulsante <strong>Azzera tutto</strong> si abilita. L'azzeramento marca i
+    movimenti come saldati, crea una distinta di azzeramento (neutra sulla cassa) e riporta
+    a 0 la progressione, registrando l'importo nella voce "Giroconto Conti di Servizio".
+</div>
+
+{% if conti %}
+<form method="post" id="form-azzeramento">
+    {% csrf_token %}
+    {% for info in conti %}
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-bold">{{ info.cliente.nome_completo }}</span>
+            <span class="{% if info.cumulativo < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                Da azzerare: {{ info.cumulativo|floatformat:2 }} €
+            </span>
+        </div>
+        <div class="card-body p-0">
+            {% if info.movimenti %}
+            <table class="table table-sm table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:40px;" class="text-center">
+                            <input type="checkbox" class="check-conto" title="Spunta tutti">
+                        </th>
+                        <th>Data</th><th>Tipo</th><th class="text-end">Importo</th><th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in info.movimenti %}
+                    <tr>
+                        <td class="text-center"><input type="checkbox" class="check-mov"></td>
+                        <td>{{ m.data|date:"d/m/Y H:i" }}</td>
+                        <td>{{ m.get_tipo_display }}</td>
+                        <td class="text-end {% if m.importo < 0 %}text-danger{% else %}text-success{% endif %}">{{ m.importo|floatformat:2 }} €</td>
+                        <td>{{ m.note|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="p-3 text-muted small">Nessun movimento aperto (saldo residuo {{ info.saldo|floatformat:2 }} €). Verrà comunque riportata a 0 la progressione.</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="card">
+        <div class="card-body d-flex justify-content-between align-items-center">
+            <div>
+                <span class="text-muted">Totale da azzerare:</span>
+                <span class="h5 ms-2 {% if totale < 0 %}text-danger{% else %}text-success{% endif %}">{{ totale|floatformat:2 }} €</span>
+                <span class="text-muted ms-3" id="stato-verifica"></span>
+            </div>
+            <button type="submit" id="btn-azzera" class="btn btn-danger" disabled>
+                <i class="fas fa-eraser me-2"></i>Azzera tutto
+            </button>
+        </div>
+    </div>
+</form>
+{% else %}
+<div class="card">
+    <div class="card-body text-center text-muted py-5">
+        <i class="fas fa-check-circle fa-3x mb-3 text-success"></i>
+        <p class="mb-0">Nessun conto di servizio da azzerare.</p>
+    </div>
+</div>
+{% endif %}
+
+<script>
+(function() {
+    var checks = Array.prototype.slice.call(document.querySelectorAll('.check-mov'));
+    var btn = document.getElementById('btn-azzera');
+    var stato = document.getElementById('stato-verifica');
+
+    function aggiorna() {
+        if (!btn) return;
+        var tot = checks.length;
+        var fatti = checks.filter(function(c) { return c.checked; }).length;
+        if (stato) stato.textContent = tot ? ('Verificati ' + fatti + '/' + tot + ' movimenti') : '';
+        btn.disabled = fatti < tot;
+    }
+
+    checks.forEach(function(c) { c.addEventListener('change', aggiorna); });
+
+    // "spunta tutti" per singolo conto
+    document.querySelectorAll('.check-conto').forEach(function(master) {
+        master.addEventListener('change', function() {
+            var righe = master.closest('table').querySelectorAll('.check-mov');
+            righe.forEach(function(r) { r.checked = master.checked; });
+            aggiorna();
+        });
+    });
+
+    var form = document.getElementById('form-azzeramento');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (!confirm('Confermi l\'azzeramento di tutti i conti di servizio? Verrà creata una distinta di azzeramento.')) {
+                e.preventDefault();
+            }
+        });
+    }
+    aggiorna();
+})();
+</script>
+{% endblock %}

@@ -12,6 +12,9 @@
         </h1>
     </div>
     <div class="col-auto">
+        <a href="{% url 'azzeramento_conti_servizio' %}" class="btn btn-outline-danger">
+            <i class="fas fa-eraser me-2"></i>Azzera Conti di Servizio
+        </a>
         <a href="{% url 'estrazione_saldi' %}" class="btn btn-outline-primary">
             <i class="fas fa-cloud-download-alt me-2"></i>Estrazione Saldi CAST
         </a>
@@ -39,6 +42,7 @@
                         <th class="text-end">Saldo CED</th>
                         <th class="text-end">Giroconto Online</th>
                         <th class="text-end">Giroconto Terrestre</th>
+                        <th class="text-end">Giroconto Conti di Servizio</th>
                         <th class="text-end">Saldo Online</th>
                         <th class="text-end">Prelievi</th>
                         <th class="text-end">Versamenti</th>
@@ -57,6 +61,7 @@
                         data-saldoced="{{ riga.saldo_cast|default_if_none:0|unlocalize }}"
                         data-giroonline="{{ riga.giroconto_online|default_if_none:0|unlocalize }}"
                         data-giroterrestre="{{ riga.giroconto_terrestre|default_if_none:0|unlocalize }}"
+                        data-girocontiservizio="{{ riga.giroconto_conti_servizio|default_if_none:0|unlocalize }}"
                         data-saldoonline="{{ riga.saldo_online|default_if_none:0|unlocalize }}">
                         <td>{{ riga.data|date:"d/m/Y" }}</td>
                         <td class="text-end">
@@ -107,6 +112,11 @@
                         <td class="text-end">
                             {% if riga.giroconto_terrestre is not None %}
                                 <span class="{% if riga.giroconto_terrestre < 0 %}text-danger{% elif riga.giroconto_terrestre > 0 %}text-success{% endif %}">{{ riga.giroconto_terrestre|floatformat:2 }} €</span>
+                            {% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if riga.giroconto_conti_servizio is not None %}
+                                <span class="{% if riga.giroconto_conti_servizio < 0 %}text-danger{% elif riga.giroconto_conti_servizio > 0 %}text-success{% endif %}">{{ riga.giroconto_conti_servizio|floatformat:2 }} €</span>
                             {% else %}<span class="text-muted">—</span>{% endif %}
                         </td>
                         <td class="text-end">
@@ -166,6 +176,7 @@
         var alt = n(tr.querySelector('[data-tipo="altro"]').value);
         return -n(d.crediti) - n(d.contiservizio) + n(d.cassa) + n(d.saldoonline) + n(d.saldoced)
                - n(d.bevande) - n(d.diffdistinta) - n(d.giroonline) - n(d.giroterrestre)
+               - n(d.girocontiservizio)
                + pre - ver + alt;
     }
 
@@ -191,6 +202,7 @@
                 var diff = totali[i] - totali[i + 1]
                            - n(yd.bevande) - n(yd.diffdistinta)
                            - n(yd.giroonline) - n(yd.giroterrestre)
+                           - n(yd.girocontiservizio)
                            - yver + ypre + yalt;
                 var ok = diff >= -0.01 && diff <= 0.01;
                 cella.innerHTML = '<span class="badge bg-' + (ok ? 'success' : 'danger') + '">' + fmt(diff) + '</span>';

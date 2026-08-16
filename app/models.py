@@ -66,6 +66,7 @@ class SaldoEsterno(models.Model):
         ('prelievi', 'Prelievi'),
         ('versamenti', 'Versamenti'),
         ('altro', 'Altro'),
+        ('giroconto_conti_servizio', 'Giroconto Conti di Servizio'),
     ]
 
     agenzia = models.ForeignKey(Agenzia, on_delete=models.CASCADE, related_name='saldi_esterni')

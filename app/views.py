@@ -1986,6 +1986,7 @@ def riepilogo_crediti(request):
             'prelievi': ext('prelievi', giorno),
             'versamenti': ext('versamenti', giorno),
             'altro': ext('altro', giorno),
+            'giroconto_conti_servizio': ext('giroconto_conti_servizio', giorno),
         }
         # Totale (quadratura giornaliera):
         # -crediti + cassa finale + saldo online + saldo ced - bevande
@@ -1995,6 +1996,7 @@ def riepilogo_crediti(request):
             + num(r['cassa_finale']) + num(r['saldo_online'])
             + num(r['saldo_cast']) - num(r['saldo_bevande']) - num(r['differenza_distinta'])
             - num(r['giroconto_online']) - num(r['giroconto_terrestre'])
+            - num(r['giroconto_conti_servizio'])
             + num(r['prelievi']) - num(r['versamenti']) + num(r['altro'])
         )
         righe.append(r)
@@ -2011,6 +2013,7 @@ def riepilogo_crediti(request):
                 r['totale'] - y['totale']
                 - num(y['saldo_bevande']) - num(y['differenza_distinta'])
                 - num(y['giroconto_online']) - num(y['giroconto_terrestre'])
+                - num(y['giroconto_conti_servizio'])
                 - num(y['versamenti']) + num(y['prelievi']) + num(y['altro'])
             )
         else:
@@ -2292,3 +2295,106 @@ def salva_valore_esterno(request):
         agenzia=agenzia, tipo=tipo, data=giorno, defaults={'saldo': valore}
     )
     return JsonResponse({'ok': True})
+
+
+@login_required
+@user_passes_test(is_manager_or_admin)
+def azzeramento_conti_servizio(request):
+    """
+    Pagina di controllo e azzeramento dei conti di servizio.
+    GET: elenca ogni conto di servizio con i suoi movimenti aperti (da verificare/spuntare).
+    POST: marca i movimenti come saldati, crea una distinta di azzeramento neutra sulla
+    cassa (cassa finale riportata dall'ultima distinta), aggiunge il movimento di
+    compensazione che riporta a 0 la progressione e registra l'importo azzerato nella
+    voce 'giroconto_conti_servizio' del giorno.
+    """
+    from django.db.models import Sum
+    from .models import SaldoEsterno, Agenzia
+
+    db = DatabaseManager(request.user)
+    alias = db.user_db
+
+    def dati_conti():
+        conti = []
+        for c in db.get_queryset(Cliente).filter(conto_servizio=True).order_by('cognome', 'nome'):
+            movimenti = list(db.get_queryset(Movimento).filter(cliente=c, saldato=False).order_by('-data'))
+            cumulativo = db.get_queryset(Movimento).filter(cliente=c).aggregate(t=Sum('importo'))['t'] or Decimal('0')
+            if cumulativo == 0 and not movimenti:
+                continue
+            conti.append({'cliente': c, 'movimenti': movimenti, 'saldo': c.saldo, 'cumulativo': cumulativo})
+        return conti
+
+    if request.method == 'POST':
+        conti = dati_conti()
+        if not conti:
+            messages.info(request, 'Nessun conto di servizio da azzerare.')
+            return redirect('riepilogo_crediti')
+
+        # Cassa finale da riportare (per non alterare la colonna Cassa Finale del riepilogo)
+        ultima = db.get_queryset(DistintaCassa).order_by('-data', '-ora_inizio').first()
+        if ultima and ultima.cassa_finale is not None:
+            cassa_carry = ultima.cassa_finale
+        else:
+            conto_cassa = db.get_queryset(ContoFinanziario).filter(tipo='cassa').first()
+            cassa_carry = conto_cassa.saldo if conto_cassa else Decimal('0')
+
+        ora = timezone.localtime(timezone.now()).time()
+        reset_dist = DistintaCassa(
+            operatore=request.user, data=timezone.localdate(),
+            ora_inizio=ora, ora_fine=ora,
+            cassa_iniziale=cassa_carry, cassa_finale=cassa_carry,
+            totale_entrate=Decimal('0'), totale_uscite=Decimal('0'), totale_bevande=Decimal('0'),
+            differenza_cassa=Decimal('0'), stato='verificata',
+            verificata_da=request.user, data_verifica=timezone.now(),
+            note_distinta='Azzeramento conti di servizio',
+        )
+        db.save_object(reset_dist)
+
+        totale_azzerato = Decimal('0')
+        n_conti = 0
+        for info in conti:
+            cliente = info['cliente']
+            cumulativo = info['cumulativo']
+            # 1) marca come saldati i movimenti aperti del conto (verificati)
+            db.get_queryset(Movimento).filter(cliente=cliente, saldato=False).update(saldato=True)
+            # 2) movimento di compensazione che riporta la progressione a 0
+            if cumulativo != 0:
+                if cumulativo > 0:
+                    tipo_comp = 'pagamento_debito'   # importo salvato negativo
+                else:
+                    tipo_comp = 'incasso_credito'    # importo salvato positivo
+                comp = Movimento(
+                    cliente=cliente, tipo=tipo_comp, importo=abs(cumulativo),
+                    distinta=reset_dist, creato_da_id=request.user.id,
+                    saldato=True, note='Azzeramento conto di servizio',
+                )
+                db.save_object(comp)
+            cliente.aggiorna_saldo(user=request.user)
+            totale_azzerato += cumulativo
+            n_conti += 1
+
+        # 3) registra l'importo azzerato nella voce giroconto conti di servizio (oggi)
+        agenzia = Agenzia.objects.using('default').filter(database_name=alias).first()
+        if agenzia and totale_azzerato != 0:
+            oggi = timezone.localdate()
+            esistente = SaldoEsterno.objects.using('default').filter(
+                agenzia=agenzia, tipo='giroconto_conti_servizio', data=oggi
+            ).first()
+            nuovo = (esistente.saldo if esistente else Decimal('0')) + totale_azzerato
+            SaldoEsterno.objects.using('default').update_or_create(
+                agenzia=agenzia, tipo='giroconto_conti_servizio', data=oggi,
+                defaults={'saldo': nuovo}
+            )
+
+        messages.success(request, f'Azzerati {n_conti} conti di servizio (totale {totale_azzerato:.2f} €). Distinta di azzeramento #{reset_dist.pk} creata.')
+        return redirect('riepilogo_crediti')
+
+    conti = dati_conti()
+    totale = sum((x['cumulativo'] for x in conti), Decimal('0'))
+    context = {
+        'titolo': 'Azzeramento Conti di Servizio',
+        'conti': conti,
+        'totale': totale,
+        'n_movimenti': sum(len(x['movimenti']) for x in conti),
+    }
+    return render(request, 'app/azzeramento_conti_servizio.html', context)
