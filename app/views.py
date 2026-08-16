@@ -91,13 +91,29 @@ def dashboard(request):
     saldo_conti_servizio = Cliente.calcola_saldo_conti_servizio(request.user)
 
     # ===== KPI analisi crediti (solo clienti reali) =====
-    from django.db.models import Max
+    from django.db.models import Min
     from datetime import timedelta
     adesso = timezone.now()
     clienti_reali = db.get_queryset(Cliente).filter(conto_servizio=False)
 
-    # Credito in essere e aging (crediti fermi) per età dell'ultimo movimento del cliente
-    debitori = clienti_reali.filter(saldo__lt=0).annotate(ultimo_mov=Max('movimenti__data'))
+    # Fascia di anzianità del credito: si usa la DATA DI INIZIO del credito, cioè il
+    # movimento aperto (non saldato) più vecchio del cliente.
+    COLORI_AGING = {'recenti': '#28a745', 'm1_3': '#ffc107', 'm3_6': '#fd7e14', 'm6': '#dc3545'}
+
+    def _bucket(inizio):
+        giorni = (adesso - inizio).days if inizio else 99999
+        if giorni < 30:
+            return 'recenti'
+        elif giorni < 90:
+            return 'm1_3'
+        elif giorni < 180:
+            return 'm3_6'
+        return 'm6'
+
+    # Credito in essere e aging (crediti fermi) per data di inizio del credito
+    debitori = clienti_reali.filter(saldo__lt=0).annotate(
+        inizio_credito=Min('movimenti__data', filter=Q(movimenti__saldato=False))
+    )
     credito_in_essere = Decimal('0')
     aging = {'recenti': Decimal('0'), 'm1_3': Decimal('0'), 'm3_6': Decimal('0'), 'm6': Decimal('0')}
     n_debitori = 0
@@ -105,15 +121,7 @@ def dashboard(request):
         imp = -c.saldo  # importo positivo dovuto dal cliente
         credito_in_essere += imp
         n_debitori += 1
-        giorni = (adesso - c.ultimo_mov).days if c.ultimo_mov else 99999
-        if giorni < 30:
-            aging['recenti'] += imp
-        elif giorni < 90:
-            aging['m1_3'] += imp
-        elif giorni < 180:
-            aging['m3_6'] += imp
-        else:
-            aging['m6'] += imp
+        aging[_bucket(c.inizio_credito)] += imp
 
     def _pct(v):
         return (v / credito_in_essere * 100) if credito_in_essere else Decimal('0')
@@ -131,10 +139,16 @@ def dashboard(request):
     # Rigiro del credito (7 gg): credito rientrato / credito in essere (formula precedente)
     rigiro_sett = _pct(rientrato_7)
 
-    # Distribuzione del credito tra i clienti: top debitori
+    # Distribuzione del credito tra i clienti: top debitori, colorati per anzianità del credito
     top_debitori = []
-    for c in clienti_reali.filter(saldo__lt=0).order_by('saldo')[:10]:
-        top_debitori.append({'nome': c.nome_completo, 'importo': -c.saldo})
+    for c in debitori.order_by('saldo')[:10]:
+        b = _bucket(c.inizio_credito)
+        top_debitori.append({
+            'nome': c.nome_completo,
+            'importo': -c.saldo,
+            'bucket': b,
+            'colore': COLORI_AGING[b],
+        })
     max_deb = top_debitori[0]['importo'] if top_debitori else Decimal('0')
     for t in top_debitori:
         t['pct_barra'] = (t['importo'] / max_deb * 100) if max_deb else Decimal('0')
