@@ -32,6 +32,7 @@
                     <tr>
                         <th>Data</th>
                         <th class="text-end">Crediti Clienti</th>
+                        <th class="text-end">Conti di Servizio</th>
                         <th class="text-end">Cassa Finale</th>
                         <th class="text-end">Saldo Bevande</th>
                         <th class="text-end">Differenza Distinta</th>
@@ -61,6 +62,15 @@
                             {% if riga.crediti is not None %}
                                 <span class="{% if riga.crediti < 0 %}text-danger{% elif riga.crediti > 0 %}text-success{% endif %}">
                                     {{ riga.crediti|floatformat:2 }} €
+                                </span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if riga.conti_servizio is not None %}
+                                <span class="{% if riga.conti_servizio < 0 %}text-danger{% elif riga.conti_servizio > 0 %}text-success{% endif %}">
+                                    {{ riga.conti_servizio|floatformat:2 }} €
                                 </span>
                             {% else %}
                                 <span class="text-muted">—</span>

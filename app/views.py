@@ -1940,13 +1940,19 @@ def riepilogo_crediti(request):
     #    aggiustamenti), che non sono crediti clienti. Non si usa saldo_progressivo
     #    (catena globale che li include).
     crediti_map = {}
+    servizio_map = {}
     corr = Decimal('0')
+    corr_serv = Decimal('0')
     for m in (Movimento.objects.using(alias)
               .values('data', 'importo', 'cliente__conto_servizio')
               .order_by('data', 'id')):
-        if not m['cliente__conto_servizio']:
+        if m['cliente__conto_servizio']:
+            corr_serv += m['importo']
+        else:
             corr += m['importo']
-        crediti_map[timezone.localtime(m['data']).date()] = corr
+        giorno = timezone.localtime(m['data']).date()
+        crediti_map[giorno] = corr
+        servizio_map[giorno] = corr_serv
 
     # 2b) Valori esterni per giorno e per tipo, dal DB default per l'agenzia corrente
     from .models import SaldoEsterno, Agenzia
@@ -1969,6 +1975,7 @@ def riepilogo_crediti(request):
         r = {
             'data': giorno,
             'crediti': crediti_map.get(giorno),
+            'conti_servizio': servizio_map.get(giorno),
             'cassa_finale': info['cassa_finale'],
             'saldo_bevande': info['bevande'],
             'differenza_distinta': info['diff'],
