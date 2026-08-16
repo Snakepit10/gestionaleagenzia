@@ -114,6 +114,15 @@ def dashboard(request):
     credito_in_essere = Decimal('0')
     aging = {'recenti': Decimal('0'), 'm1_3': Decimal('0'), 'm3_6': Decimal('0'), 'm6': Decimal('0')}
     aging_clienti = {'recenti': [], 'm1_3': [], 'm3_6': [], 'm6': []}
+    # Distribuzione del credito per fascia di importo (istogramma)
+    distribuzione = [
+        {'label': '≤ 100 €', 'lo': Decimal('0'), 'hi': Decimal('100'), 'n': 0, 'tot': Decimal('0')},
+        {'label': '100–250 €', 'lo': Decimal('100'), 'hi': Decimal('250'), 'n': 0, 'tot': Decimal('0')},
+        {'label': '250–500 €', 'lo': Decimal('250'), 'hi': Decimal('500'), 'n': 0, 'tot': Decimal('0')},
+        {'label': '500–1.000 €', 'lo': Decimal('500'), 'hi': Decimal('1000'), 'n': 0, 'tot': Decimal('0')},
+        {'label': '1.000–2.500 €', 'lo': Decimal('1000'), 'hi': Decimal('2500'), 'n': 0, 'tot': Decimal('0')},
+        {'label': '> 2.500 €', 'lo': Decimal('2500'), 'hi': None, 'n': 0, 'tot': Decimal('0')},
+    ]
     n_debitori = 0
     for c in debitori:
         imp = -c.saldo  # importo positivo dovuto dal cliente
@@ -123,6 +132,11 @@ def dashboard(request):
         aging[b] += imp
         giorni = (adesso - c.ultimo_mov).days if c.ultimo_mov else None
         aging_clienti[b].append({'nome': c.nome_completo, 'pk': c.pk, 'giorni': giorni, 'importo': imp})
+        for f in distribuzione:
+            if imp > f['lo'] and (f['hi'] is None or imp <= f['hi']):
+                f['n'] += 1
+                f['tot'] += imp
+                break
     for b in aging_clienti:
         aging_clienti[b].sort(key=lambda x: x['importo'], reverse=True)
     _etichette_aging = {'recenti': '< 1 mese', 'm1_3': '1–3 mesi', 'm3_6': '3–6 mesi', 'm6': 'oltre 6 mesi'}
@@ -160,6 +174,12 @@ def dashboard(request):
         t['pct_barra'] = (t['importo'] / max_deb * 100) if max_deb else Decimal('0')
         t['pct_tot'] = _pct(t['importo'])
     concentrazione_top5 = _pct(sum((t['importo'] for t in top_debitori[:5]), Decimal('0')))
+
+    # Percentuali/barra per l'istogramma di distribuzione
+    max_n_fascia = max((f['n'] for f in distribuzione), default=0) or 1
+    for f in distribuzione:
+        f['pct_barra'] = (Decimal(f['n']) / max_n_fascia * 100) if max_n_fascia else Decimal('0')
+        f['pct_tot'] = _pct(f['tot'])
 
     # Trend mensile (ultimi 6 mesi): erogato / rientrato / netto per mese
     from django.db.models import Case, When, Count
@@ -210,6 +230,7 @@ def dashboard(request):
         'trend': trend,
         'top_debitori': top_debitori,
         'concentrazione_top5': concentrazione_top5,
+        'distribuzione': distribuzione,
     }
     
     # Aggiorna automaticamente il saldo della cassa dalle distinte e recupera il valore

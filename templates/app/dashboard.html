@@ -262,10 +262,36 @@
             </div>
         </div>
 
-        <!-- Distribuzione del credito tra i clienti -->
+        <!-- Distribuzione del credito per fascia di importo -->
+        <div class="mt-4">
+            <h6 class="text-muted mb-2"><i class="fas fa-chart-bar me-1"></i>Distribuzione del credito per fascia di importo</h6>
+            {% if kpi.n_debitori %}
+            {% for f in kpi.distribuzione %}
+            <div class="d-flex align-items-center mb-1">
+                <div class="small text-end pe-2" style="width: 22%;">{{ f.label }}</div>
+                <div class="flex-grow-1">
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ f.pct_barra|floatformat:1 }}%; min-width: {% if f.n %}2{% else %}0{% endif %}%;">
+                            {% if f.n %}{{ f.n }}{% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="small ps-2" style="width: 30%;">
+                    <span class="fw-bold">{{ f.n }}</span> clienti ·
+                    <span class="text-danger">{{ f.tot|floatformat:0 }} €</span>
+                    <span class="text-muted">({{ f.pct_tot|floatformat:1 }}%)</span>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="text-muted small mb-0">Nessun cliente a debito.</p>
+            {% endif %}
+        </div>
+
+        <!-- Top 10 debitori -->
         <div class="mt-4">
             <h6 class="text-muted mb-2">
-                <i class="fas fa-users me-1"></i>Distribuzione del credito (top 10 debitori)
+                <i class="fas fa-users me-1"></i>Top 10 debitori
                 {% if kpi.top_debitori %}
                 <span class="badge bg-secondary ms-2">Primi 5 = {{ kpi.concentrazione_top5|floatformat:1 }}% del credito</span>
                 {% endif %}
