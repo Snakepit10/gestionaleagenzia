@@ -174,9 +174,11 @@ def movimento_notifica(sender, instance, created, using, **kwargs):
             testo = telegram_utils.msg_movimento_cliente(instance, saldo, using)
             transaction.on_commit(lambda t=testo: telegram_utils.notifica(using, t), using=using)
 
-        # Fido superato: esclude i movimenti di compensazione/saldo (non sono nuovo debito).
+        # Fido superato: esclude i movimenti di compensazione/saldo (non sono nuovo debito)
+        # e i conti di servizio (POS, spese, aggiustamenti: non hanno un fido cliente).
         is_compensazione = instance.saldato or instance.movimento_origine_id
-        if not is_compensazione and saldo < 0 and abs(saldo) > cliente.fido_massimo:
+        if (not is_compensazione and not getattr(cliente, 'conto_servizio', False)
+                and saldo < 0 and abs(saldo) > cliente.fido_massimo):
             testo = telegram_utils.msg_fido_superato(cliente, saldo, instance, using)
             transaction.on_commit(lambda t=testo: telegram_utils.notifica(using, t), using=using)
     except Exception as e:

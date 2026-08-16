@@ -46,6 +46,22 @@
     </div>
 
     <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-3">
+        <div class="card overview-card h-100 border-0 rounded-3 shadow">
+            <div class="card-body text-center p-3">
+                <div class="rounded-circle d-inline-flex justify-content-center align-items-center mb-2"
+                     style="width: 45px; height: 45px; background-color: rgba(158, 158, 158, 0.2);">
+                    <i class="fas fa-cogs fa-lg" style="color: #9e9e9e;"></i>
+                </div>
+                <h6 class="card-title fw-bold mb-1">Conti di Servizio</h6>
+                <div class="card-value h6 mb-1 {% if saldo_conti_servizio < 0 %}text-danger{% else %}text-success{% endif %}">
+                    {{ saldo_conti_servizio|floatformat:2 }} €
+                </div>
+                <div class="text-muted small">POS, spese, aggiust.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-3">
         <div class="card overview-card h-100 border-0 rounded-3 shadow" id="cassa-card">
             <div class="card-body text-center p-3">
                 <div class="rounded-circle d-inline-flex justify-content-center align-items-center mb-2"

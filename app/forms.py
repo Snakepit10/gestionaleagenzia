@@ -6,9 +6,10 @@ from .models import Cliente, Movimento, DistintaCassa, Comunicazione, ContoFinan
 class ClienteForm(forms.ModelForm):
     class Meta:
         model = Cliente
-        fields = ['nome', 'cognome', 'email', 'telefono', 'fido_massimo', 'notifica_movimenti', 'note']
+        fields = ['nome', 'cognome', 'email', 'telefono', 'fido_massimo', 'notifica_movimenti', 'conto_servizio', 'note']
         labels = {
             'notifica_movimenti': 'Notifica Telegram su ogni movimento',
+            'conto_servizio': 'Conto di servizio (escluso dai totali clienti)',
         }
 
     def __init__(self, *args, **kwargs):
@@ -19,6 +20,7 @@ class ClienteForm(forms.ModelForm):
         if user and not (user.is_superuser or user.groups.filter(name__in=['Manager', 'Amministratore']).exists()):
             self.fields['fido_massimo'].disabled = True
             self.fields['notifica_movimenti'].disabled = True
+            self.fields['conto_servizio'].disabled = True
 
 
 class MovimentoForm(forms.ModelForm):

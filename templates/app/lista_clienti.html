@@ -73,7 +73,12 @@
                 <tbody>
                     {% for cliente in page_obj %}
                     <tr>
-                        <td>{{ cliente.cognome }}</td>
+                        <td>
+                            {{ cliente.cognome }}
+                            {% if cliente.conto_servizio %}
+                            <span class="badge bg-secondary ms-1" title="Escluso dai totali crediti clienti">Conto di servizio</span>
+                            {% endif %}
+                        </td>
                         <td>{{ cliente.nome }}</td>
                         <td class="{% if cliente.saldo < 0 %}text-danger{% else %}text-success{% endif %}">
                             {{ cliente.saldo|floatformat:2 }} €

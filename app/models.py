@@ -104,6 +104,10 @@ class Cliente(MultiDatabaseMixin, models.Model):
         default=False,
         help_text="Invia una notifica Telegram per ogni movimento di questo cliente (anche senza superamento del fido)"
     )
+    conto_servizio = models.BooleanField(
+        default=False,
+        help_text="Conto di servizio (POS, spese, aggiustamenti cassa): escluso dai totali crediti clienti"
+    )
     note = models.TextField(blank=True, null=True)
     data_creazione = models.DateTimeField(auto_now_add=True)
     data_modifica = models.DateTimeField(auto_now=True)
@@ -112,12 +116,21 @@ class Cliente(MultiDatabaseMixin, models.Model):
 
     @classmethod
     def calcola_saldo_complessivo(cls, user):
-        """Calcola il saldo complessivo di tutti i clienti"""
+        """Saldo complessivo dei soli clienti reali (esclusi i conti di servizio)"""
         from django.db.models import Sum
         from .database_utils import DatabaseManager
-        
+
         db = DatabaseManager(user)
-        return db.get_queryset(cls).aggregate(total=Sum('saldo'))['total'] or 0
+        return db.get_queryset(cls).filter(conto_servizio=False).aggregate(total=Sum('saldo'))['total'] or 0
+
+    @classmethod
+    def calcola_saldo_conti_servizio(cls, user):
+        """Saldo complessivo dei soli conti di servizio (POS, spese, aggiustamenti)"""
+        from django.db.models import Sum
+        from .database_utils import DatabaseManager
+
+        db = DatabaseManager(user)
+        return db.get_queryset(cls).filter(conto_servizio=True).aggregate(total=Sum('saldo'))['total'] or 0
 
     def aggiorna_saldo(self, user=None):
         """Ricalcola il saldo del cliente in base ai movimenti non saldati"""

@@ -61,15 +61,16 @@ def dashboard(request):
     # Il saldo di ogni cliente è mantenuto aggiornato a ogni scrittura di movimento
     # (Movimento.save/delete/salda chiamano aggiorna_saldo): non serve ricalcolarlo qui.
 
-    # Recupera i clienti con fido superato (saldo negativo che supera il fido massimo in valore assoluto)
-    clienti_fido_superato = db.get_queryset(Cliente).filter(saldo__lt=0).filter(saldo__lt=-F('fido_massimo'))
+    # Recupera i clienti (reali) con fido superato: saldo negativo che supera il fido in valore assoluto.
+    # I conti di servizio (POS, spese, aggiustamenti) sono esclusi da tutti i conteggi clienti.
+    clienti_fido_superato = db.get_queryset(Cliente).filter(conto_servizio=False).filter(saldo__lt=0).filter(saldo__lt=-F('fido_massimo'))
 
     # Recupera i clienti con saldo negativo in ritardo da più di 3 giorni
     from datetime import timedelta
     data_limite = timezone.now() - timedelta(days=3)
-    
+
     clienti_in_ritardo = []
-    for cliente in db.get_queryset(Cliente).filter(saldo__lt=0):
+    for cliente in db.get_queryset(Cliente).filter(conto_servizio=False).filter(saldo__lt=0):
         # Trova l'ultimo movimento non saldato del cliente
         ultimo_movimento = cliente.movimenti.filter(saldato=False).order_by('-data').first()
         if ultimo_movimento:
@@ -84,9 +85,10 @@ def dashboard(request):
     # Recupera le distinte in attesa di verifica
     distinte_da_verificare = db.get_queryset(DistintaCassa).filter(stato='chiusa')
 
-    # Recupera statistiche generali
-    totale_clienti = db.get_queryset(Cliente).count()
+    # Recupera statistiche generali (solo clienti reali)
+    totale_clienti = db.get_queryset(Cliente).filter(conto_servizio=False).count()
     saldo_complessivo = Cliente.calcola_saldo_complessivo(request.user)
+    saldo_conti_servizio = Cliente.calcola_saldo_conti_servizio(request.user)
     
     # Aggiorna automaticamente il saldo della cassa dalle distinte e recupera il valore
     try:
@@ -121,6 +123,7 @@ def dashboard(request):
         'distinte_da_verificare': distinte_da_verificare,
         'totale_clienti': totale_clienti,
         'saldo_complessivo': saldo_complessivo,
+        'saldo_conti_servizio': saldo_conti_servizio,
         'saldo_cassa_agenzia': saldo_cassa_agenzia,
         'distinta_corrente': distinta_corrente,
     }
@@ -1933,12 +1936,17 @@ def riepilogo_crediti(request):
     # 2) Crediti per giorno = saldo_progressivo dell'ultimo movimento del giorno.
     #    Una sola query indicizzata su (data, id): scorrendo in ordine crescente,
     #    l'ultimo valore scritto per ciascun giorno è quello dell'ultimo movimento.
+    #    NB: si ricalcola la progressione escludendo i conti di servizio (POS, spese,
+    #    aggiustamenti), che non sono crediti clienti. Non si usa saldo_progressivo
+    #    (catena globale che li include).
     crediti_map = {}
+    corr = Decimal('0')
     for m in (Movimento.objects.using(alias)
-              .values('data', 'saldo_progressivo')
+              .values('data', 'importo', 'cliente__conto_servizio')
               .order_by('data', 'id')):
-        giorno = timezone.localtime(m['data']).date()
-        crediti_map[giorno] = m['saldo_progressivo']
+        if not m['cliente__conto_servizio']:
+            corr += m['importo']
+        crediti_map[timezone.localtime(m['data']).date()] = corr
 
     # 2b) Valori esterni per giorno e per tipo, dal DB default per l'agenzia corrente
     from .models import SaldoEsterno, Agenzia
