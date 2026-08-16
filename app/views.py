@@ -89,6 +89,55 @@ def dashboard(request):
     totale_clienti = db.get_queryset(Cliente).filter(conto_servizio=False).count()
     saldo_complessivo = Cliente.calcola_saldo_complessivo(request.user)
     saldo_conti_servizio = Cliente.calcola_saldo_conti_servizio(request.user)
+
+    # ===== KPI analisi crediti (solo clienti reali) =====
+    from django.db.models import Max
+    from datetime import timedelta
+    adesso = timezone.now()
+    clienti_reali = db.get_queryset(Cliente).filter(conto_servizio=False)
+
+    # Credito in essere e aging (crediti fermi) per età dell'ultimo movimento del cliente
+    debitori = clienti_reali.filter(saldo__lt=0).annotate(ultimo_mov=Max('movimenti__data'))
+    credito_in_essere = Decimal('0')
+    aging = {'recenti': Decimal('0'), 'm1_3': Decimal('0'), 'm3_6': Decimal('0'), 'm6': Decimal('0')}
+    n_debitori = 0
+    for c in debitori:
+        imp = -c.saldo  # importo positivo dovuto dal cliente
+        credito_in_essere += imp
+        n_debitori += 1
+        giorni = (adesso - c.ultimo_mov).days if c.ultimo_mov else 99999
+        if giorni < 30:
+            aging['recenti'] += imp
+        elif giorni < 90:
+            aging['m1_3'] += imp
+        elif giorni < 180:
+            aging['m3_6'] += imp
+        else:
+            aging['m6'] += imp
+
+    def _pct(v):
+        return (v / credito_in_essere * 100) if credito_in_essere else Decimal('0')
+
+    aging_pct = {k: _pct(v) for k, v in aging.items()}
+
+    # Rigiro del credito (ultimi 7 giorni): credito rientrato / credito in essere
+    sette = adesso - timedelta(days=7)
+    mov7 = db.get_queryset(Movimento).filter(data__gte=sette, cliente__conto_servizio=False)
+    rientrato_7 = mov7.filter(importo__gt=0).aggregate(t=Sum('importo'))['t'] or Decimal('0')
+    erogato_7 = abs(mov7.filter(importo__lt=0).aggregate(t=Sum('importo'))['t'] or Decimal('0'))
+    n_mov7 = mov7.count()
+
+    kpi = {
+        'credito_in_essere': credito_in_essere,
+        'n_debitori': n_debitori,
+        'aging': aging,
+        'aging_pct': aging_pct,
+        'rientrato_7': rientrato_7,
+        'erogato_7': erogato_7,
+        'flusso_netto_7': rientrato_7 - erogato_7,
+        'n_mov7': n_mov7,
+        'rigiro_sett': _pct(rientrato_7),
+    }
     
     # Aggiorna automaticamente il saldo della cassa dalle distinte e recupera il valore
     try:
@@ -126,6 +175,7 @@ def dashboard(request):
         'saldo_conti_servizio': saldo_conti_servizio,
         'saldo_cassa_agenzia': saldo_cassa_agenzia,
         'distinta_corrente': distinta_corrente,
+        'kpi': kpi,
     }
 
     return render(request, 'app/dashboard.html', context)
