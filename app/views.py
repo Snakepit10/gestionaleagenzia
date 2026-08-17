@@ -2474,6 +2474,47 @@ def azzeramento_conti_servizio(request):
             messages.info(request, 'Nessun conto di servizio da azzerare.')
             return redirect('riepilogo_crediti')
 
+        # Movimenti spuntati (azzeramento parziale): solo questi vengono saldati.
+        checked_ids = set()
+        for x in request.POST.getlist('mov'):
+            try:
+                checked_ids.add(int(x))
+            except (TypeError, ValueError):
+                pass
+
+        tutte_open = [m for info in conti for m in info['movimenti']]
+        total_open = len(tutte_open)
+        total_checked = sum(1 for m in tutte_open if m.pk in checked_ids)
+        # "Full" = tutti i movimenti aperti sono spuntati (vero anche se non ci sono
+        # movimenti aperti: in tal caso restano solo i conti residui da azzerare).
+        is_full = (total_checked == total_open)
+
+        # Piano di lavoro per conto: quali movimenti saldare e con quale compensazione.
+        piano = []
+        for info in conti:
+            cliente = info['cliente']
+            open_movs = info['movimenti']
+            cumulativo = info['cumulativo']
+            sel = [m for m in open_movs if m.pk in checked_ids]
+            if open_movs:
+                if not sel:
+                    continue  # niente spuntato: il conto resta aperto
+                if len(sel) == len(open_movs):
+                    # conto interamente verificato: azzera l'intera progressione
+                    # (cattura anche eventuali residui già saldati)
+                    piano.append({'cliente': cliente, 'ids': [m.pk for m in open_movs], 'importo': cumulativo})
+                else:
+                    # parziale: salda solo i movimenti spuntati
+                    s = sum((m.importo for m in sel), Decimal('0'))
+                    piano.append({'cliente': cliente, 'ids': [m.pk for m in sel], 'importo': s})
+            elif is_full and cumulativo != 0:
+                # conto residuo senza movimenti aperti: azzerato solo in azzeramento completo
+                piano.append({'cliente': cliente, 'ids': [], 'importo': cumulativo})
+
+        if not piano:
+            messages.warning(request, 'Nessun movimento selezionato: spunta i movimenti da azzerare.')
+            return redirect('azzeramento_conti_servizio')
+
         # Cassa finale da riportare (per non alterare la colonna Cassa Finale del riepilogo)
         ultima = db.get_queryset(DistintaCassa).order_by('-data', '-ora_inizio').first()
         if ultima and ultima.cassa_finale is not None:
@@ -2496,25 +2537,25 @@ def azzeramento_conti_servizio(request):
 
         totale_azzerato = Decimal('0')
         n_conti = 0
-        for info in conti:
-            cliente = info['cliente']
-            cumulativo = info['cumulativo']
-            # 1) marca come saldati i movimenti aperti del conto (verificati)
-            db.get_queryset(Movimento).filter(cliente=cliente, saldato=False).update(saldato=True)
-            # 2) movimento di compensazione che riporta la progressione a 0
-            if cumulativo != 0:
-                if cumulativo > 0:
-                    tipo_comp = 'pagamento_debito'   # importo salvato negativo
-                else:
-                    tipo_comp = 'incasso_credito'    # importo salvato positivo
+        n_movimenti = 0
+        for p in piano:
+            cliente = p['cliente']
+            imp = p['importo']
+            # 1) marca come saldati i soli movimenti selezionati
+            if p['ids']:
+                db.get_queryset(Movimento).filter(pk__in=p['ids']).update(saldato=True)
+                n_movimenti += len(p['ids'])
+            # 2) movimento di compensazione che riduce la progressione dell'importo saldato
+            if imp != 0:
+                tipo_comp = 'pagamento_debito' if imp > 0 else 'incasso_credito'
                 comp = Movimento(
-                    cliente=cliente, tipo=tipo_comp, importo=abs(cumulativo),
+                    cliente=cliente, tipo=tipo_comp, importo=abs(imp),
                     distinta=reset_dist, creato_da_id=request.user.id,
                     saldato=True, note='Azzeramento conto di servizio',
                 )
                 db.save_object(comp)
             cliente.aggiorna_saldo(user=request.user)
-            totale_azzerato += cumulativo
+            totale_azzerato += imp
             n_conti += 1
 
         # 3) registra l'importo azzerato nella voce giroconto conti di servizio (oggi)
@@ -2530,7 +2571,8 @@ def azzeramento_conti_servizio(request):
                 defaults={'saldo': nuovo}
             )
 
-        messages.success(request, f'Azzerati {n_conti} conti di servizio (totale {totale_azzerato:.2f} €). Distinta di azzeramento #{reset_dist.pk} creata.')
+        parziale = '' if is_full else ' (parziale)'
+        messages.success(request, f'Azzerati {n_movimenti} movimenti su {n_conti} conti{parziale} (totale {totale_azzerato:.2f} €). Distinta di azzeramento #{reset_dist.pk} creata.')
         return redirect('riepilogo_crediti')
 
     conti = dati_conti()

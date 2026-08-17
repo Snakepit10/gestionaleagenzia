@@ -1,8 +1,15 @@
 {% extends "base.html" %}
+{% load l10n %}
 
 {% block title %}{{ titolo }} - Gestionale Agenzia{% endblock %}
 
 {% block content %}
+<style>
+    [data-bs-toggle="collapse"] .chevron { transition: transform .2s; }
+    [data-bs-toggle="collapse"]:not(.collapsed) .chevron { transform: rotate(90deg); }
+    .conto-header { cursor: pointer; }
+    tr.match-csv td { background: #d1e7dd !important; }
+</style>
 <div class="row mb-4">
     <div class="col">
         <h1 class="h3 mb-0"><i class="fas fa-eraser me-2"></i>{{ titolo }}</h1>
@@ -15,54 +22,80 @@
 </div>
 
 <div class="alert alert-info small">
-    Verifica i movimenti aperti di ogni conto di servizio spuntandoli. Quando sono tutti
-    spuntati, il pulsante <strong>Azzera tutto</strong> si abilita. L'azzeramento marca i
-    movimenti come saldati, crea una distinta di azzeramento (neutra sulla cassa) e riporta
-    a 0 la progressione, registrando l'importo nella voce "Giroconto Conti di Servizio".
+    Verifica i movimenti aperti di ogni conto di servizio spuntandoli (i conti sono chiusi,
+    clicca sull'intestazione per espanderli). Puoi anche fare un <strong>azzeramento parziale</strong>:
+    vengono azzerati <strong>solo i movimenti spuntati</strong>, gli altri restano aperti per la
+    prossima volta. L'azzeramento marca i movimenti selezionati come saldati, crea una distinta
+    di azzeramento (neutra sulla cassa) e riduce la progressione dell'importo saldato, registrandolo
+    nella voce "Giroconto Conti di Servizio".
 </div>
 
 {% if conti %}
+<!-- Incrocio con CSV dei POS -->
+<div class="card mb-3 border-primary">
+    <div class="card-body">
+        <label for="csv-pos" class="form-label mb-1"><i class="fas fa-file-csv me-1 text-primary"></i>
+            <strong>Incrocia il CSV dei POS</strong> — spunta automaticamente i movimenti che combaciano per importo
+            (le transazioni <em>Rifiutate</em> vengono ignorate).
+        </label>
+        <input type="file" id="csv-pos" accept=".csv,text/csv,text/plain" class="form-control">
+        <div id="csv-esito" class="small mt-2"></div>
+    </div>
+</div>
+
 <form method="post" id="form-azzeramento">
     {% csrf_token %}
     {% for info in conti %}
-    <div class="card mb-3">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span class="fw-bold">{{ info.cliente.nome_completo }}</span>
-            <span class="{% if info.cumulativo < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
-                Da azzerare: {{ info.cumulativo|floatformat:2 }} €
+    <div class="card mb-2">
+        <div class="card-header conto-header collapsed d-flex justify-content-between align-items-center"
+             data-bs-toggle="collapse" data-bs-target="#conto-{{ forloop.counter }}" aria-expanded="false">
+            <span>
+                <i class="fas fa-chevron-right me-2 chevron text-muted"></i>
+                <span class="fw-bold">{{ info.cliente.nome_completo }}</span>
+            </span>
+            <span>
+                <span class="badge bg-secondary conto-badge me-2" data-conto="{{ forloop.counter }}">0/{{ info.movimenti|length }}</span>
+                <span class="{% if info.cumulativo < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">{{ info.cumulativo|floatformat:2 }} €</span>
             </span>
         </div>
-        <div class="card-body p-0">
-            {% if info.movimenti %}
-            <table class="table table-sm table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th style="width:40px;" class="text-center">
-                            <input type="checkbox" class="check-conto" title="Spunta tutti">
-                        </th>
-                        <th>Data</th><th>Tipo</th><th class="text-end">Importo</th><th>Note</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for m in info.movimenti %}
-                    <tr>
-                        <td class="text-center"><input type="checkbox" class="check-mov"></td>
-                        <td>{{ m.data|date:"d/m/Y H:i" }}</td>
-                        <td>{{ m.get_tipo_display }}</td>
-                        <td class="text-end {% if m.importo < 0 %}text-danger{% else %}text-success{% endif %}">{{ m.importo|floatformat:2 }} €</td>
-                        <td>{{ m.note|default:"-" }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <div class="p-3 text-muted small">Nessun movimento aperto (saldo residuo {{ info.saldo|floatformat:2 }} €). Verrà comunque riportata a 0 la progressione.</div>
-            {% endif %}
+        <div class="collapse" id="conto-{{ forloop.counter }}">
+            <div class="card-body p-0">
+                {% if info.movimenti %}
+                <table class="table table-sm table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:40px;" class="text-center">
+                                <input type="checkbox" class="check-conto" title="Spunta tutti">
+                            </th>
+                            <th>Data</th><th>Tipo</th><th class="text-end">Importo</th><th>Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in info.movimenti %}
+                        <tr>
+                            <td class="text-center">
+                                <input type="checkbox" class="check-mov"
+                                       name="mov" value="{{ m.pk }}"
+                                       data-conto="{{ forloop.parentloop.counter }}"
+                                       data-importo="{{ m.importo|unlocalize }}">
+                            </td>
+                            <td>{{ m.data|date:"d/m/Y H:i" }}</td>
+                            <td>{{ m.get_tipo_display }}</td>
+                            <td class="text-end {% if m.importo < 0 %}text-danger{% else %}text-success{% endif %}">{{ m.importo|floatformat:2 }} €</td>
+                            <td>{{ m.note|default:"-" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="p-3 text-muted small">Nessun movimento aperto (saldo residuo {{ info.saldo|floatformat:2 }} €). Verrà comunque riportata a 0 la progressione.</div>
+                {% endif %}
+            </div>
         </div>
     </div>
     {% endfor %}
 
-    <div class="card">
+    <div class="card mt-3">
         <div class="card-body d-flex justify-content-between align-items-center">
             <div>
                 <span class="text-muted">Totale da azzerare:</span>
@@ -70,7 +103,7 @@
                 <span class="text-muted ms-3" id="stato-verifica"></span>
             </div>
             <button type="submit" id="btn-azzera" class="btn btn-danger" disabled>
-                <i class="fas fa-eraser me-2"></i>Azzera tutto
+                <i class="fas fa-eraser me-2"></i>Azzera selezionati
             </button>
         </div>
     </div>
@@ -90,29 +123,118 @@
     var btn = document.getElementById('btn-azzera');
     var stato = document.getElementById('stato-verifica');
 
+    function parseImporto(s) {
+        s = ('' + (s || '')).replace(/[^\d.,-]/g, '').trim();
+        if (!s) return null;
+        var lc = s.lastIndexOf(','), ld = s.lastIndexOf('.');
+        var dec = Math.max(lc, ld);
+        if (dec >= 0) {
+            s = s.slice(0, dec).replace(/[.,]/g, '') + '.' + s.slice(dec + 1).replace(/[.,]/g, '');
+        } else {
+            s = s.replace(/[.,]/g, '');
+        }
+        var n = parseFloat(s);
+        return isNaN(n) ? null : n;
+    }
+
     function aggiorna() {
-        if (!btn) return;
         var tot = checks.length;
         var fatti = checks.filter(function(c) { return c.checked; }).length;
-        if (stato) stato.textContent = tot ? ('Verificati ' + fatti + '/' + tot + ' movimenti') : '';
-        btn.disabled = fatti < tot;
+        if (stato) stato.textContent = tot ? ('Selezionati ' + fatti + '/' + tot + ' movimenti') : '';
+        // Azzeramento parziale: basta un movimento spuntato. Se non ci sono movimenti
+        // aperti (solo conti residui) il pulsante resta comunque attivo.
+        if (btn) btn.disabled = (tot > 0 && fatti === 0);
+        document.querySelectorAll('.conto-badge').forEach(function(b) {
+            var id = b.dataset.conto;
+            var cs = checks.filter(function(c) { return c.dataset.conto === id; });
+            var f = cs.filter(function(c) { return c.checked; }).length;
+            b.textContent = f + '/' + cs.length;
+            var completo = cs.length > 0 && f === cs.length;
+            b.classList.toggle('bg-success', completo);
+            b.classList.toggle('bg-secondary', !completo);
+        });
     }
 
     checks.forEach(function(c) { c.addEventListener('change', aggiorna); });
 
-    // "spunta tutti" per singolo conto
     document.querySelectorAll('.check-conto').forEach(function(master) {
         master.addEventListener('change', function() {
-            var righe = master.closest('table').querySelectorAll('.check-mov');
-            righe.forEach(function(r) { r.checked = master.checked; });
+            master.closest('table').querySelectorAll('.check-mov').forEach(function(r) { r.checked = master.checked; });
             aggiorna();
         });
     });
 
+    // ---- Incrocio CSV POS ----
+    var fileInput = document.getElementById('csv-pos');
+    var esito = document.getElementById('csv-esito');
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            var f = fileInput.files[0];
+            if (!f) return;
+            var reader = new FileReader();
+            reader.onload = function() { elaboraCSV(reader.result); };
+            reader.readAsText(f, 'utf-8');
+        });
+    }
+
+    function elaboraCSV(text) {
+        var lines = text.split(/\r?\n/).filter(function(l) { return l.trim(); });
+        if (!lines.length) { esito.innerHTML = '<span class="text-danger">CSV vuoto.</span>'; return; }
+        var delim = (lines[0].split(';').length >= lines[0].split(',').length) ? ';' : ',';
+        var header = lines[0].split(delim).map(function(h) { return h.trim().toLowerCase(); });
+        var iImp = header.indexOf('importo');
+        if (iImp < 0) iImp = header.findIndex(function(h) { return h.indexOf('importo') >= 0 && h.indexOf('storn') < 0; });
+        if (iImp < 0) iImp = 4;
+        var iStato = header.findIndex(function(h) { return h.indexOf('stato') >= 0; });
+
+        var pool = {}, contab = 0, rifiut = 0;
+        for (var i = 1; i < lines.length; i++) {
+            var cols = lines[i].split(delim);
+            if (cols.length <= iImp) continue;
+            if (iStato >= 0) {
+                var st = (cols[iStato] || '').trim().toLowerCase();
+                if (st.indexOf('contabilizzat') < 0) { rifiut++; continue; }
+            }
+            var imp = parseImporto(cols[iImp]);
+            if (imp === null || imp <= 0) continue;
+            var k = imp.toFixed(2);
+            pool[k] = (pool[k] || 0) + 1;
+            contab++;
+        }
+
+        var matched = 0;
+        checks.forEach(function(chk) {
+            if (chk.checked) return;
+            var imp = Math.abs(parseImporto(chk.dataset.importo) || 0);
+            var k = imp.toFixed(2);
+            if (pool[k] > 0) {
+                chk.checked = true;
+                pool[k]--;
+                matched++;
+                var tr = chk.closest('tr');
+                if (tr) tr.classList.add('match-csv');
+            }
+        });
+        var nonTrovate = Object.keys(pool).reduce(function(a, k) { return a + pool[k]; }, 0);
+        esito.innerHTML = 'CSV: <b>' + contab + '</b> transazioni contabilizzate (' + rifiut + ' rifiutate ignorate) · ' +
+                          '<b class="text-success">' + matched + '</b> movimenti spuntati · ' +
+                          '<span class="text-warning">' + nonTrovate + '</span> importi CSV senza corrispondenza.';
+        aggiorna();
+    }
+
     var form = document.getElementById('form-azzeramento');
     if (form) {
         form.addEventListener('submit', function(e) {
-            if (!confirm('Confermi l\'azzeramento di tutti i conti di servizio? Verrà creata una distinta di azzeramento.')) {
+            var tot = checks.length;
+            var fatti = checks.filter(function(c) { return c.checked; }).length;
+            var msg;
+            if (tot > 0 && fatti < tot) {
+                msg = 'Azzeramento PARZIALE: verranno azzerati solo ' + fatti + ' movimenti su ' + tot +
+                      '. I movimenti non selezionati restano aperti. Continuare?';
+            } else {
+                msg = 'Confermi l\'azzeramento dei conti di servizio? Verrà creata una distinta di azzeramento.';
+            }
+            if (!confirm(msg)) {
                 e.preventDefault();
             }
         });

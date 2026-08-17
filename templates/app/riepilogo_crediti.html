@@ -22,22 +22,62 @@
 </div>
 
 <style>
-    #saldi-scroll { overflow: auto; max-height: 74vh; }
-    .saldi-tab { border-collapse: separate; border-spacing: 0; white-space: nowrap; margin-bottom: 0; }
-    .saldi-tab th, .saldi-tab td { padding: .5rem .7rem; font-variant-numeric: tabular-nums; vertical-align: middle; }
-    .saldi-tab thead th { position: sticky; top: 0; z-index: 3; background: #212529 !important; color: #fff; border-bottom: 2px solid #000; }
+    /* Data-table scuro, autosufficiente: colori espliciti così è leggibile
+       indipendentemente dal tema dell'app. */
+    #saldi-scroll { overflow: auto; max-height: 76vh; border-radius: 0 0 .5rem .5rem; }
+    .saldi-tab { --bs-table-bg: transparent; border-collapse: separate; border-spacing: 0;
+                 white-space: nowrap; margin-bottom: 0; color: #e9ecef; background: #1b1f24; font-size: .9rem; }
+    .saldi-tab th, .saldi-tab td { padding: .55rem .8rem; font-variant-numeric: tabular-nums;
+                 vertical-align: middle; border-bottom: 1px solid rgba(255,255,255,.06); border-top: 0; }
+
+    /* Intestazione */
+    .saldi-tab thead th { position: sticky; top: 0; z-index: 3; background: #10131a; color: #cfd4da;
+                 font-weight: 600; letter-spacing: .02em; border-bottom: 2px solid #000;
+                 box-shadow: 0 2px 5px rgba(0,0,0,.45); }
+
+    /* Righe alternate + hover (definite a mano, niente .table-striped di BS) */
+    .saldi-tab tbody tr:nth-child(odd)  td { background: #23282e; }
+    .saldi-tab tbody tr:nth-child(even) td { background: #1c2126; }
+    .saldi-tab tbody tr:hover td { background: #2d353d; }
+
     /* Colonna Data ancorata a sinistra */
-    .saldi-tab .col-data { position: sticky; left: 0; z-index: 2; background: #f1f3f5 !important; font-weight: 600;
-                           box-shadow: 4px 0 6px -4px rgba(0,0,0,.35); }
-    /* Totale e Differenza ancorate a destra, sempre visibili */
-    .saldi-tab .col-tot  { position: sticky; right: 138px; z-index: 2; background: #e7ecff !important; min-width: 120px; }
-    .saldi-tab .col-diff { position: sticky; right: 0; z-index: 2; background: #e7ecff !important; min-width: 138px;
-                           box-shadow: -8px 0 8px -5px rgba(0,0,0,.35); }
-    .saldi-tab thead .col-data, .saldi-tab thead .col-tot, .saldi-tab thead .col-diff { background: #2b2f33 !important; color: #fff; z-index: 4; }
-    .saldi-tab .cella-differenza .badge { font-size: .82rem; padding: .4em .6em; }
-    .saldi-tab .inline-valore { min-width: 96px; }
+    .saldi-tab .col-data { position: sticky; left: 0; z-index: 2; font-weight: 600; color: #fff;
+                 box-shadow: 6px 0 8px -6px rgba(0,0,0,.65); }
+    /* Totale e Differenza ancorate a destra */
+    .saldi-tab .col-tot  { position: sticky; right: 152px; z-index: 2; min-width: 132px; }
+    .saldi-tab .col-diff { position: sticky; right: 0; z-index: 2; min-width: 152px; text-align: right;
+                 box-shadow: -8px 0 8px -6px rgba(0,0,0,.65); }
+
+    /* Le celle fisse devono avere sfondo opaco: lo ridefinisco per riga */
+    .saldi-tab tbody tr:nth-child(odd)  .col-data,
+    .saldi-tab tbody tr:nth-child(odd)  .col-tot,
+    .saldi-tab tbody tr:nth-child(odd)  .col-diff { background: #2a3037; }
+    .saldi-tab tbody tr:nth-child(even) .col-data,
+    .saldi-tab tbody tr:nth-child(even) .col-tot,
+    .saldi-tab tbody tr:nth-child(even) .col-diff { background: #22272d; }
+    .saldi-tab tbody tr:hover .col-data,
+    .saldi-tab tbody tr:hover .col-tot,
+    .saldi-tab tbody tr:hover .col-diff { background: #353e47; }
+
+    /* Totale in evidenza */
+    .saldi-tab .cella-totale { color: #fff; font-weight: 700; }
+    .saldi-tab thead .col-data, .saldi-tab thead .col-tot, .saldi-tab thead .col-diff {
+                 background: #10131a; z-index: 4; }
+
+    /* Numeri +/- ben leggibili su fondo scuro */
+    .saldi-tab .text-success { color: #4ade80 !important; }
+    .saldi-tab .text-danger  { color: #f87171 !important; }
+    .saldi-tab .text-muted   { color: #6c757d !important; }
+
+    .saldi-tab .cella-differenza .badge { font-size: .82rem; padding: .45em .65em; font-weight: 600; }
+    .saldi-tab .inline-valore { min-width: 96px; background: #0e1114; color: #e9ecef; border-color: #3a424b; }
+    .saldi-tab .inline-valore:focus { background: #0e1114; color: #fff; border-color: #6ea8fe;
+                 box-shadow: 0 0 0 .2rem rgba(110,168,254,.25); }
+    .saldi-tab .inline-valore::placeholder { color: #6c757d; }
     #saldi-scroll::-webkit-scrollbar { height: 12px; width: 12px; }
-    #saldi-scroll::-webkit-scrollbar-thumb { background: #adb5bd; border-radius: 6px; }
+    #saldi-scroll::-webkit-scrollbar-track { background: #14171b; }
+    #saldi-scroll::-webkit-scrollbar-thumb { background: #4a525b; border-radius: 6px; }
+    #saldi-scroll::-webkit-scrollbar-thumb:hover { background: #5c656f; }
 </style>
 <div class="card shadow-sm">
     <div class="card-header bg-primary text-white d-flex align-items-center">
@@ -49,8 +89,8 @@
     <div class="card-body p-0">
         {% if righe %}
         <div id="saldi-scroll" class="table-responsive">
-            <table class="saldi-tab table table-striped table-hover mb-0 table-sm">
-                <thead class="table-dark">
+            <table class="saldi-tab table table-sm mb-0">
+                <thead>
                     <tr>
                         <th class="col-data">Data</th>
                         <th class="text-end">Crediti Clienti</th>
