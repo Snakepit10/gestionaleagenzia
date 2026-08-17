@@ -38,7 +38,20 @@
             <strong>Incrocia il CSV dei POS</strong> — spunta automaticamente i movimenti che combaciano per importo
             (le transazioni <em>Rifiutate</em> vengono ignorate).
         </label>
-        <input type="file" id="csv-pos" accept=".csv,text/csv,text/plain" class="form-control">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <label for="csv-conto" class="form-label small mb-1 text-muted">Applica al conto</label>
+                <select id="csv-conto" class="form-select">
+                    {% for info in conti %}
+                    <option value="{{ forloop.counter }}"{% if 'pos' in info.cliente.nome_completo|lower %} selected{% endif %}>{{ info.cliente.nome_completo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-8">
+                <label for="csv-pos" class="form-label small mb-1 text-muted">File CSV</label>
+                <input type="file" id="csv-pos" accept=".csv,text/csv,text/plain" class="form-control">
+            </div>
+        </div>
         <div id="csv-esito" class="small mt-2"></div>
     </div>
 </div>
@@ -167,15 +180,17 @@
     // ---- Incrocio CSV POS ----
     var fileInput = document.getElementById('csv-pos');
     var esito = document.getElementById('csv-esito');
-    if (fileInput) {
-        fileInput.addEventListener('change', function() {
-            var f = fileInput.files[0];
-            if (!f) return;
-            var reader = new FileReader();
-            reader.onload = function() { elaboraCSV(reader.result); };
-            reader.readAsText(f, 'utf-8');
-        });
+    var contoSel = document.getElementById('csv-conto');
+    function leggiFile() {
+        var f = fileInput && fileInput.files ? fileInput.files[0] : null;
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function() { elaboraCSV(reader.result); };
+        reader.readAsText(f, 'utf-8');
     }
+    if (fileInput) fileInput.addEventListener('change', leggiFile);
+    // Se cambio il conto dopo aver caricato il file, ri-abbino sul conto giusto.
+    if (contoSel) contoSel.addEventListener('change', leggiFile);
 
     function elaboraCSV(text) {
         var lines = text.split(/\r?\n/).filter(function(l) { return l.trim(); });
@@ -191,6 +206,11 @@
                 if (tr) tr.classList.remove('match-csv');
             }
         });
+
+        // Il CSV riguarda un solo conto (es. POS): incrocio solo i suoi movimenti.
+        var target = contoSel ? contoSel.value : '';
+        var contoNome = contoSel && contoSel.selectedOptions.length ? contoSel.selectedOptions[0].text : '';
+        var relevant = checks.filter(function(c) { return !target || c.dataset.conto === target; });
 
         var delim = (lines[0].split(';').length >= lines[0].split(',').length) ? ';' : ',';
         var header = lines[0].split(delim).map(function(h) { return h.trim().toLowerCase(); });
@@ -214,9 +234,9 @@
             contab++;
         }
 
-        // I movimenti già spuntati a mano consumano capacità del CSV, così uno stesso
-        // importo non viene mai abbinato più volte del numero di transazioni presenti.
-        checks.forEach(function(chk) {
+        // I movimenti già spuntati a mano (nel conto target) consumano capacità del CSV,
+        // così uno stesso importo non viene mai abbinato più volte del numero di transazioni.
+        relevant.forEach(function(chk) {
             if (!chk.checked) return;
             var imp = Math.abs(parseImporto(chk.dataset.importo) || 0);
             var k = imp.toFixed(2);
@@ -224,7 +244,7 @@
         });
 
         var matched = 0;
-        checks.forEach(function(chk) {
+        relevant.forEach(function(chk) {
             if (chk.checked) return;
             var imp = Math.abs(parseImporto(chk.dataset.importo) || 0);
             var k = imp.toFixed(2);
@@ -238,7 +258,7 @@
             }
         });
         var nonTrovate = Object.keys(pool).reduce(function(a, k) { return a + pool[k]; }, 0);
-        esito.innerHTML = 'CSV: <b>' + contab + '</b> transazioni contabilizzate (' + rifiut + ' rifiutate ignorate) · ' +
+        esito.innerHTML = 'Conto <b>' + contoNome + '</b> · CSV: <b>' + contab + '</b> transazioni contabilizzate (' + rifiut + ' rifiutate ignorate) · ' +
                           '<b class="text-success">' + matched + '</b> movimenti spuntati · ' +
                           '<span class="text-warning">' + nonTrovate + '</span> importi CSV senza corrispondenza.';
         aggiorna();
