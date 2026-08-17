@@ -180,6 +180,18 @@
     function elaboraCSV(text) {
         var lines = text.split(/\r?\n/).filter(function(l) { return l.trim(); });
         if (!lines.length) { esito.innerHTML = '<span class="text-danger">CSV vuoto.</span>'; return; }
+
+        // Ricaricare lo stesso CSV deve essere idempotente: azzero le selezioni fatte
+        // da un CSV precedente (lascio intatte quelle manuali) e ri-abbino da capo.
+        checks.forEach(function(chk) {
+            if (chk.dataset.csv === '1') {
+                chk.checked = false;
+                chk.dataset.csv = '';
+                var tr = chk.closest('tr');
+                if (tr) tr.classList.remove('match-csv');
+            }
+        });
+
         var delim = (lines[0].split(';').length >= lines[0].split(',').length) ? ';' : ',';
         var header = lines[0].split(delim).map(function(h) { return h.trim().toLowerCase(); });
         var iImp = header.indexOf('importo');
@@ -202,6 +214,15 @@
             contab++;
         }
 
+        // I movimenti già spuntati a mano consumano capacità del CSV, così uno stesso
+        // importo non viene mai abbinato più volte del numero di transazioni presenti.
+        checks.forEach(function(chk) {
+            if (!chk.checked) return;
+            var imp = Math.abs(parseImporto(chk.dataset.importo) || 0);
+            var k = imp.toFixed(2);
+            if (pool[k] > 0) pool[k]--;
+        });
+
         var matched = 0;
         checks.forEach(function(chk) {
             if (chk.checked) return;
@@ -209,6 +230,7 @@
             var k = imp.toFixed(2);
             if (pool[k] > 0) {
                 chk.checked = true;
+                chk.dataset.csv = '1';
                 pool[k]--;
                 matched++;
                 var tr = chk.closest('tr');
