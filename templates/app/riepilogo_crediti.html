@@ -21,19 +21,38 @@
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header bg-primary text-white">
+<style>
+    #saldi-scroll { overflow: auto; max-height: 74vh; }
+    .saldi-tab { border-collapse: separate; border-spacing: 0; white-space: nowrap; margin-bottom: 0; }
+    .saldi-tab th, .saldi-tab td { padding: .5rem .7rem; font-variant-numeric: tabular-nums; vertical-align: middle; }
+    .saldi-tab thead th { position: sticky; top: 0; z-index: 3; background: #212529 !important; color: #fff; border-bottom: 2px solid #000; }
+    /* Colonna Data ancorata a sinistra */
+    .saldi-tab .col-data { position: sticky; left: 0; z-index: 2; background: #f1f3f5 !important; font-weight: 600;
+                           box-shadow: 4px 0 6px -4px rgba(0,0,0,.35); }
+    /* Totale e Differenza ancorate a destra, sempre visibili */
+    .saldi-tab .col-tot  { position: sticky; right: 138px; z-index: 2; background: #e7ecff !important; min-width: 120px; }
+    .saldi-tab .col-diff { position: sticky; right: 0; z-index: 2; background: #e7ecff !important; min-width: 138px;
+                           box-shadow: -8px 0 8px -5px rgba(0,0,0,.35); }
+    .saldi-tab thead .col-data, .saldi-tab thead .col-tot, .saldi-tab thead .col-diff { background: #2b2f33 !important; color: #fff; z-index: 4; }
+    .saldi-tab .cella-differenza .badge { font-size: .82rem; padding: .4em .6em; }
+    .saldi-tab .inline-valore { min-width: 96px; }
+    #saldi-scroll::-webkit-scrollbar { height: 12px; width: 12px; }
+    #saldi-scroll::-webkit-scrollbar-thumb { background: #adb5bd; border-radius: 6px; }
+</style>
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white d-flex align-items-center">
         <h5 class="mb-0">
             <i class="fas fa-list me-2"></i>Tabella Riepilogo
         </h5>
+        <small class="ms-auto text-white-50"><i class="fas fa-arrows-left-right me-1"></i>scorri per vedere tutte le colonne · Totale e Differenza restano fissi a destra</small>
     </div>
     <div class="card-body p-0">
         {% if righe %}
-        <div class="table-responsive">
-            <table class="table table-striped table-hover mb-0 table-sm">
+        <div id="saldi-scroll" class="table-responsive">
+            <table class="saldi-tab table table-striped table-hover mb-0 table-sm">
                 <thead class="table-dark">
                     <tr>
-                        <th>Data</th>
+                        <th class="col-data">Data</th>
                         <th class="text-end">Crediti Clienti</th>
                         <th class="text-end">Conti di Servizio</th>
                         <th class="text-end">Cassa Finale</th>
@@ -47,8 +66,8 @@
                         <th class="text-end">Prelievi</th>
                         <th class="text-end">Versamenti</th>
                         <th class="text-end">Altro</th>
-                        <th class="text-end">Totale</th>
-                        <th class="text-end">Differenza</th>
+                        <th class="text-end col-tot">Totale</th>
+                        <th class="text-end col-diff">Differenza</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -63,7 +82,7 @@
                         data-giroterrestre="{{ riga.giroconto_terrestre|default_if_none:0|unlocalize }}"
                         data-girocontiservizio="{{ riga.giroconto_conti_servizio|default_if_none:0|unlocalize }}"
                         data-saldoonline="{{ riga.saldo_online|default_if_none:0|unlocalize }}">
-                        <td>{{ riga.data|date:"d/m/Y" }}</td>
+                        <td class="col-data">{{ riga.data|date:"d/m/Y" }}</td>
                         <td class="text-end">
                             {% if riga.crediti is not None %}
                                 <span class="{% if riga.crediti < 0 %}text-danger{% elif riga.crediti > 0 %}text-success{% endif %}">
@@ -140,8 +159,8 @@
                                    value="{% if riga.altro is not None %}{{ riga.altro|floatformat:2 }}{% endif %}"
                                    placeholder="—">
                         </td>
-                        <td class="text-end fw-bold cella-totale">{{ riga.totale|floatformat:2 }} €</td>
-                        <td class="text-end fw-bold cella-differenza">
+                        <td class="text-end fw-bold cella-totale col-tot">{{ riga.totale|floatformat:2 }} €</td>
+                        <td class="text-end fw-bold cella-differenza col-diff">
                             {% if riga.differenza is not None %}
                                 <span class="badge bg-{% if riga.differenza >= -0.01 and riga.differenza <= 0.01 %}success{% else %}danger{% endif %}">
                                     {{ riga.differenza|floatformat:2 }} €
