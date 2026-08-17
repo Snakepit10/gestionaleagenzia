@@ -58,6 +58,8 @@
 
 <form method="post" id="form-azzeramento">
     {% csrf_token %}
+    {# Gli ID spuntati vengono inviati in un unico campo (evita il limite di campi POST con molti movimenti) #}
+    <input type="hidden" name="mov_ids" id="mov-ids">
     {% for info in conti %}
     <div class="card mb-2">
         <div class="card-header conto-header collapsed d-flex justify-content-between align-items-center"
@@ -88,7 +90,7 @@
                         <tr>
                             <td class="text-center">
                                 <input type="checkbox" class="check-mov"
-                                       name="mov" value="{{ m.pk }}"
+                                       value="{{ m.pk }}"
                                        data-conto="{{ forloop.parentloop.counter }}"
                                        data-importo="{{ m.importo|unlocalize }}">
                             </td>
@@ -265,10 +267,14 @@
     }
 
     var form = document.getElementById('form-azzeramento');
+    var movIds = document.getElementById('mov-ids');
     if (form) {
         form.addEventListener('submit', function(e) {
             var tot = checks.length;
-            var fatti = checks.filter(function(c) { return c.checked; }).length;
+            var selezionati = checks.filter(function(c) { return c.checked; });
+            var fatti = selezionati.length;
+            // Invio gli ID in un solo campo per non superare il limite di campi POST.
+            if (movIds) movIds.value = selezionati.map(function(c) { return c.value; }).join(',');
             var msg;
             if (tot > 0 && fatti < tot) {
                 msg = 'Azzeramento PARZIALE: verranno azzerati solo ' + fatti + ' movimenti su ' + tot +

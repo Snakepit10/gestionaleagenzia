@@ -2475,8 +2475,13 @@ def azzeramento_conti_servizio(request):
             return redirect('riepilogo_crediti')
 
         # Movimenti spuntati (azzeramento parziale): solo questi vengono saldati.
+        # Gli ID arrivano in un unico campo separato da virgole per non superare il
+        # limite DATA_UPLOAD_MAX_NUMBER_FIELDS quando i movimenti sono molte migliaia.
         checked_ids = set()
-        for x in request.POST.getlist('mov'):
+        for x in request.POST.get('mov_ids', '').split(','):
+            x = x.strip()
+            if not x:
+                continue
             try:
                 checked_ids.add(int(x))
             except (TypeError, ValueError):
