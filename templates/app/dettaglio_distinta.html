@@ -105,7 +105,7 @@
                 <div class="form-control-plaintext">{{ distinta.totale_uscite|floatformat:2 }} €</div>
             </div>
             <div class="col-md-2">
-                <label class="form-label">Totale Bevande</label>
+                <label class="form-label">Saldo 2 (Bevande)</label>
                 <div class="form-control-plaintext">{{ distinta.totale_bevande|floatformat:2 }} €</div>
             </div>
             <div class="col-md-2">
@@ -384,7 +384,7 @@
             <div class="card-body">
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle me-2"></i>
-                    <strong>Formula:</strong> Cassa = Saldo Terminale(input) + Entrate - Uscite + Bevande(input)
+                    <strong>Formula:</strong> Cassa = Saldo Terminale(input) + Entrate - Uscite + Saldo 2 (Bevande)(input)
                     <br>
                     <small class="text-muted">Questo strumento ti permette di calcolare velocemente il valore atteso della cassa in base ai movimenti.</small>
                 </div>
@@ -395,8 +395,8 @@
                         <input type="number" id="conteggio_saldo_terminale" class="form-control" value="0" step="0.01" min="0">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Bevande (€)</label>
-                        <input type="number" id="conteggio_bevande" class="form-control" value="0" step="0.01" min="0">
+                        <label class="form-label">Saldo 2 (Bevande) (€)</label>
+                        <input type="number" id="conteggio_bevande" class="form-control" value="0" step="0.01">
                     </div>
                 </div>
 
