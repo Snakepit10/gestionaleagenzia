@@ -1092,18 +1092,18 @@ def nuova_distinta(request):
             cassa_iniziale = form.cleaned_data['cassa_iniziale']
             prelievo_parziale = form.cleaned_data.get('prelievo_parziale', False)
 
-            # Controlla che il saldo cassa sia sufficiente
+            # L'operatore inserisce il contante realmente contato: se supera il saldo di
+            # sistema non blocchiamo (va registrata la realtà), ma avvisiamo.
             if cassa_iniziale > conto_cassa.saldo:
-                messages.error(request, f'Il valore di cassa iniziale ({cassa_iniziale} €) supera il saldo disponibile in cassa ({conto_cassa.saldo} €).')
-                return redirect('nuova_distinta')
+                messages.warning(request, f'La cassa iniziale inserita ({cassa_iniziale} €) supera il saldo di sistema ({conto_cassa.saldo} €). Verifica il conteggio: la differenza verrà registrata.')
 
             # Salva il valore della cassa iniziale
             distinta.cassa_iniziale = cassa_iniziale
             db.save_object(distinta)
 
-            # Aggiorna il saldo del conto cassa
+            # Aggiorna il saldo del conto cassa (mai sotto zero)
             saldo_precedente = conto_cassa.saldo
-            conto_cassa.saldo -= cassa_iniziale
+            conto_cassa.saldo = max(Decimal('0'), conto_cassa.saldo - cassa_iniziale)
             conto_cassa.modificato_da_id = request.user.id
             db.save_object(conto_cassa)
 
@@ -1137,7 +1137,18 @@ def nuova_distinta(request):
     else:
         form = DistintaCassaForm(user=request.user)
 
-    return render(request, 'app/form_distinta.html', {'form': form, 'titolo': 'Nuova Distinta', 'conto_cassa': conto_cassa})
+    # Suggerimento mostrato in pagina = cassa finale dell'ultima distinta chiusa/verificata
+    ultima_chiusa = db.get_queryset(DistintaCassa).filter(
+        stato__in=['chiusa', 'verificata']
+    ).order_by('-data', '-ora_inizio').first()
+    if ultima_chiusa is not None and ultima_chiusa.cassa_finale is not None:
+        suggerito = ultima_chiusa.cassa_finale
+    else:
+        suggerito = conto_cassa.saldo
+
+    return render(request, 'app/form_distinta.html', {
+        'form': form, 'titolo': 'Nuova Distinta', 'conto_cassa': conto_cassa, 'suggerito': suggerito,
+    })
 
 @login_required
 @permission_required('app.change_distintacassa', raise_exception=True)

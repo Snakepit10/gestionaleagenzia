@@ -39,11 +39,18 @@
                     {% if conto_cassa %}
                     <div class="alert alert-info mb-3">
                         <i class="fas fa-coins me-2"></i>
-                        <strong>Saldo attuale in cassa:</strong> {{ conto_cassa.saldo|floatformat:2 }} €
+                        <strong>Cassa finale ultima distinta (suggerito):</strong> {{ suggerito|floatformat:2 }} €
+                        {% if conto_cassa.saldo != suggerito %}
+                        <br><small class="text-muted">Saldo di sistema: {{ conto_cassa.saldo|floatformat:2 }} € (diverso dal suggerito)</small>
+                        {% endif %}
+                        <br><small><i class="fas fa-hand-point-right me-1"></i>Conta il contante presente in cassa e inseriscilo qui sotto.</small>
                     </div>
                     {% endif %}
 
                     {{ form.cassa_iniziale|as_crispy_field }}
+                    <button type="button" id="btn-usa-suggerito" class="btn btn-sm btn-outline-secondary mb-3">
+                        <i class="fas fa-arrow-turn-up me-1"></i>Usa suggerito ({{ suggerito|floatformat:2 }} €)
+                    </button>
                     {{ form.prelievo_parziale|as_crispy_field }}
                 </div>
             </div>
@@ -64,103 +71,55 @@
 {% block extra_js %}
 <script>
     $(document).ready(function() {
-        // Riferimenti ai campi del form
-        var cassaInizialeInput = $('#id_cassa_iniziale');
-        var prelievoParzialeCheck = $('#id_prelievo_parziale');
-        
-        // Salva il valore massimo possibile dalla cassa
-        var maxValue = parseFloat(cassaInizialeInput.attr('data-max-value')) || 0;
-        
-        // Funzione per validare l'importo inserito
-        function validaImporto() {
-            var importo = parseFloat(cassaInizialeInput.val()) || 0;
-            
-            if (importo <= 0) {
-                showError("L'importo deve essere maggiore di zero");
-                return false;
+        var input = $('#id_cassa_iniziale');
+        var suggerito = parseFloat(input.attr('data-suggerito'));
+        var maxValue = parseFloat(input.attr('data-max-value'));
+
+        // Il campo è un conteggio reale: NON prefilliamo, l'operatore deve inserirlo.
+        input.val('');
+        setTimeout(function() { input.trigger('focus'); }, 100);
+
+        function removeMessages() { $('#cassa-error, #cassa-warning').remove(); }
+        function showError(m) {
+            removeMessages();
+            input.after('<div class="alert alert-danger mt-2" id="cassa-error"><i class="fas fa-exclamation-triangle me-2"></i>' + m + '</div>');
+        }
+        function showWarning(m) {
+            removeMessages();
+            input.after('<div class="alert alert-warning mt-2" id="cassa-warning"><i class="fas fa-exclamation-circle me-2"></i>' + m + '</div>');
+        }
+
+        // Il pulsante compila il valore suggerito (l'operatore può comunque modificarlo).
+        $('#btn-usa-suggerito').on('click', function() {
+            if (!isNaN(suggerito)) { input.val(suggerito.toFixed(2)); }
+            input.trigger('focus');
+            valida();
+        });
+
+        function valida() {
+            var v = parseFloat((input.val() || '').replace(',', '.'));
+            removeMessages();
+            if (isNaN(v) || v <= 0) { return false; }
+            // Nessun blocco: solo avvisi se il conteggio si discosta dai riferimenti.
+            if (!isNaN(maxValue) && v > maxValue) {
+                showWarning('Stai inserendo ' + v.toFixed(2) + ' €, più del saldo di sistema (' + maxValue.toFixed(2) + ' €). La differenza verrà registrata: verifica il conteggio.');
+            } else if (!isNaN(suggerito) && Math.abs(v - suggerito) > 0.001) {
+                showWarning('Il valore inserito è diverso dal suggerito (' + suggerito.toFixed(2) + ' €): la differenza rispetto all\'ultima distinta verrà registrata.');
             }
-            
-            if (importo > maxValue) {
-                showError("L'importo (" + importo.toFixed(2) + " €) non può superare il saldo disponibile in cassa (" + maxValue.toFixed(2) + " €)");
-                return false;
-            }
-            
-            // Se il prelievo è totale e l'importo è minore del saldo disponibile, mostra un avviso
-            if (!prelievoParzialeCheck.is(':checked') && importo < maxValue) {
-                showWarning("Stai prelevando solo " + importo.toFixed(2) + " € dei " + maxValue.toFixed(2) + " € disponibili. Seleziona 'Prelievo parziale' se è intenzionale.");
-            } else {
-                // Rimuovi eventuali avvisi
-                removeMessages();
-            }
-            
             return true;
         }
-        
-        // Funzione per mostrare errore
-        function showError(message) {
-            removeMessages();
-            var errorDiv = $('<div class="alert alert-danger mt-2" id="cassa-error"><i class="fas fa-exclamation-triangle me-2"></i>' + message + '</div>');
-            cassaInizialeInput.after(errorDiv);
-        }
-        
-        // Funzione per mostrare avviso
-        function showWarning(message) {
-            removeMessages();
-            var warningDiv = $('<div class="alert alert-warning mt-2" id="cassa-warning"><i class="fas fa-exclamation-circle me-2"></i>' + message + '</div>');
-            cassaInizialeInput.after(warningDiv);
-        }
-        
-        // Funzione per rimuovere messaggi
-        function removeMessages() {
-            $('#cassa-error, #cassa-warning').remove();
-        }
-        
-        // Aggiorna le regole di validazione quando cambia il valore
-        cassaInizialeInput.on('input change keyup blur', validaImporto);
-        prelievoParzialeCheck.on('change', validaImporto);
-        
-        // Aggiorna il comportamento del form quando viene inviato
+
+        input.on('input change keyup blur', valida);
+
         $('form').on('submit', function(e) {
-            if (!validaImporto()) {
+            var v = parseFloat((input.val() || '').replace(',', '.'));
+            if (isNaN(v) || v <= 0) {
+                showError('Inserisci il contante presente in cassa (maggiore di zero).');
+                input.trigger('focus');
                 e.preventDefault();
                 return false;
             }
-            
-            // Se è selezionato "prelievo totale" ma l'importo è inferiore al massimo, chiedi conferma
-            if (!prelievoParzialeCheck.is(':checked') && parseFloat(cassaInizialeInput.val()) < maxValue) {
-                if (!confirm("Stai prelevando solo una parte della cassa disponibile senza selezionare 'Prelievo parziale'. Vuoi procedere comunque?")) {
-                    e.preventDefault();
-                    return false;
-                }
-            }
-            
-            return true;
         });
-        
-        // Se è prelievo parziale, non propone l'intero saldo
-        prelievoParzialeCheck.on('change', function() {
-            if ($(this).is(':checked')) {
-                // Se il valore attuale è uguale al massimo, imposta un valore predefinito più basso
-                var currentValue = parseFloat(cassaInizialeInput.val()) || 0;
-                if (currentValue === maxValue) {
-                    cassaInizialeInput.val((maxValue / 2).toFixed(2));
-                }
-            } else {
-                // Se non è selezionato prelievo parziale, imposta il valore massimo
-                cassaInizialeInput.val(maxValue.toFixed(2));
-            }
-            validaImporto();
-        });
-        
-        // Imposta il valore predefinito all'avvio
-        if (prelievoParzialeCheck.is(':checked')) {
-            cassaInizialeInput.val((maxValue / 2).toFixed(2));
-        } else {
-            cassaInizialeInput.val(maxValue.toFixed(2));
-        }
-        
-        // Esegui validazione all'avvio
-        validaImporto();
     });
 </script>
 {% endblock %}

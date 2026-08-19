@@ -73,47 +73,58 @@ class DistintaCassaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.user = user
 
-        # Ottieni il saldo del conto cassa dal database dell'utente
+        # La cassa iniziale è un CONTEGGIO reale: l'operatore deve inserirla a mano.
+        # Non prefilliamo il campo; come suggerimento mostriamo la cassa finale
+        # dell'ultima distinta chiusa (valore autorevole e stabile), non il saldo
+        # ricalcolato che a volte diverge.
+        self.fields['cassa_iniziale'].required = True
+        self.fields['cassa_iniziale'].initial = None
+
         try:
-            from .models import ContoFinanziario
+            from .models import ContoFinanziario, DistintaCassa
             from .database_utils import DatabaseManager
-            
+
             if user:
                 db = DatabaseManager(user)
                 conto_cassa = db.get_queryset(ContoFinanziario).filter(tipo='cassa').first()
-                if conto_cassa:
-                    self.fields['cassa_iniziale'].help_text = f"Saldo disponibile in cassa: {conto_cassa.saldo} €"
-                    self.fields['cassa_iniziale'].initial = conto_cassa.saldo
-                    # Imposta l'attributo data-max-value per il campo cassa_iniziale
-                    self.fields['cassa_iniziale'].widget.attrs.update({'data-max-value': conto_cassa.saldo})
-                else:
-                    self.fields['cassa_iniziale'].help_text = "Nessun conto cassa trovato nel bilancio"
+                ultima = (db.get_queryset(DistintaCassa)
+                          .filter(stato__in=['chiusa', 'verificata'])
+                          .order_by('-data', '-ora_inizio').first())
+
+                suggerito = None
+                if ultima is not None and ultima.cassa_finale is not None:
+                    suggerito = ultima.cassa_finale
+                elif conto_cassa is not None:
+                    suggerito = conto_cassa.saldo
+                saldo_sys = conto_cassa.saldo if conto_cassa else None
+
+                parti = []
+                if suggerito is not None:
+                    parti.append(f"Suggerito (cassa finale ultima distinta): {suggerito} €")
+                if saldo_sys is not None and (suggerito is None or saldo_sys != suggerito):
+                    parti.append(f"saldo di sistema: {saldo_sys} €")
+                parti.append("inserisci il contante realmente presente in cassa.")
+                self.fields['cassa_iniziale'].help_text = " · ".join(parti)
+
+                attrs = {'placeholder': 'Conta e inserisci il contante in cassa', 'autocomplete': 'off'}
+                if suggerito is not None:
+                    attrs['data-suggerito'] = suggerito
+                if saldo_sys is not None:
+                    attrs['data-max-value'] = saldo_sys
+                self.fields['cassa_iniziale'].widget.attrs.update(attrs)
             else:
                 self.fields['cassa_iniziale'].help_text = "Utente non specificato"
         except Exception as e:
             self.fields['cassa_iniziale'].help_text = f"Errore nel recupero del saldo cassa: {str(e)}"
 
     def clean_cassa_iniziale(self):
+        # L'operatore inserisce il contante realmente contato: non blocchiamo se
+        # differisce dal saldo di sistema (la differenza va registrata, non impedita).
         cassa_iniziale = self.cleaned_data.get('cassa_iniziale')
-        prelievo_parziale = self.cleaned_data.get('prelievo_parziale')
-
+        if cassa_iniziale is None:
+            raise forms.ValidationError("Inserisci il contante presente in cassa.")
         if cassa_iniziale <= 0:
             raise forms.ValidationError("La cassa iniziale deve essere maggiore di zero.")
-
-        try:
-            from .models import ContoFinanziario
-            from .database_utils import DatabaseManager
-            
-            if self.user:
-                db = DatabaseManager(self.user)
-                conto_cassa = db.get_queryset(ContoFinanziario).filter(tipo='cassa').first()
-                if conto_cassa and cassa_iniziale > conto_cassa.saldo:
-                    raise forms.ValidationError(f"Il valore immesso ({cassa_iniziale} €) supera il saldo disponibile in cassa ({conto_cassa.saldo} €).")
-        except forms.ValidationError:
-            raise
-        except:
-            pass
-
         return cassa_iniziale
 
 
