@@ -164,6 +164,7 @@ def dashboard(request):
     for c in debitori.order_by('saldo')[:10]:
         b = _bucket(c.ultimo_mov)
         top_debitori.append({
+            'pk': c.pk,
             'nome': c.nome_completo,
             'importo': -c.saldo,
             'bucket': b,
