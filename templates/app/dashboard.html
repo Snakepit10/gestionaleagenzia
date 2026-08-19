@@ -235,11 +235,19 @@
         </div>
 
         <!-- Trend mensile -->
+        <style>
+            .trend-table { color:#e9ecef; --bs-table-bg:transparent; --bs-table-color:#e9ecef; margin-bottom:0; border-radius:8px; overflow:hidden; }
+            .trend-table thead th { background:#10131a; color:#cfd4da; border-bottom:2px solid #000; font-weight:600; letter-spacing:.02em; }
+            .trend-table td, .trend-table th { padding:.55rem .95rem; border-color:rgba(255,255,255,.07); vertical-align:middle; }
+            .trend-table tbody tr:nth-child(odd) td { background:#23282e; }
+            .trend-table tbody tr:nth-child(even) td { background:#1c2126; }
+            .trend-table tbody tr:hover td { background:#2d353d; }
+        </style>
         <div class="mt-4">
             <h6 class="text-muted mb-2"><i class="fas fa-calendar-alt me-1"></i>Trend mensile (ultimi 6 mesi)</h6>
-            <div class="table-responsive">
-                <table class="table table-sm table-striped mb-0">
-                    <thead class="table-light">
+            <div class="table-responsive rounded-3 overflow-hidden">
+                <table class="table table-hover trend-table">
+                    <thead>
                         <tr>
                             <th>Mese</th>
                             <th class="text-end">Erogato</th>
@@ -251,10 +259,10 @@
                     <tbody>
                         {% for t in kpi.trend %}
                         <tr>
-                            <td>{{ t.mese|date:"m/Y" }}</td>
-                            <td class="text-end text-danger">{{ t.erogato|floatformat:2 }} €</td>
-                            <td class="text-end text-success">{{ t.rientrato|floatformat:2 }} €</td>
-                            <td class="text-end fw-bold {% if t.netto < 0 %}text-danger{% else %}text-success{% endif %}">{{ t.netto|floatformat:2 }} €</td>
+                            <td class="fw-semibold">{{ t.mese|date:"m/Y" }}</td>
+                            <td class="text-end" style="color:#f87171;">{{ t.erogato|floatformat:2 }} €</td>
+                            <td class="text-end" style="color:#4ade80;">{{ t.rientrato|floatformat:2 }} €</td>
+                            <td class="text-end fw-bold" style="color:{% if t.netto < 0 %}#f87171{% else %}#4ade80{% endif %};">{{ t.netto|floatformat:2 }} €</td>
                             <td class="text-end">{{ t.n }}</td>
                         </tr>
                         {% endfor %}
