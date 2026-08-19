@@ -116,12 +116,12 @@ def dashboard(request):
     aging_clienti = {'recenti': [], 'm1_3': [], 'm3_6': [], 'm6': []}
     # Distribuzione del credito per fascia di importo (istogramma)
     distribuzione = [
-        {'label': '≤ 100 €', 'lo': Decimal('0'), 'hi': Decimal('100'), 'n': 0, 'tot': Decimal('0')},
-        {'label': '100–250 €', 'lo': Decimal('100'), 'hi': Decimal('250'), 'n': 0, 'tot': Decimal('0')},
-        {'label': '250–500 €', 'lo': Decimal('250'), 'hi': Decimal('500'), 'n': 0, 'tot': Decimal('0')},
-        {'label': '500–1.000 €', 'lo': Decimal('500'), 'hi': Decimal('1000'), 'n': 0, 'tot': Decimal('0')},
-        {'label': '1.000–2.500 €', 'lo': Decimal('1000'), 'hi': Decimal('2500'), 'n': 0, 'tot': Decimal('0')},
-        {'label': '> 2.500 €', 'lo': Decimal('2500'), 'hi': None, 'n': 0, 'tot': Decimal('0')},
+        {'key': 'f0', 'label': '≤ 100 €', 'lo': Decimal('0'), 'hi': Decimal('100'), 'n': 0, 'tot': Decimal('0'), 'clienti': []},
+        {'key': 'f1', 'label': '100–250 €', 'lo': Decimal('100'), 'hi': Decimal('250'), 'n': 0, 'tot': Decimal('0'), 'clienti': []},
+        {'key': 'f2', 'label': '250–500 €', 'lo': Decimal('250'), 'hi': Decimal('500'), 'n': 0, 'tot': Decimal('0'), 'clienti': []},
+        {'key': 'f3', 'label': '500–1.000 €', 'lo': Decimal('500'), 'hi': Decimal('1000'), 'n': 0, 'tot': Decimal('0'), 'clienti': []},
+        {'key': 'f4', 'label': '1.000–2.500 €', 'lo': Decimal('1000'), 'hi': Decimal('2500'), 'n': 0, 'tot': Decimal('0'), 'clienti': []},
+        {'key': 'f5', 'label': '> 2.500 €', 'lo': Decimal('2500'), 'hi': None, 'n': 0, 'tot': Decimal('0'), 'clienti': []},
     ]
     n_debitori = 0
     for c in debitori:
@@ -132,13 +132,17 @@ def dashboard(request):
         aging[b] += imp
         giorni = (adesso - c.ultimo_mov).days if c.ultimo_mov else None
         aging_clienti[b].append({'nome': c.nome_completo, 'pk': c.pk, 'giorni': giorni, 'importo': imp})
+        giorni_deb = (adesso - c.ultimo_mov).days if c.ultimo_mov else None
         for f in distribuzione:
             if imp > f['lo'] and (f['hi'] is None or imp <= f['hi']):
                 f['n'] += 1
                 f['tot'] += imp
+                f['clienti'].append({'nome': c.nome_completo, 'pk': c.pk, 'giorni': giorni_deb, 'importo': imp})
                 break
     for b in aging_clienti:
         aging_clienti[b].sort(key=lambda x: x['importo'], reverse=True)
+    for f in distribuzione:
+        f['clienti'].sort(key=lambda x: x['importo'], reverse=True)
     _etichette_aging = {'recenti': '< 1 mese', 'm1_3': '1–3 mesi', 'm3_6': '3–6 mesi', 'm6': 'oltre 6 mesi'}
     aging_fasce = [{'key': k, 'label': _etichette_aging[k], 'clienti': aging_clienti[k],
                     'totale': aging[k]} for k in ('recenti', 'm1_3', 'm3_6', 'm6')]

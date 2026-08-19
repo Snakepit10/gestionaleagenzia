@@ -273,6 +273,9 @@
             .bar-chart .bar-fill { height:100%; border-radius:6px; min-width:3px; }
             .bar-chart .bar-meta { flex:0 0 auto; font-size:.82rem; white-space:nowrap; text-align:right; }
             .bar-chart .bar-meta .v { font-weight:700; color:#e9ecef; }
+            .bar-chart .distrib-clickable { cursor:pointer; padding:2px 6px; margin-left:-6px; margin-right:-6px; border-radius:6px; transition:background .15s; }
+            .bar-chart .distrib-clickable:hover { background:rgba(255,255,255,.06); }
+            .bar-chart .distrib-clickable:hover .bar-track { background:#333b43; }
         </style>
 
         <!-- Distribuzione del credito per fascia di importo -->
@@ -282,15 +285,17 @@
             </h6>
             {% if kpi.n_debitori %}
             {% for f in kpi.distribuzione %}
-            <div class="bar-row">
+            <div class="bar-row{% if f.n %} distrib-clickable{% endif %}"
+                 {% if f.n %}role="button" data-bs-toggle="modal" data-bs-target="#modal-distrib-{{ f.key }}" title="Clicca per l'elenco clienti"{% endif %}>
                 <div class="bar-label" style="flex-basis:96px;">{{ f.label }}</div>
                 <div class="bar-track">
                     <div class="bar-fill" style="width: {{ f.pct_tot|unlocalize }}%; background:linear-gradient(90deg,#2563eb,#60a5fa);"></div>
                 </div>
-                <div class="bar-meta" style="flex-basis:170px;">
+                <div class="bar-meta" style="flex-basis:184px;">
                     <span class="v">{{ f.n }}</span> <span class="text-muted">clienti</span> ·
                     <span style="color:#93c5fd;">{{ f.tot|floatformat:0 }} €</span>
                     <span class="text-muted">({{ f.pct_tot|floatformat:1 }}%)</span>
+                    {% if f.n %}<i class="fas fa-chevron-right ms-1 text-muted" style="font-size:.7rem;"></i>{% endif %}
                 </div>
             </div>
             {% endfor %}
@@ -405,6 +410,49 @@
         </div>
     </div>
 </div>
+{% endfor %}
+
+<!-- Modali: clienti per fascia di importo -->
+{% for f in kpi.distribuzione %}
+{% if f.n %}
+<div class="modal fade aging-modal" id="modal-distrib-{{ f.key }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+            <div class="modal-header text-white border-0" style="background:linear-gradient(135deg,#1e40af,#3b82f6);">
+                <div>
+                    <h5 class="modal-title mb-2"><i class="fas fa-layer-group me-2"></i>Fascia di importo · {{ f.label }}</h5>
+                    <span class="badge bg-light text-dark me-1"><i class="fas fa-users me-1"></i>{{ f.n }} clienti</span>
+                    <span class="badge bg-light text-dark"><i class="fas fa-euro-sign me-1"></i>{{ f.tot|floatformat:2 }} €</span>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover aging-table">
+                        <thead>
+                            <tr><th>Cliente</th><th class="text-center">Anzianità</th><th class="text-end">Importo</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for cl in f.clienti %}
+                            <tr>
+                                <td><a href="{% url 'dettaglio_cliente' cl.pk %}" class="text-decoration-none fw-semibold">{{ cl.nome }}</a></td>
+                                <td class="text-center">
+                                    {% if cl.giorni is not None %}<span class="badge rounded-pill aging-badge">{{ cl.giorni }} gg</span>{% else %}<span class="text-muted">—</span>{% endif %}
+                                </td>
+                                <td class="text-end imp">{{ cl.importo|floatformat:2 }} €</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr><td>Totale</td><td></td><td class="text-end">{{ f.tot|floatformat:2 }} €</td></tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endfor %}
 
 <div class="row">
