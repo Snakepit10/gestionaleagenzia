@@ -326,34 +326,71 @@
 </div>
 
 <!-- Modali: clienti per fascia di anzianità -->
+<style>
+    .aging-modal .modal-content { background: #1c2126; color: #e9ecef; }
+    .aging-modal .modal-header { padding: 1rem 1.25rem; align-items: flex-start; }
+    .aging-modal-recenti .modal-header { background: linear-gradient(135deg,#0f766e,#14b8a6); }
+    .aging-modal-m1_3   .modal-header { background: linear-gradient(135deg,#b45309,#f59e0b); }
+    .aging-modal-m3_6   .modal-header { background: linear-gradient(135deg,#c2410c,#fb923c); }
+    .aging-modal-m6     .modal-header { background: linear-gradient(135deg,#991b1b,#ef4444); }
+    .aging-modal .modal-title { font-weight: 700; }
+    .aging-modal .modal-header .badge { font-size: .8rem; }
+    .aging-table { color: #e9ecef; --bs-table-bg: transparent; --bs-table-color: #e9ecef; margin-bottom: 0; }
+    .aging-table thead th { position: sticky; top: 0; z-index: 1; background: #10131a; color: #cfd4da;
+        border-bottom: 2px solid #000; font-weight: 600; letter-spacing: .02em; }
+    .aging-table td, .aging-table th { padding: .6rem 1.1rem; border-color: rgba(255,255,255,.07); vertical-align: middle; }
+    .aging-table tbody tr:nth-child(odd) td { background: #23282e; }
+    .aging-table tbody tr:nth-child(even) td { background: #1c2126; }
+    .aging-table tbody tr:hover td { background: #2d353d; }
+    .aging-table a { color: #8ab4ff; }
+    .aging-table a:hover { color: #b6d0ff; }
+    .aging-table tfoot td { background: #10131a !important; border-top: 2px solid #000; font-weight: 700; }
+    .aging-badge { background: rgba(255,255,255,.12); color: #e9ecef; font-weight: 600; }
+    .aging-modal-recenti .aging-badge { background: rgba(20,184,166,.22); color:#5eead4; }
+    .aging-modal-m1_3 .aging-badge { background: rgba(245,158,11,.22); color:#fcd34d; }
+    .aging-modal-m3_6 .aging-badge { background: rgba(251,146,60,.22); color:#fdba74; }
+    .aging-modal-m6   .aging-badge { background: rgba(239,68,68,.22); color:#fca5a5; }
+    .aging-table .imp { color: #f87171; font-weight: 700; }
+</style>
 {% for fascia in kpi.aging_fasce %}
-<div class="modal fade" id="modal-aging-{{ fascia.key }}" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Crediti fermi — {{ fascia.label }}
-                    <small class="text-muted">({{ fascia.clienti|length }} clienti · {{ fascia.totale|floatformat:2 }} €)</small>
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+<div class="modal fade aging-modal aging-modal-{{ fascia.key }}" id="modal-aging-{{ fascia.key }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+            <div class="modal-header text-white border-0">
+                <div>
+                    <h5 class="modal-title mb-2"><i class="fas fa-hourglass-half me-2"></i>Crediti fermi · {{ fascia.label }}</h5>
+                    <span class="badge bg-light text-dark me-1"><i class="fas fa-users me-1"></i>{{ fascia.clienti|length }} clienti</span>
+                    <span class="badge bg-light text-dark"><i class="fas fa-euro-sign me-1"></i>{{ fascia.totale|floatformat:2 }} €</span>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Chiudi"></button>
             </div>
             <div class="modal-body p-0">
                 {% if fascia.clienti %}
-                <table class="table table-sm table-striped mb-0">
-                    <thead>
-                        <tr><th>Cliente</th><th class="text-end">Anzianità (gg)</th><th class="text-end">Importo</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for cl in fascia.clienti %}
-                        <tr>
-                            <td><a href="{% url 'dettaglio_cliente' cl.pk %}">{{ cl.nome }}</a></td>
-                            <td class="text-end">{{ cl.giorni|default:"-" }}</td>
-                            <td class="text-end fw-bold text-danger">{{ cl.importo|floatformat:2 }} €</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table table-hover aging-table">
+                        <thead>
+                            <tr><th>Cliente</th><th class="text-center">Anzianità</th><th class="text-end">Importo</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for cl in fascia.clienti %}
+                            <tr>
+                                <td><a href="{% url 'dettaglio_cliente' cl.pk %}" class="text-decoration-none fw-semibold">{{ cl.nome }}</a></td>
+                                <td class="text-center">
+                                    {% if cl.giorni is not None %}
+                                        <span class="badge rounded-pill aging-badge">{{ cl.giorni }} gg</span>
+                                    {% else %}<span class="text-muted">—</span>{% endif %}
+                                </td>
+                                <td class="text-end imp">{{ cl.importo|floatformat:2 }} €</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr><td>Totale</td><td></td><td class="text-end">{{ fascia.totale|floatformat:2 }} €</td></tr>
+                        </tfoot>
+                    </table>
+                </div>
                 {% else %}
-                <p class="text-muted p-3 mb-0">Nessun cliente in questa fascia.</p>
+                <div class="text-center text-muted py-5"><i class="fas fa-inbox fa-2x mb-2 d-block"></i>Nessun cliente in questa fascia.</div>
                 {% endif %}
             </div>
         </div>
