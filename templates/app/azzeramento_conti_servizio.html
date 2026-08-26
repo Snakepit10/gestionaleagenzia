@@ -31,12 +31,14 @@
 </div>
 
 {% if conti %}
-<!-- Incrocio con CSV dei POS -->
+<!-- Incrocio con CSV (POS o MuchBetter) -->
 <div class="card mb-3 border-primary">
     <div class="card-body">
         <label for="csv-pos" class="form-label mb-1"><i class="fas fa-file-csv me-1 text-primary"></i>
-            <strong>Incrocia il CSV dei POS</strong> — spunta automaticamente i movimenti che combaciano per importo
-            (le transazioni <em>Rifiutate</em> vengono ignorate).
+            <strong>Incrocia un CSV per azzerare il conto</strong> — spunta automaticamente i movimenti che combaciano.
+            Il formato viene riconosciuto in automatico:
+            <span class="badge bg-secondary">POS</span> (per importo, ignora le <em>Rifiutate</em>) ·
+            <span class="badge bg-secondary">MuchBetter</span> (per <strong>data + importo</strong>, solo <em>COMPLETED</em>).
         </label>
         <div class="row g-2 align-items-center">
             <div class="col-md-4">
@@ -92,7 +94,8 @@
                                 <input type="checkbox" class="check-mov"
                                        value="{{ m.pk }}"
                                        data-conto="{{ forloop.parentloop.counter }}"
-                                       data-importo="{{ m.importo|unlocalize }}">
+                                       data-importo="{{ m.importo|unlocalize }}"
+                                       data-data="{{ m.data|date:'Y-m-d' }}">
                             </td>
                             <td>{{ m.data|date:"d/m/Y H:i" }}</td>
                             <td>{{ m.get_tipo_display }}</td>
@@ -194,75 +197,118 @@
     // Se cambio il conto dopo aver caricato il file, ri-abbino sul conto giusto.
     if (contoSel) contoSel.addEventListener('change', leggiFile);
 
-    function elaboraCSV(text) {
-        var lines = text.split(/\r?\n/).filter(function(l) { return l.trim(); });
-        if (!lines.length) { esito.innerHTML = '<span class="text-danger">CSV vuoto.</span>'; return; }
+    // Riconosce il formato dall'intestazione: POS (Importo/Stato) o MuchBetter (AMOUNT/CREATED_DATE).
+    function analizzaCSV(lines) {
+        var head = lines[0].toLowerCase();
+        var isMB = head.indexOf('transaction_id') >= 0 ||
+                   (head.indexOf('created_date') >= 0 && head.indexOf('amount') >= 0);
+        return isMB ? parseMuchBetter(lines) : parsePOS(lines);
+    }
 
-        // Ricaricare lo stesso CSV deve essere idempotente: azzero le selezioni fatte
-        // da un CSV precedente (lascio intatte quelle manuali) e ri-abbino da capo.
-        checks.forEach(function(chk) {
-            if (chk.dataset.csv === '1') {
-                chk.checked = false;
-                chk.dataset.csv = '';
-                var tr = chk.closest('tr');
-                if (tr) tr.classList.remove('match-csv');
-            }
-        });
+    function parseMuchBetter(lines) {
+        var header = lines[0].split(',').map(function(h) { return h.trim().toLowerCase(); });
+        var iAmt = header.indexOf('amount'); if (iAmt < 0) iAmt = 18;
+        var iDate = header.indexOf('created_date');
+        var iStat = header.indexOf('transaction_status');
+        var rows = [], contab = 0, scartate = 0;
+        for (var i = 1; i < lines.length; i++) {
+            var cols = lines[i].split(',');
+            if (cols.length <= iAmt) continue;
+            if (iStat >= 0 && (cols[iStat] || '').trim().toUpperCase() !== 'COMPLETED') { scartate++; continue; }
+            var imp = parseImporto(cols[iAmt]);
+            if (imp === null || imp <= 0) continue;
+            var d = iDate >= 0 ? (cols[iDate] || '').trim().slice(0, 10) : '';
+            rows.push({ data: d, importo: imp });
+            contab++;
+        }
+        return { tipo: 'MuchBetter', matchByDate: true, rows: rows, contab: contab, scartate: scartate, scartateLabel: 'non COMPLETED' };
+    }
 
-        // Il CSV riguarda un solo conto (es. POS): incrocio solo i suoi movimenti.
-        var target = contoSel ? contoSel.value : '';
-        var contoNome = contoSel && contoSel.selectedOptions.length ? contoSel.selectedOptions[0].text : '';
-        var relevant = checks.filter(function(c) { return !target || c.dataset.conto === target; });
-
+    function parsePOS(lines) {
         var delim = (lines[0].split(';').length >= lines[0].split(',').length) ? ';' : ',';
         var header = lines[0].split(delim).map(function(h) { return h.trim().toLowerCase(); });
         var iImp = header.indexOf('importo');
         if (iImp < 0) iImp = header.findIndex(function(h) { return h.indexOf('importo') >= 0 && h.indexOf('storn') < 0; });
         if (iImp < 0) iImp = 4;
         var iStato = header.findIndex(function(h) { return h.indexOf('stato') >= 0; });
-
-        var pool = {}, contab = 0, rifiut = 0;
+        var rows = [], contab = 0, scartate = 0;
         for (var i = 1; i < lines.length; i++) {
             var cols = lines[i].split(delim);
             if (cols.length <= iImp) continue;
-            if (iStato >= 0) {
-                var st = (cols[iStato] || '').trim().toLowerCase();
-                if (st.indexOf('contabilizzat') < 0) { rifiut++; continue; }
-            }
+            if (iStato >= 0 && (cols[iStato] || '').trim().toLowerCase().indexOf('contabilizzat') < 0) { scartate++; continue; }
             var imp = parseImporto(cols[iImp]);
             if (imp === null || imp <= 0) continue;
-            var k = imp.toFixed(2);
-            pool[k] = (pool[k] || 0) + 1;
+            rows.push({ data: '', importo: imp });   // POS: match per solo importo
             contab++;
         }
+        return { tipo: 'POS', matchByDate: false, rows: rows, contab: contab, scartate: scartate, scartateLabel: 'rifiutate' };
+    }
 
-        // I movimenti già spuntati a mano (nel conto target) consumano capacità del CSV,
-        // così uno stesso importo non viene mai abbinato più volte del numero di transazioni.
+    // Chiave di match: solo importo, oppure "data|importo" (MuchBetter).
+    function chiaveRiga(r, byDate) {
+        return byDate ? (r.data + '|' + r.importo.toFixed(2)) : r.importo.toFixed(2);
+    }
+    function chiaveMov(chk, byDate) {
+        var imp = Math.abs(parseImporto(chk.dataset.importo) || 0).toFixed(2);
+        return byDate ? ((chk.dataset.data || '') + '|' + imp) : imp;
+    }
+
+    // Seleziona automaticamente il conto in base al formato riconosciuto.
+    function autoSelezionaConto(tipo) {
+        if (!contoSel) return;
+        var chiavi = tipo === 'MuchBetter' ? ['much', 'better'] : ['pos'];
+        for (var i = 0; i < contoSel.options.length; i++) {
+            var t = contoSel.options[i].text.toLowerCase();
+            if (chiavi.some(function(k) { return t.indexOf(k) >= 0; })) { contoSel.value = contoSel.options[i].value; return; }
+        }
+    }
+
+    function elaboraCSV(text) {
+        var lines = text.split(/\r?\n/).filter(function(l) { return l.trim(); });
+        if (!lines.length) { esito.innerHTML = '<span class="text-danger">CSV vuoto.</span>'; return; }
+
+        // Idempotenza: azzero le selezioni fatte da un CSV precedente (lascio le manuali).
+        checks.forEach(function(chk) {
+            if (chk.dataset.csv === '1') {
+                chk.checked = false; chk.dataset.csv = '';
+                var tr = chk.closest('tr'); if (tr) tr.classList.remove('match-csv');
+            }
+        });
+
+        var res = analizzaCSV(lines);
+        autoSelezionaConto(res.tipo);
+
+        // Il CSV riguarda un solo conto: incrocio solo i suoi movimenti.
+        var target = contoSel ? contoSel.value : '';
+        var contoNome = contoSel && contoSel.selectedOptions.length ? contoSel.selectedOptions[0].text : '';
+        var relevant = checks.filter(function(c) { return !target || c.dataset.conto === target; });
+
+        var pool = {};
+        res.rows.forEach(function(r) { var k = chiaveRiga(r, res.matchByDate); pool[k] = (pool[k] || 0) + 1; });
+
+        // I movimenti già spuntati a mano consumano capacità del pool.
         relevant.forEach(function(chk) {
             if (!chk.checked) return;
-            var imp = Math.abs(parseImporto(chk.dataset.importo) || 0);
-            var k = imp.toFixed(2);
+            var k = chiaveMov(chk, res.matchByDate);
             if (pool[k] > 0) pool[k]--;
         });
 
         var matched = 0;
         relevant.forEach(function(chk) {
             if (chk.checked) return;
-            var imp = Math.abs(parseImporto(chk.dataset.importo) || 0);
-            var k = imp.toFixed(2);
+            var k = chiaveMov(chk, res.matchByDate);
             if (pool[k] > 0) {
-                chk.checked = true;
-                chk.dataset.csv = '1';
-                pool[k]--;
-                matched++;
-                var tr = chk.closest('tr');
-                if (tr) tr.classList.add('match-csv');
+                chk.checked = true; chk.dataset.csv = '1'; pool[k]--; matched++;
+                var tr = chk.closest('tr'); if (tr) tr.classList.add('match-csv');
             }
         });
+
         var nonTrovate = Object.keys(pool).reduce(function(a, k) { return a + pool[k]; }, 0);
-        esito.innerHTML = 'Conto <b>' + contoNome + '</b> · CSV: <b>' + contab + '</b> transazioni contabilizzate (' + rifiut + ' rifiutate ignorate) · ' +
+        var criterio = res.matchByDate ? 'data + importo' : 'importo';
+        esito.innerHTML = 'Formato <b>' + res.tipo + '</b> (match per ' + criterio + ') · conto <b>' + contoNome + '</b> · ' +
+                          '<b>' + res.contab + '</b> transazioni valide (' + res.scartate + ' ' + res.scartateLabel + ' ignorate) · ' +
                           '<b class="text-success">' + matched + '</b> movimenti spuntati · ' +
-                          '<span class="text-warning">' + nonTrovate + '</span> importi CSV senza corrispondenza.';
+                          '<span class="text-warning">' + nonTrovate + '</span> senza corrispondenza.';
         aggiorna();
     }
 
