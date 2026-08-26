@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.html import format_html
-from .models import Cliente, Movimento, DistintaCassa, Comunicazione, Agenzia, ProfiloUtente, RiepilogoGiornaliero, SaldoEsterno
+from .models import Cliente, Movimento, DistintaCassa, Comunicazione, Agenzia, ProfiloUtente, RiepilogoGiornaliero, SaldoEsterno, AzzeramentoProgrammato
 from .database_utils import AGENZIA_DATABASE_MAP
 
 
@@ -177,6 +177,14 @@ class AgenziaAdmin(admin.ModelAdmin):
             'fields': ('data_creazione',)
         }),
     )
+
+
+@admin.register(AzzeramentoProgrammato)
+class AzzeramentoProgrammatoAdmin(DatabaseSelectorMixin, admin.ModelAdmin):
+    list_display = ('id', 'operatore', 'stato', 'data_richiesta', 'data_esecuzione', 'note')
+    list_filter = ('stato',)
+    date_hierarchy = 'data_richiesta'
+    ordering = ('-data_richiesta',)
 
 
 @admin.register(SaldoEsterno)

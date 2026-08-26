@@ -273,6 +273,37 @@ class DistintaCassa(MultiDatabaseMixin, models.Model):
         return self.movimenti.all()
 
 
+class AzzeramentoProgrammato(MultiDatabaseMixin, models.Model):
+    """Richiesta di azzeramento conti di servizio in attesa che non ci siano distinte aperte.
+
+    Quando un manager conferma l'azzeramento ma c'è almeno una distinta aperta, la
+    richiesta viene salvata qui e viene eseguita automaticamente alla chiusura
+    dell'ultima distinta aperta (hook in chiudi_distinta).
+    """
+    STATO_CHOICES = [
+        ('in_attesa', 'In attesa'),
+        ('in_esecuzione', 'In esecuzione'),
+        ('eseguito', 'Eseguito'),
+        ('annullato', 'Annullato'),
+        ('errore', 'Errore'),
+    ]
+
+    operatore = models.ForeignKey(User, on_delete=models.PROTECT, related_name='azzeramenti_programmati')
+    movimento_ids = models.TextField(help_text="ID dei movimenti selezionati, separati da virgola")
+    data_richiesta = models.DateTimeField(default=timezone.now)
+    stato = models.CharField(max_length=15, choices=STATO_CHOICES, default='in_attesa')
+    data_esecuzione = models.DateTimeField(null=True, blank=True)
+    note = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        verbose_name = "Azzeramento Programmato"
+        verbose_name_plural = "Azzeramenti Programmati"
+        ordering = ['-data_richiesta']
+
+    def __str__(self):
+        return f"Azzeramento programmato #{self.pk} ({self.stato}) - {self.operatore.username}"
+
+
 class Movimento(MultiDatabaseMixin, models.Model):
     TIPO_CHOICES = [
         ('schedina', 'Schedina'),

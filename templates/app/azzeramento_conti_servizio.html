@@ -30,6 +30,34 @@
     nella voce "Giroconto Conti di Servizio".
 </div>
 
+{% if pending %}
+<div class="alert alert-warning d-flex justify-content-between align-items-center">
+    <div>
+        <i class="fas fa-hourglass-half me-2"></i>
+        <strong>Azzeramento programmato in attesa</strong> — richiesto da {{ pending.operatore.username }}
+        il {{ pending.data_richiesta|date:"d/m/Y H:i" }}. Verrà eseguito automaticamente alla chiusura
+        dell'ultima distinta aperta.
+    </div>
+    <form method="post" class="mb-0 ms-3">
+        {% csrf_token %}
+        <input type="hidden" name="azione" value="annulla_programmato">
+        <button type="submit" class="btn btn-sm btn-outline-danger">
+            <i class="fas fa-times me-1"></i>Annulla
+        </button>
+    </form>
+</div>
+{% endif %}
+
+{% if distinte_aperte %}
+<div class="alert alert-secondary small mb-3">
+    <i class="fas fa-lock-open me-2"></i>
+    Ci sono <strong>distinte aperte</strong>
+    ({% for d in distinte_aperte %}{{ d.operatore.username }}{% if not forloop.last %}, {% endif %}{% endfor %}):
+    l'azzeramento non verrà eseguito subito ma <strong>programmato</strong> e attivato automaticamente
+    quando tutte le distinte saranno chiuse.
+</div>
+{% endif %}
+
 {% if conti %}
 <!-- Incrocio con CSV (POS o MuchBetter) -->
 <div class="card mb-3 border-primary">
@@ -58,7 +86,7 @@
     </div>
 </div>
 
-<form method="post" id="form-azzeramento">
+<form method="post" id="form-azzeramento" data-distinte-aperte="{% if distinte_aperte %}1{% else %}0{% endif %}">
     {% csrf_token %}
     {# Gli ID spuntati vengono inviati in un unico campo (evita il limite di campi POST con molti movimenti) #}
     <input type="hidden" name="mov_ids" id="mov-ids">
@@ -339,12 +367,18 @@
             var fatti = selezionati.length;
             // Invio gli ID in un solo campo per non superare il limite di campi POST.
             if (movIds) movIds.value = selezionati.map(function(c) { return c.value; }).join(',');
+            var distinteAperte = form.dataset.distinteAperte === '1';
             var msg;
             if (tot > 0 && fatti < tot) {
                 msg = 'Azzeramento PARZIALE: verranno azzerati solo ' + fatti + ' movimenti su ' + tot +
-                      '. I movimenti non selezionati restano aperti. Continuare?';
+                      '. I movimenti non selezionati restano aperti. ';
             } else {
-                msg = 'Confermi l\'azzeramento dei conti di servizio? Verrà creata una distinta di azzeramento.';
+                msg = 'Confermi l\'azzeramento dei conti di servizio? ';
+            }
+            if (distinteAperte) {
+                msg += '\n\nCi sono distinte aperte: l\'azzeramento verrà PROGRAMMATO ed eseguito automaticamente alla chiusura dell\'ultima distinta. Continuare?';
+            } else {
+                msg += 'Verrà creata subito una distinta di azzeramento. Continuare?';
             }
             if (!confirm(msg)) {
                 e.preventDefault();

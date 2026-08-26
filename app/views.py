@@ -10,7 +10,8 @@ from decimal import Decimal
 
 from .models import (
     Cliente, Movimento, DistintaCassa, Comunicazione,
-    ContoFinanziario, BilancioPeriodico, MovimentoConti, ActivityLog, RiepilogoGiornaliero
+    ContoFinanziario, BilancioPeriodico, MovimentoConti, ActivityLog, RiepilogoGiornaliero,
+    AzzeramentoProgrammato
 )
 from .database_utils import DatabaseManager, get_user_database, sync_user_to_agency_db
 from . import telegram_utils
@@ -1285,6 +1286,11 @@ def chiudi_distinta(request, pk):
             )
 
             messages.success(request, f'Distinta N° {distinta.pk} chiusa con successo!')
+
+            # Se questa era l'ultima distinta aperta, esegui un eventuale azzeramento
+            # conti di servizio programmato (differito perché c'erano distinte aperte).
+            esegui_azzeramento_programmato_se_possibile(db, request)
+
             return redirect('lista_distinte')
     else:
         # Recupera i movimenti della distinta per i totali
@@ -2457,108 +2463,85 @@ def salva_valore_esterno(request):
     return JsonResponse({'ok': True})
 
 
-@login_required
-@user_passes_test(is_manager_or_admin)
-def azzeramento_conti_servizio(request):
-    """
-    Pagina di controllo e azzeramento dei conti di servizio.
-    GET: elenca ogni conto di servizio con i suoi movimenti aperti (da verificare/spuntare).
-    POST: marca i movimenti come saldati, crea una distinta di azzeramento neutra sulla
-    cassa (cassa finale riportata dall'ultima distinta), aggiunge il movimento di
-    compensazione che riporta a 0 la progressione e registra l'importo azzerato nella
-    voce 'giroconto_conti_servizio' del giorno.
-    """
+def _calcola_piano_azzeramento(db, checked_ids):
+    """Ricostruisce lo stato corrente dei conti di servizio e il piano di azzeramento
+    per i movimenti selezionati. Ritorna (piano, is_full)."""
     from django.db.models import Sum
+    checked_ids = set(int(x) for x in checked_ids)
+
+    conti = []
+    for c in db.get_queryset(Cliente).filter(conto_servizio=True).order_by('cognome', 'nome'):
+        movimenti = list(db.get_queryset(Movimento).filter(cliente=c, saldato=False).order_by('-data'))
+        cumulativo = db.get_queryset(Movimento).filter(cliente=c).aggregate(t=Sum('importo'))['t'] or Decimal('0')
+        if cumulativo == 0 and not movimenti:
+            continue
+        conti.append({'cliente': c, 'movimenti': movimenti, 'cumulativo': cumulativo})
+
+    tutte_open = [m for info in conti for m in info['movimenti']]
+    total_open = len(tutte_open)
+    total_checked = sum(1 for m in tutte_open if m.pk in checked_ids)
+    is_full = (total_checked == total_open)
+
+    piano = []
+    for info in conti:
+        cliente = info['cliente']
+        open_movs = info['movimenti']
+        cumulativo = info['cumulativo']
+        sel = [m for m in open_movs if m.pk in checked_ids]
+        if open_movs:
+            if not sel:
+                continue  # niente spuntato: il conto resta aperto
+            if len(sel) == len(open_movs):
+                piano.append({'cliente': cliente, 'ids': [m.pk for m in open_movs], 'importo': cumulativo})
+            else:
+                s = sum((m.importo for m in sel), Decimal('0'))
+                piano.append({'cliente': cliente, 'ids': [m.pk for m in sel], 'importo': s})
+        elif is_full and cumulativo != 0:
+            piano.append({'cliente': cliente, 'ids': [], 'importo': cumulativo})
+    return piano, is_full
+
+
+def _esegui_azzeramento(db, operatore, checked_ids):
+    """Esegue l'azzeramento dei conti di servizio per i movimenti selezionati.
+
+    Ricalcola il piano dallo stato corrente (i movimenti possono essere cambiati), crea
+    la distinta di azzeramento neutra sulla cassa, salda i movimenti selezionati, aggiunge
+    le compensazioni e registra il giroconto conti di servizio. Ritorna un dict riassuntivo
+    oppure None se non c'è nulla da azzerare.
+    """
+    from django.db import transaction
     from .models import SaldoEsterno, Agenzia
 
-    db = DatabaseManager(request.user)
     alias = db.user_db
+    piano, is_full = _calcola_piano_azzeramento(db, checked_ids)
+    if not piano:
+        return None
 
-    def dati_conti():
-        conti = []
-        for c in db.get_queryset(Cliente).filter(conto_servizio=True).order_by('cognome', 'nome'):
-            movimenti = list(db.get_queryset(Movimento).filter(cliente=c, saldato=False).order_by('-data'))
-            cumulativo = db.get_queryset(Movimento).filter(cliente=c).aggregate(t=Sum('importo'))['t'] or Decimal('0')
-            if cumulativo == 0 and not movimenti:
-                continue
-            conti.append({'cliente': c, 'movimenti': movimenti, 'saldo': c.saldo, 'cumulativo': cumulativo})
-        return conti
+    # Cassa finale da riportare (per non alterare la colonna Cassa Finale del riepilogo)
+    ultima = db.get_queryset(DistintaCassa).order_by('-data', '-ora_inizio').first()
+    if ultima and ultima.cassa_finale is not None:
+        cassa_carry = ultima.cassa_finale
+    else:
+        conto_cassa = db.get_queryset(ContoFinanziario).filter(tipo='cassa').first()
+        cassa_carry = conto_cassa.saldo if conto_cassa else Decimal('0')
 
-    if request.method == 'POST':
-        conti = dati_conti()
-        if not conti:
-            messages.info(request, 'Nessun conto di servizio da azzerare.')
-            return redirect('riepilogo_crediti')
+    totale_azzerato = Decimal('0')
+    n_conti = 0
+    n_movimenti = 0
 
-        # Movimenti spuntati (azzeramento parziale): solo questi vengono saldati.
-        # Gli ID arrivano in un unico campo separato da virgole per non superare il
-        # limite DATA_UPLOAD_MAX_NUMBER_FIELDS quando i movimenti sono molte migliaia.
-        checked_ids = set()
-        for x in request.POST.get('mov_ids', '').split(','):
-            x = x.strip()
-            if not x:
-                continue
-            try:
-                checked_ids.add(int(x))
-            except (TypeError, ValueError):
-                pass
-
-        tutte_open = [m for info in conti for m in info['movimenti']]
-        total_open = len(tutte_open)
-        total_checked = sum(1 for m in tutte_open if m.pk in checked_ids)
-        # "Full" = tutti i movimenti aperti sono spuntati (vero anche se non ci sono
-        # movimenti aperti: in tal caso restano solo i conti residui da azzerare).
-        is_full = (total_checked == total_open)
-
-        # Piano di lavoro per conto: quali movimenti saldare e con quale compensazione.
-        piano = []
-        for info in conti:
-            cliente = info['cliente']
-            open_movs = info['movimenti']
-            cumulativo = info['cumulativo']
-            sel = [m for m in open_movs if m.pk in checked_ids]
-            if open_movs:
-                if not sel:
-                    continue  # niente spuntato: il conto resta aperto
-                if len(sel) == len(open_movs):
-                    # conto interamente verificato: azzera l'intera progressione
-                    # (cattura anche eventuali residui già saldati)
-                    piano.append({'cliente': cliente, 'ids': [m.pk for m in open_movs], 'importo': cumulativo})
-                else:
-                    # parziale: salda solo i movimenti spuntati
-                    s = sum((m.importo for m in sel), Decimal('0'))
-                    piano.append({'cliente': cliente, 'ids': [m.pk for m in sel], 'importo': s})
-            elif is_full and cumulativo != 0:
-                # conto residuo senza movimenti aperti: azzerato solo in azzeramento completo
-                piano.append({'cliente': cliente, 'ids': [], 'importo': cumulativo})
-
-        if not piano:
-            messages.warning(request, 'Nessun movimento selezionato: spunta i movimenti da azzerare.')
-            return redirect('azzeramento_conti_servizio')
-
-        # Cassa finale da riportare (per non alterare la colonna Cassa Finale del riepilogo)
-        ultima = db.get_queryset(DistintaCassa).order_by('-data', '-ora_inizio').first()
-        if ultima and ultima.cassa_finale is not None:
-            cassa_carry = ultima.cassa_finale
-        else:
-            conto_cassa = db.get_queryset(ContoFinanziario).filter(tipo='cassa').first()
-            cassa_carry = conto_cassa.saldo if conto_cassa else Decimal('0')
-
+    with transaction.atomic(using=alias):
         ora = timezone.localtime(timezone.now()).time()
         reset_dist = DistintaCassa(
-            operatore=request.user, data=timezone.localdate(),
+            operatore=operatore, data=timezone.localdate(),
             ora_inizio=ora, ora_fine=ora,
             cassa_iniziale=cassa_carry, cassa_finale=cassa_carry,
             totale_entrate=Decimal('0'), totale_uscite=Decimal('0'), totale_bevande=Decimal('0'),
             differenza_cassa=Decimal('0'), stato='verificata',
-            verificata_da=request.user, data_verifica=timezone.now(),
+            verificata_da=operatore, data_verifica=timezone.now(),
             note_distinta='Azzeramento conti di servizio',
         )
         db.save_object(reset_dist)
 
-        totale_azzerato = Decimal('0')
-        n_conti = 0
-        n_movimenti = 0
         for p in piano:
             cliente = p['cliente']
             imp = p['importo']
@@ -2571,37 +2554,163 @@ def azzeramento_conti_servizio(request):
                 tipo_comp = 'pagamento_debito' if imp > 0 else 'incasso_credito'
                 comp = Movimento(
                     cliente=cliente, tipo=tipo_comp, importo=abs(imp),
-                    distinta=reset_dist, creato_da_id=request.user.id,
+                    distinta=reset_dist, creato_da_id=operatore.id,
                     saldato=True, note='Azzeramento conto di servizio',
                 )
                 db.save_object(comp)
-            cliente.aggiorna_saldo(user=request.user)
+            cliente.aggiorna_saldo(user=operatore)
             totale_azzerato += imp
             n_conti += 1
 
-        # 3) registra l'importo azzerato nella voce giroconto conti di servizio (oggi)
-        agenzia = Agenzia.objects.using('default').filter(database_name=alias).first()
-        if agenzia and totale_azzerato != 0:
-            oggi = timezone.localdate()
-            esistente = SaldoEsterno.objects.using('default').filter(
-                agenzia=agenzia, tipo='giroconto_conti_servizio', data=oggi
-            ).first()
-            nuovo = (esistente.saldo if esistente else Decimal('0')) + totale_azzerato
-            SaldoEsterno.objects.using('default').update_or_create(
-                agenzia=agenzia, tipo='giroconto_conti_servizio', data=oggi,
-                defaults={'saldo': nuovo}
-            )
+    # 3) registra l'importo azzerato nella voce giroconto conti di servizio (oggi)
+    agenzia = Agenzia.objects.using('default').filter(database_name=alias).first()
+    if agenzia and totale_azzerato != 0:
+        oggi = timezone.localdate()
+        esistente = SaldoEsterno.objects.using('default').filter(
+            agenzia=agenzia, tipo='giroconto_conti_servizio', data=oggi
+        ).first()
+        nuovo = (esistente.saldo if esistente else Decimal('0')) + totale_azzerato
+        SaldoEsterno.objects.using('default').update_or_create(
+            agenzia=agenzia, tipo='giroconto_conti_servizio', data=oggi,
+            defaults={'saldo': nuovo}
+        )
 
-        parziale = '' if is_full else ' (parziale)'
-        messages.success(request, f'Azzerati {n_movimenti} movimenti su {n_conti} conti{parziale} (totale {totale_azzerato:.2f} €). Distinta di azzeramento #{reset_dist.pk} creata.')
+    return {'n_movimenti': n_movimenti, 'n_conti': n_conti, 'totale': totale_azzerato,
+            'reset_dist': reset_dist, 'is_full': is_full}
+
+
+def esegui_azzeramento_programmato_se_possibile(db, request=None):
+    """Se non ci sono distinte aperte ed esiste un azzeramento programmato in attesa,
+    lo esegue (con claim atomico anti-doppia-esecuzione). Da chiamare dopo la chiusura
+    di una distinta. Non solleva eccezioni verso il chiamante."""
+    try:
+        if db.get_queryset(DistintaCassa).filter(stato='aperta').exists():
+            return
+        pend = db.get_queryset(AzzeramentoProgrammato).filter(stato='in_attesa').order_by('data_richiesta').first()
+        if not pend:
+            return
+        # Claim atomico: solo un chiamante passa da 'in_attesa' a 'in_esecuzione'
+        claimed = db.get_queryset(AzzeramentoProgrammato).filter(
+            pk=pend.pk, stato='in_attesa'
+        ).update(stato='in_esecuzione')
+        if claimed != 1:
+            return
+        pend.refresh_from_db(using=db.user_db)
+        try:
+            # L'operatore va caricato dal DB 'default' (dove vive il ProfiloUtente), altrimenti
+            # DatabaseManager(operatore) non risolve l'agenzia e ricadrebbe su 'default'.
+            from django.contrib.auth.models import User
+            operatore = User.objects.using('default').get(pk=pend.operatore_id)
+            ids = [x.strip() for x in (pend.movimento_ids or '').split(',') if x.strip()]
+            res = _esegui_azzeramento(db, operatore, ids)
+            pend.stato = 'eseguito'
+            pend.data_esecuzione = timezone.now()
+            if res:
+                pend.note = f"{res['n_movimenti']} movimenti su {res['n_conti']} conti, totale {res['totale']:.2f} € (distinta #{res['reset_dist'].pk})"
+            else:
+                pend.note = 'Nessun movimento da azzerare al momento dell\'esecuzione.'
+            db.save_object(pend)
+            if request is not None and res:
+                messages.info(request, f"Azzeramento programmato eseguito automaticamente: {res['n_movimenti']} movimenti su {res['n_conti']} conti (totale {res['totale']:.2f} €). Distinta di azzeramento #{res['reset_dist'].pk} creata.")
+            # Notifica Telegram all'agenzia
+            if res:
+                try:
+                    telegram_utils.notifica(
+                        db.user_db,
+                        f"🧹 Azzeramento conti di servizio eseguito\nMovimenti: {res['n_movimenti']} · Conti: {res['n_conti']}\nTotale: {res['totale']:.2f} €\nDistinta di azzeramento #{res['reset_dist'].pk}\nRichiesto da: {operatore.username}"
+                    )
+                except Exception:
+                    pass
+        except Exception as e:
+            pend.stato = 'errore'
+            pend.note = f'Errore in esecuzione: {e}'
+            db.save_object(pend)
+            if request is not None:
+                messages.error(request, f'Azzeramento programmato non riuscito: {e}')
+    except Exception:
+        # Non bloccare mai la chiusura della distinta per un problema qui.
+        pass
+
+
+@login_required
+@user_passes_test(is_manager_or_admin)
+def azzeramento_conti_servizio(request):
+    """
+    Pagina di controllo e azzeramento dei conti di servizio.
+    GET: elenca ogni conto di servizio con i suoi movimenti aperti (da verificare/spuntare).
+    POST: se non ci sono distinte aperte esegue subito; altrimenti programma l'azzeramento
+    che verrà eseguito automaticamente alla chiusura dell'ultima distinta aperta.
+    """
+    from django.db.models import Sum
+
+    db = DatabaseManager(request.user)
+
+    def dati_conti():
+        conti = []
+        for c in db.get_queryset(Cliente).filter(conto_servizio=True).order_by('cognome', 'nome'):
+            movimenti = list(db.get_queryset(Movimento).filter(cliente=c, saldato=False).order_by('-data'))
+            cumulativo = db.get_queryset(Movimento).filter(cliente=c).aggregate(t=Sum('importo'))['t'] or Decimal('0')
+            if cumulativo == 0 and not movimenti:
+                continue
+            conti.append({'cliente': c, 'movimenti': movimenti, 'saldo': c.saldo, 'cumulativo': cumulativo})
+        return conti
+
+    if request.method == 'POST':
+        # Annulla un azzeramento programmato in attesa
+        if request.POST.get('azione') == 'annulla_programmato':
+            db.get_queryset(AzzeramentoProgrammato).filter(stato='in_attesa').update(stato='annullato')
+            messages.info(request, 'Azzeramento programmato annullato.')
+            return redirect('azzeramento_conti_servizio')
+
+        if not dati_conti():
+            messages.info(request, 'Nessun conto di servizio da azzerare.')
+            return redirect('riepilogo_crediti')
+
+        # Movimenti spuntati (azzeramento parziale): solo questi vengono saldati.
+        # Gli ID arrivano in un unico campo separato da virgole per non superare il
+        # limite DATA_UPLOAD_MAX_NUMBER_FIELDS quando i movimenti sono molte migliaia.
+        checked_ids = [x.strip() for x in request.POST.get('mov_ids', '').split(',') if x.strip()]
+
+        piano, is_full = _calcola_piano_azzeramento(db, checked_ids)
+        if not piano:
+            messages.warning(request, 'Nessun movimento selezionato: spunta i movimenti da azzerare.')
+            return redirect('azzeramento_conti_servizio')
+
+        # Se c'è QUALSIASI distinta aperta, l'azzeramento va differito: il carry di cassa
+        # non è affidabile finché c'è contante "fuori" in un turno aperto.
+        distinte_aperte = list(db.get_queryset(DistintaCassa).filter(stato='aperta'))
+        if distinte_aperte:
+            # Una sola richiesta attiva per volta: sostituisce l'eventuale precedente.
+            db.get_queryset(AzzeramentoProgrammato).filter(stato='in_attesa').update(stato='annullato')
+            pend = AzzeramentoProgrammato(
+                operatore=request.user,
+                movimento_ids=','.join(checked_ids),
+                stato='in_attesa',
+            )
+            db.save_object(pend)
+            operatori = ', '.join(sorted({d.operatore.username for d in distinte_aperte}))
+            messages.info(request, f'Ci sono distinte aperte ({operatori}): azzeramento PROGRAMMATO. Verrà eseguito automaticamente alla chiusura dell\'ultima distinta aperta.')
+            return redirect('azzeramento_conti_servizio')
+
+        # Nessuna distinta aperta: esecuzione immediata (comportamento invariato).
+        res = _esegui_azzeramento(db, request.user, checked_ids)
+        if not res:
+            messages.warning(request, 'Nessun movimento selezionato: spunta i movimenti da azzerare.')
+            return redirect('azzeramento_conti_servizio')
+        parziale = '' if res['is_full'] else ' (parziale)'
+        messages.success(request, f"Azzerati {res['n_movimenti']} movimenti su {res['n_conti']} conti{parziale} (totale {res['totale']:.2f} €). Distinta di azzeramento #{res['reset_dist'].pk} creata.")
         return redirect('riepilogo_crediti')
 
     conti = dati_conti()
     totale = sum((x['cumulativo'] for x in conti), Decimal('0'))
+    pending = db.get_queryset(AzzeramentoProgrammato).filter(stato='in_attesa').order_by('-data_richiesta').first()
+    distinte_aperte = list(db.get_queryset(DistintaCassa).filter(stato='aperta').order_by('ora_inizio'))
     context = {
         'titolo': 'Azzeramento Conti di Servizio',
         'conti': conti,
         'totale': totale,
         'n_movimenti': sum(len(x['movimenti']) for x in conti),
+        'pending': pending,
+        'distinte_aperte': distinte_aperte,
     }
     return render(request, 'app/azzeramento_conti_servizio.html', context)
