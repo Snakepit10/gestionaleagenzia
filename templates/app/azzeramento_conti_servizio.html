@@ -186,6 +186,7 @@
     var fileInput = document.getElementById('csv-pos');
     var esito = document.getElementById('csv-esito');
     var contoSel = document.getElementById('csv-conto');
+    var contoManuale = false;   // se true, la scelta manuale del conto vince sull'auto-selezione
     function leggiFile() {
         var f = fileInput && fileInput.files ? fileInput.files[0] : null;
         if (!f) return;
@@ -193,9 +194,10 @@
         reader.onload = function() { elaboraCSV(reader.result); };
         reader.readAsText(f, 'utf-8');
     }
-    if (fileInput) fileInput.addEventListener('change', leggiFile);
-    // Se cambio il conto dopo aver caricato il file, ri-abbino sul conto giusto.
-    if (contoSel) contoSel.addEventListener('change', leggiFile);
+    // Nuovo file: riparte l'auto-riconoscimento del conto.
+    if (fileInput) fileInput.addEventListener('change', function() { contoManuale = false; leggiFile(); });
+    // Cambio conto manuale: la scelta dell'utente vince e NON viene più sovrascritta.
+    if (contoSel) contoSel.addEventListener('change', function() { contoManuale = true; leggiFile(); });
 
     // Riconosce il formato dall'intestazione: POS (Importo/Stato) o MuchBetter (AMOUNT/CREATED_DATE).
     function analizzaCSV(lines) {
@@ -244,13 +246,29 @@
         return { tipo: 'POS', matchByDate: false, rows: rows, contab: contab, scartate: scartate, scartateLabel: 'rifiutate' };
     }
 
-    // Chiave di match: solo importo, oppure "data|importo" (MuchBetter).
-    function chiaveRiga(r, byDate) {
-        return byDate ? (r.data + '|' + r.importo.toFixed(2)) : r.importo.toFixed(2);
+    // Differenza in giorni tra due date 'YYYY-MM-DD' (Infinity se manca una data).
+    function giorniDiff(a, b) {
+        if (!a || !b) return Infinity;
+        var da = new Date(a + 'T00:00:00'), db2 = new Date(b + 'T00:00:00');
+        if (isNaN(da) || isNaN(db2)) return Infinity;
+        return Math.round(Math.abs(da - db2) / 86400000);
     }
-    function chiaveMov(chk, byDate) {
-        var imp = Math.abs(parseImporto(chk.dataset.importo) || 0).toFixed(2);
-        return byDate ? ((chk.dataset.data || '') + '|' + imp) : imp;
+    // Consuma dal pool una transazione compatibile col movimento; ritorna true se trovata.
+    // POS: solo importo. MuchBetter: importo + data con tolleranza ±1 giorno (preferisce l'esatta).
+    function consuma(pool, chk, byDate) {
+        var k = Math.abs(parseImporto(chk.dataset.importo) || 0).toFixed(2);
+        var arr = pool[k];
+        if (!arr || !arr.length) return false;
+        if (!byDate) { arr.shift(); return true; }
+        var md = chk.dataset.data || '';
+        var idx = -1, best = Infinity;
+        for (var i = 0; i < arr.length; i++) {
+            var d = giorniDiff(md, arr[i]);
+            if (d <= 1 && d < best) { best = d; idx = i; if (d === 0) break; }
+        }
+        if (idx < 0) return false;
+        arr.splice(idx, 1);
+        return true;
     }
 
     // Seleziona automaticamente il conto in base al formato riconosciuto.
@@ -276,35 +294,35 @@
         });
 
         var res = analizzaCSV(lines);
-        autoSelezionaConto(res.tipo);
+        if (!contoManuale) autoSelezionaConto(res.tipo);
 
         // Il CSV riguarda un solo conto: incrocio solo i suoi movimenti.
         var target = contoSel ? contoSel.value : '';
         var contoNome = contoSel && contoSel.selectedOptions.length ? contoSel.selectedOptions[0].text : '';
         var relevant = checks.filter(function(c) { return !target || c.dataset.conto === target; });
 
-        var pool = {};
-        res.rows.forEach(function(r) { var k = chiaveRiga(r, res.matchByDate); pool[k] = (pool[k] || 0) + 1; });
+        var pool = {};   // importo -> [date]  (date '' per i POS)
+        res.rows.forEach(function(r) {
+            var k = r.importo.toFixed(2);
+            (pool[k] = pool[k] || []).push(r.data || '');
+        });
 
         // I movimenti già spuntati a mano consumano capacità del pool.
         relevant.forEach(function(chk) {
-            if (!chk.checked) return;
-            var k = chiaveMov(chk, res.matchByDate);
-            if (pool[k] > 0) pool[k]--;
+            if (chk.checked) consuma(pool, chk, res.matchByDate);
         });
 
         var matched = 0;
         relevant.forEach(function(chk) {
             if (chk.checked) return;
-            var k = chiaveMov(chk, res.matchByDate);
-            if (pool[k] > 0) {
-                chk.checked = true; chk.dataset.csv = '1'; pool[k]--; matched++;
+            if (consuma(pool, chk, res.matchByDate)) {
+                chk.checked = true; chk.dataset.csv = '1'; matched++;
                 var tr = chk.closest('tr'); if (tr) tr.classList.add('match-csv');
             }
         });
 
-        var nonTrovate = Object.keys(pool).reduce(function(a, k) { return a + pool[k]; }, 0);
-        var criterio = res.matchByDate ? 'data + importo' : 'importo';
+        var nonTrovate = Object.keys(pool).reduce(function(a, k) { return a + pool[k].length; }, 0);
+        var criterio = res.matchByDate ? 'data (±1g) + importo' : 'importo';
         esito.innerHTML = 'Formato <b>' + res.tipo + '</b> (match per ' + criterio + ') · conto <b>' + contoNome + '</b> · ' +
                           '<b>' + res.contab + '</b> transazioni valide (' + res.scartate + ' ' + res.scartateLabel + ' ignorate) · ' +
                           '<b class="text-success">' + matched + '</b> movimenti spuntati · ' +
