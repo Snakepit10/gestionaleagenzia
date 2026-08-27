@@ -34,8 +34,18 @@
                         <label class="form-label small mb-0">Giorni da recuperare</label>
                         <input type="number" id="cast-giorni" class="form-control form-control-sm" value="30" min="1" max="400" style="width:110px;">
                     </div>
-                    <div class="col small text-muted">
+                    <div class="col-auto">
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" id="cast-forza">
+                            <label class="form-check-label small" for="cast-forza">
+                                Forza ri-estrazione <span class="text-muted">(riscrivi i valori già presenti)</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-12 small text-muted">
                         Imposta quanti giorni indietro estrarre, poi (ri)trascina il pulsante nei preferiti.
+                        Spunta <strong>Forza ri-estrazione</strong> se un saldo CAST è sbagliato e vuoi riscriverlo:
+                        verranno ri-estratti e sovrascritti tutti i giorni del periodo (ricordati di ri-trascinare il pulsante dopo aver cambiato le opzioni).
                     </div>
                 </div>
                 <ol class="small mb-3">
@@ -61,16 +71,17 @@
         (function() {
             var GEST = JSON.stringify(location.origin);
             var TOKEN = JSON.stringify("{{ token_estrazione }}");
-            function build(GIORNI) {
+            function build(GIORNI, FORZA) {
             return "javascript:(async()=>{try{"
-              + "var GEST=" + GEST + ",TOKEN=" + TOKEN + ";var host=location.hostname;var dati={};var nota='';"
+              + "var GEST=" + GEST + ",TOKEN=" + TOKEN + ";var host=location.hostname;var dati={};var nota='';var castInfo='';"
               + "if(host.indexOf('cast-agent')>=0){"
               + "function findId(){var re=/BalanceAccount\\?id=([A-Za-z0-9._-]+)/;"
               + "var e=performance.getEntriesByType('resource');for(var i=0;i<e.length;i++){var m=e[i].name.match(re);if(m)return m[1];}"
               + "var h=(document.documentElement.outerHTML||'').match(re);return h?h[1]:null;}"
-              + "var gr=await fetch(GEST+'/api/cast/giorni/?token='+TOKEN+'&giorni=" + GIORNI + "');var gj=await gr.json();"
+              + "var gr=await fetch(GEST+'/api/cast/giorni/?token='+TOKEN+'&giorni=" + GIORNI + "&forza=" + (FORZA ? 1 : 0) + "');var gj=await gr.json();"
               + "var giorni=gj.giorni||[];var rng=gj.range||{};"
               + "var id=findId();"
+              + "if(id){castInfo=' · conto CAST letto: '+id;}"
               + "if(id&&giorni.length){var sc={};for(var i=0;i<giorni.length;i++){var g=giorni[i];var d=g.replace(/-/g,'/')+' 00:00:00';"
               + "var u='/api/BalanceAccount?id='+encodeURIComponent(id)+'&dataInizio='+encodeURIComponent(d)+'&dataFine='+encodeURIComponent(d)+'&idOperatore=&idProdotto=&idTipoOperazione=&_='+Date.now();"
               + "var r=await fetch(u,{credentials:'include'});var j=await r.json();var dt=j.data||[];"
@@ -100,18 +111,24 @@
               + "var so={};for(var d in best){so[d]=Math.round(best[d].saldo*100)/100;}dati.saldo_online=so;"
               + "}else{alert('Apri il portale CAST (cast-agent...) oppure PV Online (pvonline...) e clicca il preferito su quella pagina.');return;}"
               + "var pr=await fetch(GEST+'/api/cast/saldi/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:TOKEN,dati:dati})});"
-              + "var pj=await pr.json();alert('Fatto! Valori registrati: '+pj.salvati+'.'+nota);"
+              + "var pj=await pr.json();alert('Fatto! Valori registrati: '+pj.salvati+'.'+nota+castInfo+'\\nVerifica che il conto CAST letto sia quello giusto per questa agenzia.');"
               + "}catch(e){alert('Errore: '+e.message);}})()";
             }
             function aggiorna() {
                 var g = parseInt(document.getElementById('cast-giorni').value, 10);
                 if (isNaN(g) || g < 1) g = 30;
                 if (g > 400) g = 400;
-                var bm = build(g);
+                var forza = document.getElementById('cast-forza').checked;
+                var bm = build(g, forza);
                 document.getElementById('cast-bm').href = bm;
                 document.getElementById('cast-bm-text').value = bm;
+                var btn = document.getElementById('cast-bm');
+                if (btn) btn.innerHTML = forza
+                    ? '<i class="fas fa-rotate me-1"></i>Ri-estrai saldi CAST (forza)'
+                    : '<i class="fas fa-download me-1"></i>Estrai saldi CAST';
             }
             document.getElementById('cast-giorni').addEventListener('input', aggiorna);
+            document.getElementById('cast-forza').addEventListener('change', aggiorna);
             aggiorna();
         })();
         </script>

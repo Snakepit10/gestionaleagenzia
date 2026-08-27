@@ -2353,19 +2353,22 @@ def api_giorni_mancanti(request):
     except (TypeError, ValueError):
         ngiorni = 30
     ngiorni = max(1, min(ngiorni, 400))
+    # forza=1: ri-estrae TUTTI i giorni del periodo (per riscrivere valori sbagliati),
+    # non solo quelli mancanti.
+    forza = str(request.GET.get('forza', '')).lower() in ('1', 'true', 'si', 'yes')
 
     oggi = timezone.localdate()
-    presenti = set(
-        SaldoEsterno.objects.using('default')
-        .filter(agenzia=agenzia, tipo='cast_agent', data__gte=oggi - timedelta(days=ngiorni))
-        .values_list('data', flat=True)
-    )
-    giorni = sorted(
-        {oggi} | {
-            oggi - timedelta(days=i) for i in range(1, ngiorni + 1)
-            if (oggi - timedelta(days=i)) not in presenti
-        }
-    )
+    tutti = sorted({oggi - timedelta(days=i) for i in range(0, ngiorni + 1)})
+    if forza:
+        giorni = tutti
+    else:
+        presenti = set(
+            SaldoEsterno.objects.using('default')
+            .filter(agenzia=agenzia, tipo='cast_agent', data__gte=oggi - timedelta(days=ngiorni))
+            .values_list('data', flat=True)
+        )
+        # Oggi viene sempre incluso (può cambiare in giornata); gli altri solo se mancanti.
+        giorni = [g for g in tutti if g == oggi or g not in presenti]
     inizio = oggi - timedelta(days=ngiorni)
     return _cors(JsonResponse({
         'giorni': [g.isoformat() for g in giorni],
