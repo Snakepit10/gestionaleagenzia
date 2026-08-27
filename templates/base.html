@@ -27,11 +27,11 @@
         }
         /* Brand: wordmark in alto, "Gestionale" grande sotto */
         .brand-logo { text-decoration: none; display: inline-flex; }
-        .brand-stack { display: inline-flex; flex-direction: column; line-height: 1; }
-        .brand-top .wm { font-size: 1.1rem; }
+        .brand-stack { display: inline-flex; flex-direction: column; align-items: center; text-align: center; line-height: 1; }
+        .brand-top .wm { font-size: 1.15rem; }
         .brand-gest {
             font-size: 1.5rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
-            color: #fff; margin-top: 3px;
+            color: #fff; margin-bottom: 4px;
         }
         /* Link della navbar + hover/attivo in colore accento */
         .navbar.brand-nav .nav-link { color: rgba(255,255,255,.82) !important; }
@@ -49,8 +49,8 @@
         <div class="container">
             <a class="navbar-brand brand-logo" href="{% url 'home' %}">
                 <span class="brand-stack">
-                    <span class="brand-top">{{ brand.logo_html }}</span>
                     <span class="brand-gest">Gestionale</span>
+                    <span class="brand-top">{{ brand.logo_html }}</span>
                 </span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
