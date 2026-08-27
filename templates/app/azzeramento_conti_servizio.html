@@ -112,7 +112,7 @@
                             <th style="width:40px;" class="text-center">
                                 <input type="checkbox" class="check-conto" title="Spunta tutti">
                             </th>
-                            <th>Data</th><th>Tipo</th><th class="text-end">Importo</th><th>Note</th>
+                            <th>Data</th><th>Tipo</th><th class="text-end">Importo</th><th>Operatore</th><th>Distinta</th><th>Note</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -128,6 +128,8 @@
                             <td>{{ m.data|date:"d/m/Y H:i" }}</td>
                             <td>{{ m.get_tipo_display }}</td>
                             <td class="text-end {% if m.importo < 0 %}text-danger{% else %}text-success{% endif %}">{{ m.importo|floatformat:2 }} €</td>
+                            <td>{% if m.creato_da %}{{ m.creato_da.username }}{% else %}-{% endif %}</td>
+                            <td>{% if m.distinta_id %}<a href="{% url 'dettaglio_distinta' m.distinta_id %}" target="_blank" rel="noopener">#{{ m.distinta_id }}</a>{% else %}-{% endif %}</td>
                             <td>{{ m.note|default:"-" }}</td>
                         </tr>
                         {% endfor %}

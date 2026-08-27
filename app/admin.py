@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.html import format_html
-from .models import Cliente, Movimento, DistintaCassa, Comunicazione, Agenzia, ProfiloUtente, RiepilogoGiornaliero, SaldoEsterno, AzzeramentoProgrammato
+from .models import Cliente, Movimento, DistintaCassa, Comunicazione, Agenzia, ProfiloUtente, SaldoEsterno, AzzeramentoProgrammato
 from .database_utils import AGENZIA_DATABASE_MAP
 
 
@@ -214,70 +214,3 @@ class ProfiloUtenteAdmin(admin.ModelAdmin):
             'fields': ('user', 'agenzia')
         }),
     )
-
-
-@admin.register(RiepilogoGiornaliero)
-class RiepilogoGiornalieroAdmin(DatabaseSelectorMixin, admin.ModelAdmin):
-    list_display = (
-        'data',
-        'saldo_crediti',
-        'saldo_cassa',
-        'cassa_2',
-        'differenza_distinta',
-        'saldo_ced',
-        'saldo_pvonline',
-        'totale',
-        'saldo_progressivo'
-    )
-    list_filter = ('data',)
-    search_fields = ('data',)
-    date_hierarchy = 'data'
-
-    fieldsets = (
-        ('Data', {
-            'fields': ('data',)
-        }),
-        ('Campi Calcolati Automaticamente', {
-            'fields': ('saldo_crediti', 'saldo_cassa', 'cassa_2', 'differenza_distinta'),
-            'description': 'Questi campi vengono calcolati automaticamente dalle distinte chiuse/verificate.'
-        }),
-        ('Campi Manuali', {
-            'fields': ('saldo_ced', 'saldo_pvonline', 'giroconto_ced', 'giroconto_online', 'sovvenzione', 'restituzione')
-        }),
-        ('Totali', {
-            'fields': ('totale', 'saldo_progressivo'),
-            'description': 'Totale e saldo progressivo calcolati automaticamente.'
-        }),
-        ('Informazioni di Audit', {
-            'fields': ('creato_da', 'data_creazione', 'modificato_da', 'data_modifica'),
-            'classes': ('collapse',)
-        }),
-    )
-
-    readonly_fields = (
-        'saldo_crediti',
-        'saldo_cassa',
-        'cassa_2',
-        'differenza_distinta',
-        'totale',
-        'saldo_progressivo',
-        'data_creazione',
-        'data_modifica'
-    )
-
-    def save_model(self, request, obj, form, change):
-        if not change:
-            obj.creato_da = request.user
-        else:
-            obj.modificato_da = request.user
-
-        # Ottieni il database selezionato
-        selected_db = request.GET.get('db', 'goldbet_db')
-
-        # Salva usando il database selezionato
-        obj.save(using=selected_db)
-
-    def delete_model(self, request, obj):
-        # Ottieni il database selezionato
-        selected_db = request.GET.get('db', 'goldbet_db')
-        obj.delete(using=selected_db)

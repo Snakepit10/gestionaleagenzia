@@ -10,7 +10,7 @@ from decimal import Decimal
 
 from .models import (
     Cliente, Movimento, DistintaCassa, Comunicazione,
-    ContoFinanziario, BilancioPeriodico, MovimentoConti, ActivityLog, RiepilogoGiornaliero,
+    ContoFinanziario, BilancioPeriodico, MovimentoConti, ActivityLog,
     AzzeramentoProgrammato
 )
 from .database_utils import DatabaseManager, get_user_database, sync_user_to_agency_db
@@ -18,8 +18,7 @@ from . import telegram_utils
 from django.views.decorators.csrf import csrf_exempt
 from .forms import (ClienteForm, MovimentoForm, DistintaCassaForm, ChiusuraDistintaForm,
                    VerificaDistintaForm, ComunicazioneForm, FiltroMovimentiForm, FiltroDistinteForm,
-                   ContoFinanziarioForm, ModificaSaldoForm, BilancioPeriodoForm, GirocontoForm,
-                   RiepilogoGiornalieroForm, FiltroRiepiloghiForm)
+                   ContoFinanziarioForm, ModificaSaldoForm, BilancioPeriodoForm, GirocontoForm)
 
 
 # Funzione di utilità per ottenere il database dell'utente
@@ -1937,145 +1936,6 @@ def elimina_movimento_conti(request, pk):
     return render(request, 'app/elimina_movimento_conti.html', context)
 
 
-# ===== VIEWS PER RIEPILOGHI GIORNALIERI =====
-
-@login_required
-@user_passes_test(is_manager_or_admin)
-def lista_riepiloghi(request):
-    """Lista dei riepiloghi giornalieri con filtri"""
-    db = DatabaseManager(request.user)
-    riepiloghi = db.get_queryset(RiepilogoGiornaliero).all()
-
-    # Form di filtro
-    form_filtro = FiltroRiepiloghiForm(request.GET)
-
-    # Applica i filtri se il form è valido
-    if form_filtro.is_valid():
-        data_da = form_filtro.cleaned_data.get('data_da')
-        if data_da:
-            riepiloghi = riepiloghi.filter(data__gte=data_da)
-
-        data_a = form_filtro.cleaned_data.get('data_a')
-        if data_a:
-            riepiloghi = riepiloghi.filter(data__lte=data_a)
-
-    # Ordina per data decrescente
-    riepiloghi = riepiloghi.order_by('-data')
-
-    # Paginazione
-    paginator = Paginator(riepiloghi, 30)  # 30 riepiloghi per pagina
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    context = {
-        'page_obj': page_obj,
-        'form_filtro': form_filtro,
-        'titolo': 'Riepiloghi Giornalieri'
-    }
-
-    return render(request, 'app/lista_riepiloghi.html', context)
-
-
-@login_required
-@user_passes_test(is_manager_or_admin)
-def nuovo_riepilogo(request):
-    """Crea un nuovo riepilogo giornaliero"""
-    db = DatabaseManager(request.user)
-
-    if request.method == 'POST':
-        form = RiepilogoGiornalieroForm(request.POST, user=request.user)
-        if form.is_valid():
-            riepilogo = form.save(commit=False)
-            riepilogo.creato_da = request.user
-
-            # Imposta il database prima di salvare per permettere il calcolo automatico
-            riepilogo._state.db = db.user_db
-
-            # Salva usando il DatabaseManager
-            db.save_object(riepilogo)
-
-            messages.success(request, f'Riepilogo per {riepilogo.data.strftime("%d/%m/%Y")} creato con successo!')
-            return redirect('lista_riepiloghi')
-    else:
-        form = RiepilogoGiornalieroForm(user=request.user)
-
-    context = {
-        'form': form,
-        'titolo': 'Nuovo Riepilogo Giornaliero'
-    }
-
-    return render(request, 'app/form_riepilogo.html', context)
-
-
-@login_required
-@user_passes_test(is_manager_or_admin)
-def dettaglio_riepilogo(request, pk):
-    """Dettaglio di un riepilogo giornaliero"""
-    db = DatabaseManager(request.user)
-    riepilogo = get_object_or_404(db.get_queryset(RiepilogoGiornaliero), pk=pk)
-
-    context = {
-        'riepilogo': riepilogo,
-        'titolo': f'Riepilogo del {riepilogo.data.strftime("%d/%m/%Y")}'
-    }
-
-    return render(request, 'app/dettaglio_riepilogo.html', context)
-
-
-@login_required
-@user_passes_test(is_manager_or_admin)
-def modifica_riepilogo(request, pk):
-    """Modifica un riepilogo giornaliero esistente"""
-    db = DatabaseManager(request.user)
-    riepilogo = get_object_or_404(db.get_queryset(RiepilogoGiornaliero), pk=pk)
-
-    if request.method == 'POST':
-        form = RiepilogoGiornalieroForm(request.POST, instance=riepilogo, user=request.user)
-        if form.is_valid():
-            riepilogo = form.save(commit=False)
-            riepilogo.modificato_da = request.user
-
-            # Assicurati che il database sia impostato correttamente
-            riepilogo._state.db = db.user_db
-
-            # Salva usando il DatabaseManager
-            db.save_object(riepilogo)
-
-            messages.success(request, f'Riepilogo per {riepilogo.data.strftime("%d/%m/%Y")} aggiornato con successo!')
-            return redirect('dettaglio_riepilogo', pk=pk)
-    else:
-        form = RiepilogoGiornalieroForm(instance=riepilogo, user=request.user)
-
-    context = {
-        'form': form,
-        'riepilogo': riepilogo,
-        'titolo': f'Modifica Riepilogo del {riepilogo.data.strftime("%d/%m/%Y")}'
-    }
-
-    return render(request, 'app/form_riepilogo.html', context)
-
-
-@login_required
-@user_passes_test(is_manager_or_admin)
-def elimina_riepilogo(request, pk):
-    """Elimina un riepilogo giornaliero"""
-    db = DatabaseManager(request.user)
-    riepilogo = get_object_or_404(db.get_queryset(RiepilogoGiornaliero), pk=pk)
-
-    if request.method == 'POST':
-        data_str = riepilogo.data.strftime("%d/%m/%Y")
-        riepilogo.delete()
-        messages.success(request, f'Riepilogo del {data_str} eliminato con successo!')
-        return redirect('lista_riepiloghi')
-
-    context = {
-        'riepilogo': riepilogo,
-        'titolo': f'Elimina Riepilogo del {riepilogo.data.strftime("%d/%m/%Y")}'
-    }
-
-    return render(request, 'app/elimina_riepilogo.html', context)
-
-
 @login_required
 @user_passes_test(is_manager_or_admin)
 def riepilogo_crediti(request):
@@ -2188,44 +2048,6 @@ def riepilogo_crediti(request):
     context = {'righe': righe}
     return render(request, 'app/riepilogo_crediti.html', context)
 
-
-@login_required
-@user_passes_test(is_manager_or_admin)
-def genera_riepiloghi_mancanti(request):
-    """Genera automaticamente i riepiloghi per tutte le date con distinte chiuse/verificate"""
-    if request.method == 'POST':
-        riepiloghi_creati = RiepilogoGiornaliero.genera_riepiloghi_mancanti(request.user)
-
-        if riepiloghi_creati:
-            messages.success(
-                request,
-                f'Creati {len(riepiloghi_creati)} riepiloghi giornalieri per le date mancanti!'
-            )
-        else:
-            messages.info(request, 'Nessun riepilogo da creare. Tutti i riepiloghi sono già presenti.')
-
-        return redirect('lista_riepiloghi')
-
-    # Se GET, mostra una pagina di conferma
-    db = DatabaseManager(request.user)
-
-    # Conta le date con distinte chiuse/verificate senza riepilogo
-    from django.db.models import Q
-    date_con_distinte = db.get_queryset(DistintaCassa).filter(
-        Q(stato='chiusa') | Q(stato='verificata')
-    ).values_list('data', flat=True).distinct()
-
-    date_con_riepiloghi = db.get_queryset(RiepilogoGiornaliero).values_list('data', flat=True)
-
-    date_mancanti = set(date_con_distinte) - set(date_con_riepiloghi)
-
-    context = {
-        'date_mancanti': sorted(date_mancanti),
-        'count': len(date_mancanti),
-        'titolo': 'Genera Riepiloghi Mancanti'
-    }
-
-    return render(request, 'app/genera_riepiloghi.html', context)
 
 # ===== ESTRAZIONE SALDI DA PORTALI ESTERNI (CAST Agent) =====
 
@@ -2679,7 +2501,10 @@ def azzeramento_conti_servizio(request):
     def dati_conti():
         conti = []
         for c in db.get_queryset(Cliente).filter(conto_servizio=True).order_by('cognome', 'nome'):
-            movimenti = list(db.get_queryset(Movimento).filter(cliente=c, saldato=False).order_by('-data'))
+            movimenti = list(db.get_queryset(Movimento)
+                             .filter(cliente=c, saldato=False)
+                             .select_related('creato_da', 'distinta')
+                             .order_by('-data'))
             cumulativo = db.get_queryset(Movimento).filter(cliente=c).aggregate(t=Sum('importo'))['t'] or Decimal('0')
             if cumulativo == 0 and not movimenti:
                 continue

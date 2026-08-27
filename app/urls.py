@@ -49,14 +49,6 @@ urlpatterns = [
     path('api/cast/saldi/', views.api_ricevi_saldi, name='api_ricevi_saldi'),
     path('api/saldo-esterno/salva/', views.salva_valore_esterno, name='salva_valore_esterno'),
 
-    # Riepiloghi Giornalieri
-    path('riepiloghi/', views.lista_riepiloghi, name='lista_riepiloghi'),
-    path('riepiloghi/nuovo/', views.nuovo_riepilogo, name='nuovo_riepilogo'),
-    path('riepiloghi/<int:pk>/', views.dettaglio_riepilogo, name='dettaglio_riepilogo'),
-    path('riepiloghi/<int:pk>/modifica/', views.modifica_riepilogo, name='modifica_riepilogo'),
-    path('riepiloghi/<int:pk>/elimina/', views.elimina_riepilogo, name='elimina_riepilogo'),
-    path('riepiloghi/genera-mancanti/', views.genera_riepiloghi_mancanti, name='genera_riepiloghi_mancanti'),
-
     # Logs
     path('logs/', views.lista_logs, name='lista_logs'),
     path('logs/<int:pk>/', views.dettaglio_log, name='dettaglio_log'),
