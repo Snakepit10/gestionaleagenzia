@@ -39,6 +39,20 @@
         .navbar.brand-nav .nav-link:focus { color: var(--brand-accent) !important; }
         .navbar.brand-nav .nav-link.active { color: var(--brand-accent) !important; border-bottom: 2px solid var(--brand-accent); }
         .navbar.brand-nav .dropdown-item:active { background-color: var(--brand-primario); }
+        /* Card-header primari coordinati col brand della navbar */
+        .card-header.bg-primary {
+            background: var(--brand-primario) !important;
+            border-bottom: 2px solid var(--brand-accent) !important;
+        }
+        /* Footer coordinato con la navbar (barra a larghezza contenuto) */
+        footer.brand-footer { background: transparent; padding-top: 1rem; padding-bottom: 1.2rem; }
+        footer.brand-footer > .container {
+            background: var(--brand-primario);
+            border-radius: 12px;
+            padding: .85rem 1.15rem;
+            box-shadow: 0 -3px 0 var(--brand-accent), 0 8px 20px rgba(0,0,0,.35);
+        }
+        footer.brand-footer .text-muted { color: rgba(255,255,255,.72) !important; }
     </style>
     <!-- I CSS specifici per ogni pagina vengono caricati dopo per garantire la priorità -->
     {% block extra_css %}{% endblock %}
@@ -164,7 +178,7 @@
     </div>
     
     <!-- Footer -->
-    <footer class="py-3 mt-5">
+    <footer class="brand-footer mt-5">
         <div class="container text-center">
             <span class="text-muted">&copy; 2025 {{ brand.nome }} · Gestionale</span>
         </div>
