@@ -28,13 +28,10 @@
         /* Brand: wordmark in alto, "Gestionale" grande sotto */
         .brand-logo { text-decoration: none; display: inline-flex; }
         .brand-stack { display: inline-flex; flex-direction: column; align-items: center; text-align: center; line-height: 1; }
-        /* "Gestionale": bianco pieno (sempre leggibile) con linea accento sotto */
-        .brand-gest {
-            font-size: 1.45rem; font-weight: 900; letter-spacing: .18em; text-transform: uppercase;
-            line-height: 1; position: relative; padding-bottom: 6px;
-            color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,.35);
-        }
-        .brand-gest::after {
+        /* Logo "Gestionale" (immagine) con linea accento sotto */
+        .brand-gest-img { position: relative; padding-bottom: 6px; line-height: 0; }
+        .brand-gest-img img { height: 30px; width: auto; display: block; }
+        .brand-gest-img::after {
             content: ''; position: absolute; left: 8%; right: 8%; bottom: 0; height: 3px;
             background: var(--brand-accent); border-radius: 3px;
             box-shadow: 0 0 8px rgba(var(--brand-accent-rgb), .5);
@@ -117,7 +114,9 @@
         <div class="container">
             <a class="navbar-brand brand-logo" href="{% url 'home' %}">
                 <span class="brand-stack">
-                    <span class="brand-gest">Gestionale</span>
+                    <span class="brand-gest-img">
+                        <img src="/static/img/logo-gestionale.png" alt="Gestionale">
+                    </span>
                     <span class="brand-top">{{ brand.logo_html }}</span>
                 </span>
             </a>
