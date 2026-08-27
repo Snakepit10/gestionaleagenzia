@@ -124,7 +124,7 @@
                         data-saldoonline="{{ riga.saldo_online|default_if_none:0|unlocalize }}">
                         <td class="col-data">{{ riga.data|date:"d/m/Y" }}</td>
                         <td class="text-end">
-                            {% if riga.crediti is not None %}
+                            {% if riga.crediti %}
                                 <span class="{% if riga.crediti < 0 %}text-danger{% elif riga.crediti > 0 %}text-success{% endif %}">
                                     {{ riga.crediti|floatformat:2 }} €
                                 </span>
@@ -133,7 +133,7 @@
                             {% endif %}
                         </td>
                         <td class="text-end">
-                            {% if riga.conti_servizio is not None %}
+                            {% if riga.conti_servizio %}
                                 <span class="{% if riga.conti_servizio < 0 %}text-danger{% elif riga.conti_servizio > 0 %}text-success{% endif %}">
                                     {{ riga.conti_servizio|floatformat:2 }} €
                                 </span>
@@ -142,61 +142,63 @@
                             {% endif %}
                         </td>
                         <td class="text-end">
-                            {% if riga.cassa_finale is not None %}
+                            {% if riga.cassa_finale %}
                                 {{ riga.cassa_finale|floatformat:2 }} €
                             {% else %}
                                 <span class="text-muted">—</span>
                             {% endif %}
                         </td>
                         <td class="text-end">
-                            {{ riga.saldo_bevande|floatformat:2 }} €
+                            {% if riga.saldo_bevande %}{{ riga.saldo_bevande|floatformat:2 }} €{% else %}<span class="text-muted">—</span>{% endif %}
                         </td>
                         <td class="text-end">
-                            <span class="{% if riga.differenza_distinta < 0 %}text-danger{% elif riga.differenza_distinta > 0 %}text-success{% endif %}">
-                                {{ riga.differenza_distinta|floatformat:2 }} €
-                            </span>
+                            {% if riga.differenza_distinta %}
+                                <span class="{% if riga.differenza_distinta < 0 %}text-danger{% elif riga.differenza_distinta > 0 %}text-success{% endif %}">
+                                    {{ riga.differenza_distinta|floatformat:2 }} €
+                                </span>
+                            {% else %}<span class="text-muted">—</span>{% endif %}
                         </td>
                         <td class="text-end">
-                            {% if riga.saldo_cast is not None %}
+                            {% if riga.saldo_cast %}
                                 {{ riga.saldo_cast|floatformat:2 }} €
                             {% else %}
                                 <span class="text-muted">—</span>
                             {% endif %}
                         </td>
                         <td class="text-end">
-                            {% if riga.giroconto_online is not None %}
+                            {% if riga.giroconto_online %}
                                 <span class="{% if riga.giroconto_online < 0 %}text-danger{% elif riga.giroconto_online > 0 %}text-success{% endif %}">{{ riga.giroconto_online|floatformat:2 }} €</span>
                             {% else %}<span class="text-muted">—</span>{% endif %}
                         </td>
                         <td class="text-end">
-                            {% if riga.giroconto_terrestre is not None %}
+                            {% if riga.giroconto_terrestre %}
                                 <span class="{% if riga.giroconto_terrestre < 0 %}text-danger{% elif riga.giroconto_terrestre > 0 %}text-success{% endif %}">{{ riga.giroconto_terrestre|floatformat:2 }} €</span>
                             {% else %}<span class="text-muted">—</span>{% endif %}
                         </td>
                         <td class="text-end">
-                            {% if riga.giroconto_conti_servizio is not None %}
+                            {% if riga.giroconto_conti_servizio %}
                                 <span class="{% if riga.giroconto_conti_servizio < 0 %}text-danger{% elif riga.giroconto_conti_servizio > 0 %}text-success{% endif %}">{{ riga.giroconto_conti_servizio|floatformat:2 }} €</span>
                             {% else %}<span class="text-muted">—</span>{% endif %}
                         </td>
                         <td class="text-end">
-                            {% if riga.saldo_online is not None %}{{ riga.saldo_online|floatformat:2 }} €{% else %}<span class="text-muted">—</span>{% endif %}
+                            {% if riga.saldo_online %}{{ riga.saldo_online|floatformat:2 }} €{% else %}<span class="text-muted">—</span>{% endif %}
                         </td>
                         <td class="text-end" style="min-width:110px;">
                             <input type="text" inputmode="decimal" class="form-control form-control-sm text-end inline-valore"
                                    data-tipo="prelievi" data-data="{{ riga.data|date:'Y-m-d' }}"
-                                   value="{% if riga.prelievi is not None %}{{ riga.prelievi|floatformat:2 }}{% endif %}"
+                                   value="{% if riga.prelievi %}{{ riga.prelievi|floatformat:2 }}{% endif %}"
                                    placeholder="—">
                         </td>
                         <td class="text-end" style="min-width:110px;">
                             <input type="text" inputmode="decimal" class="form-control form-control-sm text-end inline-valore"
                                    data-tipo="versamenti" data-data="{{ riga.data|date:'Y-m-d' }}"
-                                   value="{% if riga.versamenti is not None %}{{ riga.versamenti|floatformat:2 }}{% endif %}"
+                                   value="{% if riga.versamenti %}{{ riga.versamenti|floatformat:2 }}{% endif %}"
                                    placeholder="—">
                         </td>
                         <td class="text-end" style="min-width:110px;">
                             <input type="text" inputmode="decimal" class="form-control form-control-sm text-end inline-valore"
                                    data-tipo="altro" data-data="{{ riga.data|date:'Y-m-d' }}"
-                                   value="{% if riga.altro is not None %}{{ riga.altro|floatformat:2 }}{% endif %}"
+                                   value="{% if riga.altro %}{{ riga.altro|floatformat:2 }}{% endif %}"
                                    placeholder="—">
                         </td>
                         <td class="text-end fw-bold cella-totale col-tot">{{ riga.totale|floatformat:2 }} €</td>
