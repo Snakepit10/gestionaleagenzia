@@ -28,11 +28,21 @@
         /* Brand: wordmark in alto, "Gestionale" grande sotto */
         .brand-logo { text-decoration: none; display: inline-flex; }
         .brand-stack { display: inline-flex; flex-direction: column; align-items: center; text-align: center; line-height: 1; }
-        .brand-top .wm { font-size: 1.15rem; }
+        /* "Gestionale" con un po' di stile: testo a gradiente + linea accento */
         .brand-gest {
-            font-size: 1.5rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
-            color: #fff; margin-bottom: 4px;
+            font-size: 1.45rem; font-weight: 900; letter-spacing: .18em; text-transform: uppercase;
+            line-height: 1; position: relative; padding-bottom: 5px;
+            background: linear-gradient(180deg, #ffffff 0%, #c7ccd4 100%);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent; color: transparent;
         }
+        .brand-gest::after {
+            content: ''; position: absolute; left: 10%; right: 10%; bottom: 0; height: 2px;
+            background: var(--brand-accent); border-radius: 2px; opacity: .95;
+        }
+        /* Brand sotto, più piccolo */
+        .brand-top { margin-top: 5px; }
+        .brand-top .wm { font-size: .82rem; letter-spacing: .02em; opacity: .95; }
         /* Link della navbar + hover/attivo in colore accento */
         .navbar.brand-nav .nav-link { color: rgba(255,255,255,.82) !important; }
         .navbar.brand-nav .nav-link:hover,
@@ -53,11 +63,56 @@
             box-shadow: 0 -3px 0 var(--brand-accent), 0 8px 20px rgba(0,0,0,.35);
         }
         footer.brand-footer .text-muted { color: rgba(255,255,255,.72) !important; }
+
+        /* ---- UI coordinata col brand della navbar ---- */
+        /* Campi form: sfondo scuro coerente + focus in colore accento */
+        .form-control, .form-select {
+            background-color: #0e1216; border-color: rgba(255,255,255,.14); color: #e9ecef;
+        }
+        .form-control::placeholder { color: #6c757d; }
+        .form-control:focus, .form-select:focus {
+            background-color: #0e1216; color: #fff; border-color: var(--brand-accent);
+            box-shadow: 0 0 0 .2rem rgba(var(--brand-accent-rgb), .28);
+        }
+        .form-check-input:checked { background-color: var(--brand-accent); border-color: var(--brand-accent); }
+        .form-check-input:focus { border-color: var(--brand-accent); box-shadow: 0 0 0 .2rem rgba(var(--brand-accent-rgb), .28); }
+        /* Bottone primario = azione brand (accento) */
+        .btn-primary {
+            background-color: var(--brand-accent); border-color: var(--brand-accent);
+            color: #10131a; font-weight: 600;
+        }
+        .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+            background-color: var(--brand-accent) !important; border-color: var(--brand-accent) !important;
+            color: #10131a !important; filter: brightness(.92);
+        }
+        .btn-outline-primary { color: var(--brand-accent); border-color: var(--brand-accent); }
+        .btn-outline-primary:hover, .btn-outline-primary:active {
+            background-color: var(--brand-accent) !important; border-color: var(--brand-accent) !important; color: #10131a !important;
+        }
+        .badge.bg-primary { background-color: var(--brand-primario) !important; }
+        /* Paginazione */
+        .page-link { color: var(--brand-accent); }
+        .page-item.active .page-link { background-color: var(--brand-primario); border-color: var(--brand-primario); color: #fff; }
+        /* Select2 coordinato */
+        .select2-container--bootstrap-5 .select2-selection {
+            background-color: #0e1216 !important; border-color: rgba(255,255,255,.14) !important; color: #e9ecef !important;
+        }
+        .select2-container--bootstrap-5.select2-container--focus .select2-selection,
+        .select2-container--bootstrap-5.select2-container--open .select2-selection {
+            border-color: var(--brand-accent) !important; box-shadow: 0 0 0 .2rem rgba(var(--brand-accent-rgb), .28) !important;
+        }
+        .select2-container--bootstrap-5 .select2-dropdown {
+            background-color: #12161b; border-color: rgba(255,255,255,.14);
+        }
+        .select2-container--bootstrap-5 .select2-results__option--highlighted,
+        .select2-container--bootstrap-5 .select2-results__option--selected {
+            background-color: var(--brand-primario) !important; color: #fff !important;
+        }
     </style>
     <!-- I CSS specifici per ogni pagina vengono caricati dopo per garantire la priorità -->
     {% block extra_css %}{% endblock %}
 </head>
-<body class="dark-mode" style="--brand-primario: {{ brand.primario }}; --brand-accent: {{ brand.accento }};">
+<body class="dark-mode" style="--brand-primario: {{ brand.primario }}; --brand-accent: {{ brand.accento }}; --brand-accent-rgb: {{ brand.accento_rgb }};">
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark brand-nav">
         <div class="container">

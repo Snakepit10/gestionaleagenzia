@@ -11,6 +11,17 @@ def _wm(html):
     return mark_safe(html)
 
 
+def _hex_rgb(hexstr):
+    """'#f5b71d' -> '245, 183, 29' (per usare rgba(var(--brand-accent-rgb), a))."""
+    h = (hexstr or '').lstrip('#')
+    if len(h) == 3:
+        h = ''.join(c * 2 for c in h)
+    try:
+        return f"{int(h[0:2], 16)}, {int(h[2:4], 16)}, {int(h[4:6], 16)}"
+    except (ValueError, IndexError):
+        return "107, 122, 255"
+
+
 # Configurazione per-agenzia (chiave = nome agenzia in minuscolo).
 # primario = sfondo navbar; accento = colore highlight; logo_html = wordmark.
 AGENZIA_BRAND = {
@@ -66,4 +77,5 @@ def branding(request):
                 # Agenzia non mappata: nome col wordmark di default.
                 brand['nome'] = agenzia.nome
                 brand['logo_html'] = _wm('<span class="wm">%s</span>' % agenzia.nome)
+    brand['accento_rgb'] = _hex_rgb(brand.get('accento'))
     return {'brand': brand}
