@@ -173,6 +173,10 @@ class AgenziaAdmin(admin.ModelAdmin):
             'fields': ('telegram_chat_id', 'soglia_cassa'),
             'description': 'Chat/gruppo Telegram per le notifiche. Soglia cassa: se la cassa finale di una distinta la supera, invia un alert (impostabile anche da Telegram con "soglia <valore>").'
         }),
+        ('Estrazione CAST', {
+            'fields': ('cast_account_id',),
+            'description': 'ID conto CAST associato (impostato alla prima estrazione). Svuota il campo per riassociarlo.'
+        }),
         ('Date', {
             'fields': ('data_creazione',)
         }),

@@ -2256,6 +2256,12 @@ def estrazione_saldi(request):
 
     tipi_validi = {t for t, _ in SaldoEsterno.TIPO_CHOICES}
 
+    if request.method == 'POST' and request.POST.get('azione') == 'reset_conto_cast':
+        agenzia.cast_account_id = ''
+        agenzia.save(using='default')
+        messages.info(request, 'Conto CAST associato azzerato: la prossima estrazione lo riassocerà automaticamente.')
+        return redirect('estrazione_saldi')
+
     if request.method == 'POST' and request.POST.get('azione') == 'manuale':
         # Inserimento/correzione manuale di un giorno per un tipo
         data_str = request.POST.get('data_manuale', '')
@@ -2403,6 +2409,27 @@ def api_ricevi_saldi(request):
     if corpo.get('saldi'):
         dati.setdefault('cast_agent', {}).update(corpo['saldi'])
 
+    # Anti-contaminazione tra agenzie: il conto CAST deve corrispondere a quello
+    # associato all'agenzia (impostato alla prima estrazione). Impedisce che un
+    # bookmarklet con token di un'agenzia scriva i saldi CAST di un'altra.
+    cast_tipi = {'cast_agent', 'giroconto_online', 'giroconto_terrestre'}
+    has_cast = any(t in dati for t in cast_tipi)
+    conto_cast = (str(corpo.get('conto_cast') or '')).strip()
+    if has_cast:
+        associato = (agenzia.cast_account_id or '').strip()
+        if associato:
+            if conto_cast != associato:
+                return _cors(JsonResponse({
+                    'errore': f'Conto CAST non corrispondente a questa agenzia ({agenzia.nome}). '
+                              f'Atteso il conto associato, ricevuto "{conto_cast or "sconosciuto"}". '
+                              f'Verifica di essere sulla pagina CAST giusta, oppure svuota il conto CAST associato in Agenzia per riassociarlo.',
+                    'conto_atteso': associato, 'conto_ricevuto': conto_cast,
+                }, status=409))
+        elif conto_cast:
+            # Prima estrazione: associa il conto CAST all'agenzia.
+            agenzia.cast_account_id = conto_cast
+            agenzia.save(using='default')
+
     salvati = 0
     scartati = []
     for tipo, valori in dati.items():
@@ -2421,7 +2448,8 @@ def api_ricevi_saldi(request):
             )
             salvati += 1
 
-    return _cors(JsonResponse({'salvati': salvati, 'scartati': scartati}))
+    return _cors(JsonResponse({'salvati': salvati, 'scartati': scartati,
+                               'conto_cast': (agenzia.cast_account_id or '')}))
 
 
 @login_required

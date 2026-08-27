@@ -29,6 +29,24 @@
                     Il portale CAST è raggiungibile solo dal browser dell'agenzia. L'estrazione avviene
                     quindi dal tuo browser (già connesso al portale), con un clic.
                 </p>
+                <div class="alert {% if agenzia.cast_account_id %}alert-success{% else %}alert-secondary{% endif %} d-flex justify-content-between align-items-center py-2 small">
+                    <div>
+                        <i class="fas fa-link me-1"></i>
+                        {% if agenzia.cast_account_id %}
+                            Conto CAST associato a <strong>{{ agenzia.nome }}</strong>: <code>{{ agenzia.cast_account_id }}</code>.
+                            Le estrazioni da un conto CAST diverso vengono <strong>rifiutate</strong> (evita di sovrascrivere i saldi di un'altra agenzia).
+                        {% else %}
+                            Nessun conto CAST ancora associato: verrà impostato automaticamente alla prima estrazione.
+                        {% endif %}
+                    </div>
+                    {% if agenzia.cast_account_id %}
+                    <form method="post" class="mb-0 ms-2" onsubmit="return confirm('Azzerare il conto CAST associato? La prossima estrazione ne assocerà uno nuovo.');">
+                        {% csrf_token %}
+                        <input type="hidden" name="azione" value="reset_conto_cast">
+                        <button class="btn btn-sm btn-outline-secondary">Riassocia</button>
+                    </form>
+                    {% endif %}
+                </div>
                 <div class="row g-2 align-items-end mb-3">
                     <div class="col-auto">
                         <label class="form-label small mb-0">Giorni da recuperare</label>
@@ -73,7 +91,7 @@
             var TOKEN = JSON.stringify("{{ token_estrazione }}");
             function build(GIORNI, FORZA) {
             return "javascript:(async()=>{try{"
-              + "var GEST=" + GEST + ",TOKEN=" + TOKEN + ";var host=location.hostname;var dati={};var nota='';var castInfo='';"
+              + "var GEST=" + GEST + ",TOKEN=" + TOKEN + ";var host=location.hostname;var dati={};var nota='';var castInfo='';var contoCast='';"
               + "if(host.indexOf('cast-agent')>=0){"
               + "function findId(){var re=/BalanceAccount\\?id=([A-Za-z0-9._-]+)/;"
               + "var e=performance.getEntriesByType('resource');for(var i=0;i<e.length;i++){var m=e[i].name.match(re);if(m)return m[1];}"
@@ -81,7 +99,7 @@
               + "var gr=await fetch(GEST+'/api/cast/giorni/?token='+TOKEN+'&giorni=" + GIORNI + "&forza=" + (FORZA ? 1 : 0) + "');var gj=await gr.json();"
               + "var giorni=gj.giorni||[];var rng=gj.range||{};"
               + "var id=findId();"
-              + "if(id){castInfo=' · conto CAST letto: '+id;}"
+              + "if(id){castInfo=' · conto CAST letto: '+id;contoCast=id;}"
               + "if(id&&giorni.length){var sc={};for(var i=0;i<giorni.length;i++){var g=giorni[i];var d=g.replace(/-/g,'/')+' 00:00:00';"
               + "var u='/api/BalanceAccount?id='+encodeURIComponent(id)+'&dataInizio='+encodeURIComponent(d)+'&dataFine='+encodeURIComponent(d)+'&idOperatore=&idProdotto=&idTipoOperazione=&_='+Date.now();"
               + "var r=await fetch(u,{credentials:'include'});var j=await r.json();var dt=j.data||[];"
@@ -113,8 +131,9 @@
               + "if(!best[day]||dt>best[day].dt){best[day]={dt:dt,saldo:v.Saldo/100};}}"
               + "var so={};for(var d in best){so[d]=Math.round(best[d].saldo*100)/100;}dati.saldo_online=so;"
               + "}else{alert('Apri il portale CAST (cast-agent...) oppure PV Online (pvonline...) e clicca il preferito su quella pagina.');return;}"
-              + "var pr=await fetch(GEST+'/api/cast/saldi/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:TOKEN,dati:dati})});"
-              + "var pj=await pr.json();alert('Fatto! Valori registrati: '+pj.salvati+'.'+nota+castInfo+'\\nVerifica che il conto CAST letto sia quello giusto per questa agenzia.');"
+              + "var pr=await fetch(GEST+'/api/cast/saldi/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:TOKEN,dati:dati,conto_cast:contoCast})});"
+              + "var pj=await pr.json();if(pj&&pj.errore){alert('ESTRAZIONE RIFIUTATA\\n'+pj.errore);return;}"
+              + "alert('Fatto! Valori registrati: '+pj.salvati+'.'+nota+castInfo);"
               + "}catch(e){alert('Errore: '+e.message);}})()";
             }
             function aggiorna() {

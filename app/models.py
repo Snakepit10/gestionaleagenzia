@@ -31,6 +31,12 @@ class Agenzia(models.Model):
         blank=True,
         help_text="Se la cassa finale di una distinta supera questo valore, invia un alert Telegram. Vuoto = nessun alert."
     )
+    cast_account_id = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="ID conto CAST associato a questa agenzia. Viene impostato automaticamente alla prima estrazione; le estrazioni con un conto CAST diverso vengono rifiutate. Svuota il campo per riassociarlo."
+    )
     data_creazione = models.DateTimeField(auto_now_add=True)
 
     class Meta:
