@@ -574,7 +574,12 @@
 <style>
     .gruppo-parent { cursor: pointer; }
     .gruppo-parent .chevron, .gruppo-parent [class*="chev-"] { transition: transform .15s; }
-    .gruppo-child > td:first-child { padding-left: 1.2rem; }
+    /* Sotto-righe di un gruppo: sfondo tinta accento + bordo sinistro per distinguerle */
+    .gruppo-child > td { --bs-table-accent-bg: rgba(var(--brand-accent-rgb, 107,122,255), .10) !important; }
+    .gruppo-child > td:first-child {
+        padding-left: 1.2rem;
+        border-left: 4px solid rgba(var(--brand-accent-rgb, 107,122,255), .55);
+    }
 </style>
 {% endblock %}
 
