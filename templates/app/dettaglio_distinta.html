@@ -463,7 +463,7 @@
 </div>
 
 {% if distinta.stato == 'aperta' %}
-<!-- Conteggio contanti per denominazioni (calcolatore) -->
+<!-- Conteggio contanti + calcolatrice -->
 <div class="row mb-4" id="conteggio-contanti">
     <div class="col-12">
         <div class="card">
@@ -471,65 +471,65 @@
                 <h5 class="mb-0"><i class="fas fa-coins me-2"></i>Conteggio Contanti</h5>
             </div>
             <div class="card-body">
-                <p class="text-muted small mb-3">Per ogni cassa inserisci il <strong>totale</strong> diretto oppure il <strong>dettaglio dei pezzi</strong> per taglio (il totale si calcola da solo). Il totale generale può essere usato come cassa finale.</p>
                 <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <div id="cassaforte" class="border rounded p-2 h-100">
-                            <div class="fw-bold mb-2"><i class="fas fa-vault me-1"></i>Cassaforte</div>
-                            <div class="btn-group btn-group-sm w-100 mb-2" role="group">
-                                <input type="radio" class="btn-check modo-cassa" name="modo-cassaforte" id="modo-cassaforte-tot" value="totale" data-cassa="cassaforte" checked>
-                                <label class="btn btn-outline-secondary" for="modo-cassaforte-tot">Totale</label>
-                                <input type="radio" class="btn-check modo-cassa" name="modo-cassaforte" id="modo-cassaforte-pezzi" value="pezzi" data-cassa="cassaforte">
-                                <label class="btn btn-outline-secondary" for="modo-cassaforte-pezzi">Dettaglio pezzi</label>
+                    <!-- Casse -->
+                    <div class="col-lg-7 mb-3">
+                        <div class="border rounded p-3 h-100">
+                            <p class="text-muted small mb-2">Inserisci il totale di ogni cassa. Il totale generale puo' essere usato come cassa finale.</p>
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <label class="form-label small mb-1"><i class="fas fa-vault me-1"></i>Cassaforte (€)</label>
+                                    <input type="number" step="0.01" min="0" class="form-control cassa-input" data-cassa="cassaforte" placeholder="0,00">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small mb-1"><i class="fas fa-cash-register me-1"></i>Cassa banco (€)</label>
+                                    <input type="number" step="0.01" min="0" class="form-control cassa-input" data-cassa="cassa_banco" placeholder="0,00">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small mb-1"><i class="fas fa-coins me-1"></i>Monete (€)</label>
+                                    <input type="number" step="0.01" min="0" class="form-control cassa-input" data-cassa="monete" placeholder="0,00">
+                                </div>
                             </div>
-                            <div class="box-totale">
-                                <input type="number" step="0.01" min="0" class="form-control form-control-sm totale-diretto" placeholder="Totale €">
+                            <hr>
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div><span class="fs-5 me-2">Totale:</span><span class="h3 mb-0 text-info" id="cc_totale_generale">0,00 €</span></div>
+                                <button type="button" class="btn btn-info text-white" id="cc_usa_cassa_finale" data-chiudi-url="{% url 'chiudi_distinta' distinta.id %}">
+                                    <i class="fas fa-copy me-2"></i>Usa come cassa finale
+                                </button>
                             </div>
-                            <div class="box-pezzi d-none"></div>
-                            <div class="text-end mt-2 small">Totale cassa: <span class="fw-bold totale-cassa" data-cassa="cassaforte">0,00 €</span></div>
+                            <div id="cc_copia_successo" class="alert alert-success mt-2 d-none"><i class="fas fa-check-circle me-2"></i>Totale copiato! Reindirizzamento alla chiusura...</div>
                         </div>
                     </div>
-                    <div class="col-md-4 mb-3">
-                        <div id="cassa_banco" class="border rounded p-2 h-100">
-                            <div class="fw-bold mb-2"><i class="fas fa-cash-register me-1"></i>Cassa banco</div>
-                            <div class="btn-group btn-group-sm w-100 mb-2" role="group">
-                                <input type="radio" class="btn-check modo-cassa" name="modo-cassa_banco" id="modo-cassa_banco-tot" value="totale" data-cassa="cassa_banco" checked>
-                                <label class="btn btn-outline-secondary" for="modo-cassa_banco-tot">Totale</label>
-                                <input type="radio" class="btn-check modo-cassa" name="modo-cassa_banco" id="modo-cassa_banco-pezzi" value="pezzi" data-cassa="cassa_banco">
-                                <label class="btn btn-outline-secondary" for="modo-cassa_banco-pezzi">Dettaglio pezzi</label>
+                    <!-- Calcolatrice -->
+                    <div class="col-lg-5 mb-3">
+                        <div class="border rounded p-2 h-100">
+                            <div class="small text-muted mb-1">Calcolatrice <span class="opacity-75">(clic o tastierino)</span></div>
+                            <input type="text" id="calc_display" class="form-control text-end mb-2 fw-bold" style="font-size:1.5rem;" value="0" readonly>
+                            <div id="calc_grid" class="calc-grid">
+                                <button type="button" class="btn btn-outline-danger" data-act="clear">C</button>
+                                <button type="button" class="btn btn-outline-secondary" data-act="ce">CE</button>
+                                <button type="button" class="btn btn-outline-secondary" data-act="back">&#9003;</button>
+                                <button type="button" class="btn btn-outline-info" data-op="/">&divide;</button>
+                                <button type="button" class="btn btn-outline-light" data-val="7">7</button>
+                                <button type="button" class="btn btn-outline-light" data-val="8">8</button>
+                                <button type="button" class="btn btn-outline-light" data-val="9">9</button>
+                                <button type="button" class="btn btn-outline-info" data-op="*">&times;</button>
+                                <button type="button" class="btn btn-outline-light" data-val="4">4</button>
+                                <button type="button" class="btn btn-outline-light" data-val="5">5</button>
+                                <button type="button" class="btn btn-outline-light" data-val="6">6</button>
+                                <button type="button" class="btn btn-outline-info" data-op="-">&minus;</button>
+                                <button type="button" class="btn btn-outline-light" data-val="1">1</button>
+                                <button type="button" class="btn btn-outline-light" data-val="2">2</button>
+                                <button type="button" class="btn btn-outline-light" data-val="3">3</button>
+                                <button type="button" class="btn btn-outline-info" data-op="+">+</button>
+                                <button type="button" class="btn btn-outline-secondary" data-act="neg">&plusmn;</button>
+                                <button type="button" class="btn btn-outline-light" data-val="0">0</button>
+                                <button type="button" class="btn btn-outline-light" data-val=".">,</button>
+                                <button type="button" class="btn btn-info text-white" data-act="equals">=</button>
                             </div>
-                            <div class="box-totale">
-                                <input type="number" step="0.01" min="0" class="form-control form-control-sm totale-diretto" placeholder="Totale €">
-                            </div>
-                            <div class="box-pezzi d-none"></div>
-                            <div class="text-end mt-2 small">Totale cassa: <span class="fw-bold totale-cassa" data-cassa="cassa_banco">0,00 €</span></div>
-                        </div>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <div id="monete" class="border rounded p-2 h-100">
-                            <div class="fw-bold mb-2"><i class="fas fa-coins me-1"></i>Monete</div>
-                            <div class="btn-group btn-group-sm w-100 mb-2" role="group">
-                                <input type="radio" class="btn-check modo-cassa" name="modo-monete" id="modo-monete-tot" value="totale" data-cassa="monete" checked>
-                                <label class="btn btn-outline-secondary" for="modo-monete-tot">Totale</label>
-                                <input type="radio" class="btn-check modo-cassa" name="modo-monete" id="modo-monete-pezzi" value="pezzi" data-cassa="monete">
-                                <label class="btn btn-outline-secondary" for="modo-monete-pezzi">Dettaglio pezzi</label>
-                            </div>
-                            <div class="box-totale">
-                                <input type="number" step="0.01" min="0" class="form-control form-control-sm totale-diretto" placeholder="Totale €">
-                            </div>
-                            <div class="box-pezzi d-none"></div>
-                            <div class="text-end mt-2 small">Totale cassa: <span class="fw-bold totale-cassa" data-cassa="monete">0,00 €</span></div>
                         </div>
                     </div>
                 </div>
-                <hr>
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div><span class="fs-5 me-2">Totale generale:</span><span class="h3 mb-0 text-info" id="cc_totale_generale">0,00 €</span></div>
-                    <button type="button" class="btn btn-info text-white" id="cc_usa_cassa_finale" data-chiudi-url="{% url 'chiudi_distinta' distinta.id %}">
-                        <i class="fas fa-copy me-2"></i>Usa come cassa finale
-                    </button>
-                </div>
-                <div id="cc_copia_successo" class="alert alert-success mt-2 d-none"><i class="fas fa-check-circle me-2"></i>Totale copiato! Reindirizzamento alla chiusura…</div>
             </div>
         </div>
     </div>
@@ -619,6 +619,10 @@
         padding-left: 1.2rem;
         border-left: 4px solid rgba(255,255,255,.28);
     }
+    /* Calcolatrice */
+    .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .35rem; }
+    .calc-grid .btn { font-size: 1.1rem; font-weight: 600; padding: .55rem 0; }
+    #calc_display { letter-spacing: .02em; }
 </style>
 {% endblock %}
 
