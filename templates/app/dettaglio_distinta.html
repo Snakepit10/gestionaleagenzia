@@ -333,113 +333,6 @@
 </div>
 {% endif %}
 
-<div class="row mb-4">
-    <!-- Riepiloghi e Azioni -->
-    <div class="col-md-6">
-        <div class="card mb-4">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-chart-bar me-2"></i>Riepilogo Movimenti
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-4">
-                        <div class="card bg-success text-white h-100">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Entrate (Prelievi)</h5>
-                                <h3 class="display-6">{{ totale_entrate|floatformat:2 }} €</h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-4">
-                        <div class="card bg-danger text-white h-100">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Uscite (Schedine/Ricariche)</h5>
-                                <h3 class="display-6">{{ totale_uscite|floatformat:2 }} €</h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Numero totale movimenti e bottone per visualizzarli tutti -->
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="fs-5">Totale movimenti: <span class="badge bg-primary">{{ movimenti.count }}</span></span>
-                    <a href="#lista-movimenti" class="btn btn-outline-primary" data-bs-toggle="collapse">
-                        <i class="fas fa-list me-2"></i>Mostra/Nascondi Movimenti
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Conteggio parziale della cassa -->
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-calculator me-2"></i>Conteggio Parziale Cassa
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>Formula:</strong> Cassa = Saldo Terminale(input) + Entrate - Uscite + Saldo 2 (Bevande)(input)
-                    <br>
-                    <small class="text-muted">Questo strumento ti permette di calcolare velocemente il valore atteso della cassa in base ai movimenti.</small>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Saldo Terminale (€)</label>
-                        <input type="number" id="conteggio_saldo_terminale" class="form-control" value="0" step="0.01" min="0">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Saldo 2 (Bevande) (€)</label>
-                        <input type="number" id="conteggio_bevande" class="form-control" value="0" step="0.01">
-                    </div>
-                </div>
-
-                <!-- Valori fissi -->
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Entrate</label>
-                        <div class="form-control-plaintext">{{ totale_entrate|floatformat:2 }} €</div>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Uscite</label>
-                        <div class="form-control-plaintext">{{ totale_uscite|floatformat:2 }} €</div>
-                    </div>
-                </div>
-
-                <!-- Risultato -->
-                <div class="card bg-light mt-3">
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-12 text-center">
-                                <h5 class="text-primary">Risultato conteggio</h5>
-                                <div class="py-2">
-                                    <span id="formula_conteggio" class="d-block text-muted small mb-2"></span>
-                                    <h3 class="mb-0 display-6 text-primary" id="risultato_conteggio">0,00 €</h3>
-                                </div>
-
-                                {% if distinta.stato == 'aperta' %}
-                                <button type="button" class="btn btn-outline-primary mt-3" id="copia_valore_cassa">
-                                    <i class="fas fa-copy me-2"></i>Usa come valore cassa finale
-                                </button>
-                                <div id="copia_successo" class="alert alert-success mt-2 d-none">
-                                    <i class="fas fa-check-circle me-2"></i>Valore copiato! Ora puoi chiudere la distinta.
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Lista movimenti -->
 <div class="card mb-4 collapse show" id="lista-movimenti">
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -455,11 +348,13 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="entrate-tab" data-bs-toggle="tab" data-bs-target="#entrate" type="button" role="tab" aria-controls="entrate" aria-selected="true">
                     <i class="fas fa-arrow-down text-success me-2"></i>Entrate (Prelievi)
+                    <span class="badge bg-success ms-2">{{ totale_entrate|floatformat:2 }} €</span>
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="uscite-tab" data-bs-toggle="tab" data-bs-target="#uscite" type="button" role="tab" aria-controls="uscite" aria-selected="false">
                     <i class="fas fa-arrow-up text-danger me-2"></i>Uscite (Schedine/Ricariche)
+                    <span class="badge bg-danger ms-2">{{ totale_uscite|floatformat:2 }} €</span>
                 </button>
             </li>
         </ul>
@@ -566,6 +461,76 @@
         </div>
     </div>
 </div>
+
+<!-- Conteggio parziale della cassa (sotto i movimenti) -->
+<div class="row mb-4">
+    <!-- Conteggio parziale della cassa -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-calculator me-2"></i>Conteggio Parziale Cassa
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Formula:</strong> Cassa = Saldo Terminale(input) + Entrate - Uscite + Saldo 2 (Bevande)(input)
+                    <br>
+                    <small class="text-muted">Questo strumento ti permette di calcolare velocemente il valore atteso della cassa in base ai movimenti.</small>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Saldo Terminale (€)</label>
+                        <input type="number" id="conteggio_saldo_terminale" class="form-control" value="0" step="0.01" min="0">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Saldo 2 (Bevande) (€)</label>
+                        <input type="number" id="conteggio_bevande" class="form-control" value="0" step="0.01">
+                    </div>
+                </div>
+
+                <!-- Valori fissi -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Entrate</label>
+                        <div class="form-control-plaintext">{{ totale_entrate|floatformat:2 }} €</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Uscite</label>
+                        <div class="form-control-plaintext">{{ totale_uscite|floatformat:2 }} €</div>
+                    </div>
+                </div>
+
+                <!-- Risultato -->
+                <div class="card bg-light mt-3">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-12 text-center">
+                                <h5 class="text-primary">Risultato conteggio</h5>
+                                <div class="py-2">
+                                    <span id="formula_conteggio" class="d-block text-muted small mb-2"></span>
+                                    <h3 class="mb-0 display-6 text-primary" id="risultato_conteggio">0,00 €</h3>
+                                </div>
+
+                                {% if distinta.stato == 'aperta' %}
+                                <button type="button" class="btn btn-outline-primary mt-3" id="copia_valore_cassa">
+                                    <i class="fas fa-copy me-2"></i>Usa come valore cassa finale
+                                </button>
+                                <div id="copia_successo" class="alert alert-success mt-2 d-none">
+                                    <i class="fas fa-check-circle me-2"></i>Valore copiato! Ora puoi chiudere la distinta.
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_css %}
@@ -574,11 +539,11 @@
 <style>
     .gruppo-parent { cursor: pointer; }
     .gruppo-parent .chevron, .gruppo-parent [class*="chev-"] { transition: transform .15s; }
-    /* Sotto-righe di un gruppo: sfondo tinta accento + bordo sinistro per distinguerle */
-    .gruppo-child > td { --bs-table-accent-bg: rgba(var(--brand-accent-rgb, 107,122,255), .10) !important; }
+    /* Sotto-righe di un gruppo: grigio leggermente più chiaro + bordo sinistro */
+    .gruppo-child > td { --bs-table-accent-bg: rgba(255,255,255,.07) !important; }
     .gruppo-child > td:first-child {
         padding-left: 1.2rem;
-        border-left: 4px solid rgba(var(--brand-accent-rgb, 107,122,255), .55);
+        border-left: 4px solid rgba(255,255,255,.28);
     }
 </style>
 {% endblock %}
