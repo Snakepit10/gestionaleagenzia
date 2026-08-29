@@ -146,8 +146,19 @@ function calcolaDifferenzaCassa() {
 
 // Calcola quando la pagina si carica
 document.addEventListener('DOMContentLoaded', function() {
+    // Se arrivo da un calcolatore (Conteggio Contanti / Conteggio Parziale) che ha
+    // stashato un valore, precompilo la cassa finale.
+    try {
+        var v = sessionStorage.getItem('valoreCassaCalcolato');
+        if (v !== null && v !== '') {
+            var cf = document.getElementById('id_cassa_finale');
+            if (cf) { cf.value = parseFloat(v).toFixed(2); }
+            sessionStorage.removeItem('valoreCassaCalcolato');
+        }
+    } catch (e) {}
+
     calcolaDifferenzaCassa();
-    
+
     // Aggiungi event listener ai campi che influenzano il calcolo
     const campi = ['id_cassa_finale', 'id_totale_bevande', 'id_saldo_terminale'];
     campi.forEach(function(id) {
