@@ -1003,26 +1003,24 @@ def dettaglio_distinta(request, pk):
                      .select_related('cliente', 'creato_da', 'modificato_da')
                      .all().order_by('-data'))
 
-    # Raggruppa i movimenti dello stesso cliente/tipo con lo STESSO timestamp di
-    # modifica (al secondo), es. quelli creati insieme da "salda tutti", in un'unica
-    # voce espandibile.
-    def _key_mod(m):
-        dm = m.data_modifica
-        return dm.replace(microsecond=0) if dm else None
-
-    def _raggruppa_movimenti(movs):
+    # Raggruppa i movimenti dello stesso cliente/tipo con timestamp di modifica entro
+    # 3 secondi l'uno dall'altro (es. quelli creati insieme da "salda tutti") in
+    # un'unica voce espandibile.
+    def _raggruppa_movimenti(movs, soglia_secondi=3):
         gruppi = []
         for m in movs:
-            km = _key_mod(m)
+            dm = m.data_modifica
             g = gruppi[-1] if gruppi else None
-            if (g and km is not None and g['_cid'] == m.cliente_id
-                    and g['_tipo'] == m.tipo and g['_mod'] == km):
+            if (g and dm is not None and g['_mod'] is not None
+                    and g['_cid'] == m.cliente_id and g['_tipo'] == m.tipo
+                    and abs((g['_mod'] - dm).total_seconds()) <= soglia_secondi):
                 g['movimenti'].append(m)
                 g['totale'] += m.importo
+                g['_mod'] = dm
                 if not m.saldato:
                     g['tutti_saldati'] = False
             else:
-                gruppi.append({'_cid': m.cliente_id, '_tipo': m.tipo, '_mod': km,
+                gruppi.append({'_cid': m.cliente_id, '_tipo': m.tipo, '_mod': dm,
                                'movimenti': [m], 'totale': m.importo, 'tutti_saldati': m.saldato})
         return gruppi
 
