@@ -481,72 +481,32 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for movimento in movimenti %}
-                            {% if movimento.importo > 0 %}
-                            <tr>
-                                <td>{{ movimento.id }}</td>
-                                <td>{{ movimento.cliente.cognome }} {{ movimento.cliente.nome }}</td>
+                            {% for gruppo in entrate_gruppi %}
+                            {% if gruppo.movimenti|length > 1 %}
+                            {% with c=forloop.counter|stringformat:'s' %}{% with gid='e'|add:c %}
+                            <tr class="gruppo-parent" role="button" onclick="toggleGruppo('{{ gid }}')">
+                                <td><i class="fas fa-chevron-right chev-{{ gid }} me-1"></i><span class="badge bg-secondary">{{ gruppo.movimenti|length }}×</span></td>
+                                <td>{{ gruppo.movimenti.0.cliente.cognome }} {{ gruppo.movimenti.0.cliente.nome }}</td>
                                 <td>
-                                    {% if movimento.tipo == 'schedina' %}
-                                        <span class="badge badge-schedina">{{ movimento.get_tipo_display }}</span>
-                                    {% elif movimento.tipo == 'ricarica' %}
-                                        <span class="badge badge-ricarica">{{ movimento.get_tipo_display }}</span>
-                                    {% elif movimento.tipo == 'prelievo' %}
-                                        <span class="badge badge-prelievo">{{ movimento.get_tipo_display }}</span>
-                                    {% elif movimento.tipo == 'incasso_credito' %}
-                                        <span class="badge badge-incasso-credito">{{ movimento.get_tipo_display }}</span>
-                                    {% elif movimento.tipo == 'pagamento_debito' %}
-                                        <span class="badge badge-pagamento-debito">{{ movimento.get_tipo_display }}</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">{{ movimento.get_tipo_display }}</span>
-                                    {% endif %}
+                                    {% with movimento=gruppo.movimenti.0 %}
+                                    {% if movimento.tipo == 'schedina' %}<span class="badge badge-schedina">{{ movimento.get_tipo_display }}</span>
+                                    {% elif movimento.tipo == 'ricarica' %}<span class="badge badge-ricarica">{{ movimento.get_tipo_display }}</span>
+                                    {% elif movimento.tipo == 'prelievo' %}<span class="badge badge-prelievo">{{ movimento.get_tipo_display }}</span>
+                                    {% elif movimento.tipo == 'incasso_credito' %}<span class="badge badge-incasso-credito">{{ movimento.get_tipo_display }}</span>
+                                    {% elif movimento.tipo == 'pagamento_debito' %}<span class="badge badge-pagamento-debito">{{ movimento.get_tipo_display }}</span>
+                                    {% else %}<span class="badge bg-secondary">{{ movimento.get_tipo_display }}</span>{% endif %}
+                                    {% endwith %}
                                 </td>
-                                <td class="text-success">
-                                    {{ movimento.importo|floatformat:2 }} €
-                                </td>
-                                <td>{{ movimento.data|date:"d/m/Y H:i" }}</td>
-                                <td>
-                                    {% if movimento.saldato %}
-                                    <span class="badge bg-success">Saldato</span>
-                                    {% else %}
-                                    <span class="badge bg-warning">Non Saldato</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ movimento.creato_da.username }}
-                                   {% if movimento.data_creazione %}
-                                   <br><small class="text-muted">Creato: {{ movimento.data_creazione|date:"d/m/Y H:i" }}</small>
-                                   {% endif %}
-                                   {% if movimento.modificato_da %}
-                                   <br><small class="text-muted">Modificato: {{ movimento.data_modifica|date:"d/m/Y H:i" }}</small>
-                                   {% endif %}
-                                </td>
-                                <td>
-                                    {% if distinta.stato == 'aperta' and not movimento.saldato %}
-                                    <a href="javascript:void(0)" class="btn btn-sm btn-success btn-salda-movimento" data-id="{{ movimento.id }}" title="Salda">
-                                        <i class="fas fa-check"></i>
-                                    </a>
-                                    {% endif %}
-
-                                    <a href="{% url 'dettaglio_movimento' movimento.id %}" class="btn btn-sm btn-info" title="Visualizza Dettagli">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    
-                                    {% if distinta.stato == 'aperta' and distinta.operatore == user or user.is_superuser %}
-                                    <a href="{% url 'modifica_movimento' movimento.id %}" class="btn btn-sm btn-warning" title="Modifica Note">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    {% endif %}
-
-                                    {# Eliminazione movimenti disabilitata per mantenere integrità saldo progressivo #}
-                                    {% comment %}
-                                    {% if perms.app.delete_movimento or user.is_superuser %}
-                                    <a href="{% url 'elimina_movimento' movimento.id %}" class="btn btn-sm btn-danger">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                    {% endif %}
-                                    {% endcomment %}
-                                </td>
+                                <td class="fw-bold {% if gruppo.totale < 0 %}text-danger{% else %}text-success{% endif %}">{{ gruppo.totale|floatformat:2 }} €</td>
+                                <td>{{ gruppo.movimenti.0.data|date:"d/m/Y H:i" }}</td>
+                                <td>{% if gruppo.tutti_saldati %}<span class="badge bg-success">Saldato</span>{% else %}<span class="badge bg-warning">Parziale</span>{% endif %}</td>
+                                <td>{{ gruppo.movimenti.0.creato_da.username }}</td>
+                                <td><small class="text-muted"><i class="fas fa-layer-group me-1"></i>{{ gruppo.movimenti|length }} movimenti · espandi</small></td>
                             </tr>
+                            {% for movimento in gruppo.movimenti %}{% include 'app/_riga_movimento.html' with child_gid=gid %}{% endfor %}
+                            {% endwith %}{% endwith %}
+                            {% else %}
+                            {% include 'app/_riga_movimento.html' with movimento=gruppo.movimenti.0 %}
                             {% endif %}
                             {% endfor %}
                         </tbody>
@@ -571,72 +531,32 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for movimento in movimenti %}
-                            {% if movimento.importo < 0 %}
-                            <tr>
-                                <td>{{ movimento.id }}</td>
-                                <td>{{ movimento.cliente.cognome }} {{ movimento.cliente.nome }}</td>
+                            {% for gruppo in uscite_gruppi %}
+                            {% if gruppo.movimenti|length > 1 %}
+                            {% with c=forloop.counter|stringformat:'s' %}{% with gid='u'|add:c %}
+                            <tr class="gruppo-parent" role="button" onclick="toggleGruppo('{{ gid }}')">
+                                <td><i class="fas fa-chevron-right chev-{{ gid }} me-1"></i><span class="badge bg-secondary">{{ gruppo.movimenti|length }}×</span></td>
+                                <td>{{ gruppo.movimenti.0.cliente.cognome }} {{ gruppo.movimenti.0.cliente.nome }}</td>
                                 <td>
-                                    {% if movimento.tipo == 'schedina' %}
-                                        <span class="badge badge-schedina">{{ movimento.get_tipo_display }}</span>
-                                    {% elif movimento.tipo == 'ricarica' %}
-                                        <span class="badge badge-ricarica">{{ movimento.get_tipo_display }}</span>
-                                    {% elif movimento.tipo == 'prelievo' %}
-                                        <span class="badge badge-prelievo">{{ movimento.get_tipo_display }}</span>
-                                    {% elif movimento.tipo == 'incasso_credito' %}
-                                        <span class="badge badge-incasso-credito">{{ movimento.get_tipo_display }}</span>
-                                    {% elif movimento.tipo == 'pagamento_debito' %}
-                                        <span class="badge badge-pagamento-debito">{{ movimento.get_tipo_display }}</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">{{ movimento.get_tipo_display }}</span>
-                                    {% endif %}
+                                    {% with movimento=gruppo.movimenti.0 %}
+                                    {% if movimento.tipo == 'schedina' %}<span class="badge badge-schedina">{{ movimento.get_tipo_display }}</span>
+                                    {% elif movimento.tipo == 'ricarica' %}<span class="badge badge-ricarica">{{ movimento.get_tipo_display }}</span>
+                                    {% elif movimento.tipo == 'prelievo' %}<span class="badge badge-prelievo">{{ movimento.get_tipo_display }}</span>
+                                    {% elif movimento.tipo == 'incasso_credito' %}<span class="badge badge-incasso-credito">{{ movimento.get_tipo_display }}</span>
+                                    {% elif movimento.tipo == 'pagamento_debito' %}<span class="badge badge-pagamento-debito">{{ movimento.get_tipo_display }}</span>
+                                    {% else %}<span class="badge bg-secondary">{{ movimento.get_tipo_display }}</span>{% endif %}
+                                    {% endwith %}
                                 </td>
-                                <td class="text-danger">
-                                    {{ movimento.importo|floatformat:2 }} €
-                                </td>
-                                <td>{{ movimento.data|date:"d/m/Y H:i" }}</td>
-                                <td>
-                                    {% if movimento.saldato %}
-                                    <span class="badge bg-success">Saldato</span>
-                                    {% else %}
-                                    <span class="badge bg-warning">Non Saldato</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ movimento.creato_da.username }}
-                                   {% if movimento.data_creazione %}
-                                   <br><small class="text-muted">Creato: {{ movimento.data_creazione|date:"d/m/Y H:i" }}</small>
-                                   {% endif %}
-                                   {% if movimento.modificato_da %}
-                                   <br><small class="text-muted">Modificato: {{ movimento.data_modifica|date:"d/m/Y H:i" }}</small>
-                                   {% endif %}
-                                </td>
-                                <td>
-                                    {% if distinta.stato == 'aperta' and not movimento.saldato %}
-                                    <a href="javascript:void(0)" class="btn btn-sm btn-success btn-salda-movimento" data-id="{{ movimento.id }}" title="Salda">
-                                        <i class="fas fa-check"></i>
-                                    </a>
-                                    {% endif %}
-
-                                    <a href="{% url 'dettaglio_movimento' movimento.id %}" class="btn btn-sm btn-info" title="Visualizza Dettagli">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    
-                                    {% if distinta.stato == 'aperta' and distinta.operatore == user or user.is_superuser %}
-                                    <a href="{% url 'modifica_movimento' movimento.id %}" class="btn btn-sm btn-warning" title="Modifica Note">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    {% endif %}
-
-                                    {# Eliminazione movimenti disabilitata per mantenere integrità saldo progressivo #}
-                                    {% comment %}
-                                    {% if perms.app.delete_movimento or user.is_superuser %}
-                                    <a href="{% url 'elimina_movimento' movimento.id %}" class="btn btn-sm btn-danger">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                    {% endif %}
-                                    {% endcomment %}
-                                </td>
+                                <td class="fw-bold {% if gruppo.totale < 0 %}text-danger{% else %}text-success{% endif %}">{{ gruppo.totale|floatformat:2 }} €</td>
+                                <td>{{ gruppo.movimenti.0.data|date:"d/m/Y H:i" }}</td>
+                                <td>{% if gruppo.tutti_saldati %}<span class="badge bg-success">Saldato</span>{% else %}<span class="badge bg-warning">Parziale</span>{% endif %}</td>
+                                <td>{{ gruppo.movimenti.0.creato_da.username }}</td>
+                                <td><small class="text-muted"><i class="fas fa-layer-group me-1"></i>{{ gruppo.movimenti|length }} movimenti · espandi</small></td>
                             </tr>
+                            {% for movimento in gruppo.movimenti %}{% include 'app/_riga_movimento.html' with child_gid=gid %}{% endfor %}
+                            {% endwith %}{% endwith %}
+                            {% else %}
+                            {% include 'app/_riga_movimento.html' with movimento=gruppo.movimenti.0 %}
                             {% endif %}
                             {% endfor %}
                         </tbody>
@@ -651,6 +571,11 @@
 {% block extra_css %}
 <!-- Carica il CSS dedicato per la pagina di dettaglio distinta -->
 <link rel="stylesheet" href="/static/css/distinta_detail.css">
+<style>
+    .gruppo-parent { cursor: pointer; }
+    .gruppo-parent .chevron, .gruppo-parent [class*="chev-"] { transition: transform .15s; }
+    .gruppo-child > td:first-child { padding-left: 1.2rem; }
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -658,4 +583,12 @@
 <script src="/static/js/distinta_detail.js"></script>
 <!-- Carica lo script per il conteggio parziale della cassa -->
 <script src="/static/js/conteggio_cassa.js"></script>
+<script>
+// Espande/comprime un gruppo di movimenti (stesso cliente/tipo, stesso timestamp)
+function toggleGruppo(gid) {
+    document.querySelectorAll('.gc-' + gid).forEach(function(r) { r.classList.toggle('d-none'); });
+    var ch = document.querySelector('.chev-' + gid);
+    if (ch) ch.classList.toggle('fa-rotate-90');
+}
+</script>
 {% endblock %}

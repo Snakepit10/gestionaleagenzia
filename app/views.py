@@ -999,7 +999,35 @@ def dettaglio_distinta(request, pk):
     )
 
     # Recupera i movimenti della distinta
-    movimenti = distinta.movimenti.all().order_by('-data')
+    movimenti = list(distinta.movimenti
+                     .select_related('cliente', 'creato_da', 'modificato_da')
+                     .all().order_by('-data'))
+
+    # Raggruppa i movimenti dello stesso cliente/tipo con lo STESSO timestamp di
+    # modifica (al secondo), es. quelli creati insieme da "salda tutti", in un'unica
+    # voce espandibile.
+    def _key_mod(m):
+        dm = m.data_modifica
+        return dm.replace(microsecond=0) if dm else None
+
+    def _raggruppa_movimenti(movs):
+        gruppi = []
+        for m in movs:
+            km = _key_mod(m)
+            g = gruppi[-1] if gruppi else None
+            if (g and km is not None and g['_cid'] == m.cliente_id
+                    and g['_tipo'] == m.tipo and g['_mod'] == km):
+                g['movimenti'].append(m)
+                g['totale'] += m.importo
+                if not m.saldato:
+                    g['tutti_saldati'] = False
+            else:
+                gruppi.append({'_cid': m.cliente_id, '_tipo': m.tipo, '_mod': km,
+                               'movimenti': [m], 'totale': m.importo, 'tutti_saldati': m.saldato})
+        return gruppi
+
+    entrate_gruppi = _raggruppa_movimenti([m for m in movimenti if m.importo > 0])
+    uscite_gruppi = _raggruppa_movimenti([m for m in movimenti if m.importo < 0])
 
     # Calcola totali
     totale_entrate = sum(m.importo for m in movimenti if m.importo > 0)
@@ -1042,6 +1070,8 @@ def dettaglio_distinta(request, pk):
     context = {
         'distinta': distinta,
         'movimenti': movimenti,
+        'entrate_gruppi': entrate_gruppi,
+        'uscite_gruppi': uscite_gruppi,
         'totale_entrate': totale_entrate,
         'totale_uscite': totale_uscite,
         'form_movimento': form_movimento,

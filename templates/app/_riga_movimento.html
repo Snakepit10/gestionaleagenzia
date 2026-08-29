@@ -1,0 +1,37 @@
+<tr{% if child_gid %} class="gruppo-child gc-{{ child_gid }} d-none"{% endif %}>
+    <td>{% if child_gid %}<span class="text-muted ms-3">↳</span> {% endif %}{{ movimento.id }}</td>
+    <td>{{ movimento.cliente.cognome }} {{ movimento.cliente.nome }}</td>
+    <td>
+        {% if movimento.tipo == 'schedina' %}<span class="badge badge-schedina">{{ movimento.get_tipo_display }}</span>
+        {% elif movimento.tipo == 'ricarica' %}<span class="badge badge-ricarica">{{ movimento.get_tipo_display }}</span>
+        {% elif movimento.tipo == 'prelievo' %}<span class="badge badge-prelievo">{{ movimento.get_tipo_display }}</span>
+        {% elif movimento.tipo == 'incasso_credito' %}<span class="badge badge-incasso-credito">{{ movimento.get_tipo_display }}</span>
+        {% elif movimento.tipo == 'pagamento_debito' %}<span class="badge badge-pagamento-debito">{{ movimento.get_tipo_display }}</span>
+        {% else %}<span class="badge bg-secondary">{{ movimento.get_tipo_display }}</span>{% endif %}
+    </td>
+    <td class="{% if movimento.importo < 0 %}text-danger{% else %}text-success{% endif %}">{{ movimento.importo|floatformat:2 }} €</td>
+    <td>{{ movimento.data|date:"d/m/Y H:i" }}</td>
+    <td>
+        {% if movimento.saldato %}<span class="badge bg-success">Saldato</span>
+        {% else %}<span class="badge bg-warning">Non Saldato</span>{% endif %}
+    </td>
+    <td>{{ movimento.creato_da.username }}
+        {% if movimento.data_creazione %}<br><small class="text-muted">Creato: {{ movimento.data_creazione|date:"d/m/Y H:i" }}</small>{% endif %}
+        {% if movimento.modificato_da %}<br><small class="text-muted">Modificato: {{ movimento.data_modifica|date:"d/m/Y H:i" }}</small>{% endif %}
+    </td>
+    <td>
+        {% if distinta.stato == 'aperta' and not movimento.saldato %}
+        <a href="javascript:void(0)" class="btn btn-sm btn-success btn-salda-movimento" data-id="{{ movimento.id }}" title="Salda">
+            <i class="fas fa-check"></i>
+        </a>
+        {% endif %}
+        <a href="{% url 'dettaglio_movimento' movimento.id %}" class="btn btn-sm btn-info" title="Visualizza Dettagli">
+            <i class="fas fa-eye"></i>
+        </a>
+        {% if distinta.stato == 'aperta' and distinta.operatore == user or user.is_superuser %}
+        <a href="{% url 'modifica_movimento' movimento.id %}" class="btn btn-sm btn-warning" title="Modifica Note">
+            <i class="fas fa-edit"></i>
+        </a>
+        {% endif %}
+    </td>
+</tr>
