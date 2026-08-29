@@ -1,6 +1,8 @@
 /**
- * Conteggio Contanti — somma delle 3 casse (Cassaforte, Cassa banco, Monete)
- * + calcolatrice (click e tastierino, stile Windows). Nessun salvataggio.
+ * Conteggio Contanti — somma delle casse (Cassaforte, Cassa banco)
+ * + calcolatrice (click e tastierino) con riga espressione: mostra le operazioni
+ * (es. "30 + 20 + 50") e aggiorna il totale finché non si preme Invio/=.
+ * Nessun salvataggio.
  */
 (function () {
     'use strict';
@@ -21,12 +23,9 @@
     }
 
     // ---------- Calcolatrice ----------
-    var st = { display: '0', acc: null, op: null, waiting: false };
+    var parts = [];       // token: numeri (stringa) e operatori (+ - * /)
+    var justEq = false;   // true subito dopo "="
 
-    function show() {
-        var d = document.getElementById('calc_display');
-        if (d) d.value = st.display;
-    }
     function clean(r) { return isFinite(r) ? Math.round(r * 1e10) / 1e10 : 0; }
     function compute(a, b, op) {
         switch (op) {
@@ -37,52 +36,83 @@
         }
         return b;
     }
-    function inputDigit(d) {
-        if (st.waiting) { st.display = (d === '.' ? '0.' : d); st.waiting = false; }
-        else if (d === '.') { if (st.display.indexOf('.') < 0) st.display += '.'; }
-        else { st.display = (st.display === '0') ? d : st.display + d; }
+    function lastIsOp() {
+        return parts.length > 0 && '+-*/'.indexOf(parts[parts.length - 1]) >= 0;
+    }
+    function evalParts() {
+        if (parts.length === 0) return 0;
+        var acc = parseFloat(parts[0]); if (isNaN(acc)) acc = 0;
+        for (var i = 1; i + 1 < parts.length; i += 2) {
+            var n = parseFloat(parts[i + 1]); if (isNaN(n)) break;
+            acc = compute(acc, n, parts[i]);
+        }
+        return clean(acc);
+    }
+    function opSimbolo(op) { return op === '*' ? '×' : op === '/' ? '÷' : op === '-' ? '−' : op; }
+    function show() {
+        var disp = document.getElementById('calc_display');
+        var expr = document.getElementById('calc_expr');
+        if (expr) {
+            expr.textContent = parts.map(function (t) {
+                return '+-*/'.indexOf(t) >= 0 ? opSimbolo(t) : t.replace('.', ',');
+            }).join(' ');
+        }
+        if (disp) { disp.value = String(evalParts()).replace('.', ','); }
+    }
+
+    function digit(d) {
+        if (justEq) { parts = []; justEq = false; }
+        if (parts.length === 0 || lastIsOp()) {
+            parts.push(d === '.' ? '0.' : d);
+        } else {
+            var cur = parts[parts.length - 1];
+            if (d === '.') { if (cur.indexOf('.') < 0) parts[parts.length - 1] = cur + '.'; }
+            else parts[parts.length - 1] = (cur === '0' ? d : cur + d);
+        }
         show();
     }
-    function chooseOp(op) {
-        var v = parseFloat(st.display);
-        if (st.op !== null && !st.waiting) {
-            var r = clean(compute(st.acc, v, st.op));
-            st.acc = r; st.display = String(r);
-        } else {
-            st.acc = v;
-        }
-        st.op = op; st.waiting = true; show();
+    function operatore(op) {
+        justEq = false;
+        if (parts.length === 0) parts.push('0');
+        if (lastIsOp()) parts[parts.length - 1] = op;
+        else parts.push(op);
+        show();
     }
-    function equals() {
-        if (st.op === null) return;
-        var v = parseFloat(st.display);
-        var r = clean(compute(st.acc, v, st.op));
-        st.display = String(r); st.acc = r; st.op = null; st.waiting = true; show();
+    function uguale() {
+        if (parts.length < 3 || lastIsOp()) return;
+        var r = evalParts();
+        parts = [String(r)];
+        justEq = true;
+        show();
     }
-    function clearAll() { st = { display: '0', acc: null, op: null, waiting: false }; show(); }
-    function clearEntry() { st.display = '0'; show(); }
+    function clearAll() { parts = []; justEq = false; show(); }
+    function clearEntry() {
+        if (parts.length && !lastIsOp()) parts[parts.length - 1] = '0';
+        show();
+    }
     function backspace() {
-        if (st.waiting) return;
-        st.display = st.display.length > 1 ? st.display.slice(0, -1) : '0';
-        if (st.display === '-' || st.display === '') st.display = '0';
+        if (parts.length === 0 || lastIsOp()) return;
+        var cur = parts[parts.length - 1];
+        parts[parts.length - 1] = cur.length > 1 ? cur.slice(0, -1) : '0';
+        if (parts[parts.length - 1] === '-') parts[parts.length - 1] = '0';
         show();
     }
     function negate() {
-        if (st.display !== '0') {
-            st.display = st.display.charAt(0) === '-' ? st.display.slice(1) : '-' + st.display;
+        if (parts.length && !lastIsOp()) {
+            var cur = parts[parts.length - 1];
+            parts[parts.length - 1] = cur.charAt(0) === '-' ? cur.slice(1) : '-' + cur;
             show();
         }
     }
 
     function onKey(e) {
-        // Non catturare la tastiera mentre si digita in un campo (casse, form, ecc.)
         var ae = document.activeElement;
         if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.id !== 'calc_display') return;
         var k = e.key;
-        if (k >= '0' && k <= '9') { inputDigit(k); e.preventDefault(); }
-        else if (k === '.' || k === ',') { inputDigit('.'); e.preventDefault(); }
-        else if (k === '+' || k === '-' || k === '*' || k === '/') { chooseOp(k); e.preventDefault(); }
-        else if (k === 'Enter' || k === '=') { equals(); e.preventDefault(); }
+        if (k >= '0' && k <= '9') { digit(k); e.preventDefault(); }
+        else if (k === '.' || k === ',') { digit('.'); e.preventDefault(); }
+        else if (k === '+' || k === '-' || k === '*' || k === '/') { operatore(k); e.preventDefault(); }
+        else if (k === 'Enter' || k === '=') { uguale(); e.preventDefault(); }
         else if (k === 'Backspace') { backspace(); e.preventDefault(); }
         else if (k === 'Escape') { clearAll(); e.preventDefault(); }
         else if (k === 'Delete') { clearEntry(); e.preventDefault(); }
@@ -94,13 +124,13 @@
         grid.addEventListener('click', function (e) {
             var b = e.target.closest('button');
             if (!b) return;
-            if (b.dataset.val !== undefined) inputDigit(b.dataset.val);
-            else if (b.dataset.op !== undefined) chooseOp(b.dataset.op);
+            if (b.dataset.val !== undefined) digit(b.dataset.val);
+            else if (b.dataset.op !== undefined) operatore(b.dataset.op);
             else switch (b.dataset.act) {
                 case 'clear': clearAll(); break;
                 case 'ce': clearEntry(); break;
                 case 'back': backspace(); break;
-                case 'equals': equals(); break;
+                case 'equals': uguale(); break;
                 case 'neg': negate(); break;
             }
         });
