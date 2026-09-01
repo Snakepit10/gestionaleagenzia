@@ -332,7 +332,7 @@
                 <span class="badge" style="background-color:#dc3545;">oltre 6 mesi</span>
             </div>
             {% for t in kpi.top_debitori %}
-            <div class="bar-row">
+            <div class="bar-row{% if forloop.counter > 10 %} dash-extra d-none{% endif %}"{% if forloop.counter > 10 %} data-group="deb"{% endif %}>
                 <div class="bar-name" title="{{ t.nome }}"><a href="{% url 'dettaglio_cliente' t.pk %}">{{ t.nome }}</a></div>
                 <div class="bar-track">
                     <div class="bar-fill" style="width: {{ t.pct_barra|unlocalize }}%; background:{{ t.colore }};"></div>
@@ -343,6 +343,13 @@
                 </div>
             </div>
             {% endfor %}
+            {% if kpi.top_debitori|length > 10 %}
+            <div class="text-center mt-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary btn-mostra-tutti" data-group="deb">
+                    <i class="fas fa-chevron-down me-1"></i>Mostra tutti ({{ kpi.top_debitori|length }})
+                </button>
+            </div>
+            {% endif %}
             {% else %}
             <p class="text-muted small mb-0">Nessun cliente a debito.</p>
             {% endif %}
@@ -377,7 +384,7 @@
                         </thead>
                         <tbody>
                             {% for v in lista %}
-                            <tr>
+                            <tr{% if forloop.counter > 10 %} class="dash-extra d-none" data-group="vol-{{ periodo }}"{% endif %}>
                                 <td>{% if forloop.counter <= 3 %}<span class="badge bg-warning text-dark">{{ forloop.counter }}</span>{% else %}{{ forloop.counter }}{% endif %}</td>
                                 <td><a href="{% url 'dettaglio_cliente' v.pk %}" class="text-decoration-none" style="color:#8ab4ff;">{{ v.nome }}</a></td>
                                 <td class="text-end">{{ v.schedina|floatformat:2 }} €</td>
@@ -390,6 +397,13 @@
                         </tbody>
                     </table>
                 </div>
+                {% if lista|length > 10 %}
+                <div class="text-center mt-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary btn-mostra-tutti" data-group="vol-{{ periodo }}">
+                        <i class="fas fa-chevron-down me-1"></i>Mostra tutti ({{ lista|length }})
+                    </button>
+                </div>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
@@ -423,7 +437,7 @@
                 </thead>
                 <tbody>
                     {% for q in kpi.qualita_clienti %}
-                    <tr>
+                    <tr{% if forloop.counter > 15 %} class="dash-extra d-none" data-group="qualita"{% endif %}>
                         <td><a href="{% url 'dettaglio_cliente' q.pk %}" class="text-decoration-none" style="color:#8ab4ff;">{{ q.nome }}</a></td>
                         <td class="text-center"><span class="badge" style="background-color:{{ q.colore }};{% if q.classe == 'Buono' %}color:#10131a;{% endif %}">{{ q.iqc }}</span></td>
                         <td>{{ q.classe }}</td>
@@ -437,6 +451,13 @@
                 </tbody>
             </table>
         </div>
+        {% if kpi.qualita_clienti|length > 15 %}
+        <div class="text-center mt-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-mostra-tutti" data-group="qualita">
+                <i class="fas fa-chevron-down me-1"></i>Mostra tutti ({{ kpi.qualita_clienti|length }})
+            </button>
+        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -734,4 +755,23 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toggle "Mostra tutti / Mostra meno" per le tabelle/liste della dashboard
+    document.querySelectorAll('.btn-mostra-tutti').forEach(function (btn) {
+        var originalHtml = btn.innerHTML;
+        btn.addEventListener('click', function () {
+            var grp = btn.getAttribute('data-group');
+            var extra = document.querySelectorAll('.dash-extra[data-group="' + grp + '"]');
+            if (!extra.length) return;
+            var nascosti = extra[0].classList.contains('d-none');
+            extra.forEach(function (el) { el.classList.toggle('d-none', !nascosti); });
+            btn.innerHTML = nascosti
+                ? '<i class="fas fa-chevron-up me-1"></i>Mostra meno'
+                : originalHtml;
+        });
+    });
+</script>
 {% endblock %}

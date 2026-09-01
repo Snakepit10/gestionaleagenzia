@@ -231,7 +231,7 @@ def dashboard(request):
     rigiro_sett = _pct(rientrato_7)
 
     # Classifica volumi giocato (schedine + ricariche) per cliente, per periodo.
-    def _classifica_volumi(giorni, limite=10):
+    def _classifica_volumi(giorni, limite=100):
         inizio = adesso - timedelta(days=giorni)
         rows = (db.get_queryset(Movimento)
                 .filter(tipo__in=['schedina', 'ricarica'], cliente__conto_servizio=False, data__gte=inizio)
@@ -296,7 +296,7 @@ def dashboard(request):
 
     # Distribuzione del credito tra i clienti: top debitori, colorati per anzianità del credito
     top_debitori = []
-    for c in debitori.order_by('saldo')[:10]:
+    for c in debitori.order_by('saldo')[:100]:
         b = _bucket(c.ultimo_mov)
         top_debitori.append({
             'pk': c.pk,
@@ -368,7 +368,7 @@ def dashboard(request):
         'concentrazione_top5': concentrazione_top5,
         'distribuzione': distribuzione,
         'volumi': volumi,
-        'qualita_clienti': qualita_clienti[:15],
+        'qualita_clienti': qualita_clienti[:100],
         'qualita_distribuzione': qualita_distribuzione,
         'qualita_media': qualita_media,
         'qualita_n': n_qual,
