@@ -10,6 +10,7 @@ AGENZIA_DATABASE_MAP = {
     'goldbet': 'goldbet_db',
     'better': 'better_db',
     'planet': 'planet_db',
+    'better ravanusa': 'better_ravanusa_db',
 }
 
 # Database di default per dati condivisi

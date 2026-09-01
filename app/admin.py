@@ -19,6 +19,7 @@ class DatabaseSelectorMixin:
         ('goldbet_db', 'Goldbet'),
         ('better_db', 'Better'),
         ('planet_db', 'Planet'),
+        ('better_ravanusa_db', 'Better Ravanusa'),
     ]
     DB_DEFAULT = 'goldbet_db'
 

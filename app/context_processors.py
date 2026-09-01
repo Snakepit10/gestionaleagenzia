@@ -40,6 +40,15 @@ AGENZIA_BRAND = {
         'logo_html': _wm('<span class="wm" style="font-style:italic;letter-spacing:.04em;color:#ffffff;'
                          'text-shadow:0 1px 0 rgba(0,0,0,.25);">BETTER</span>'),
     },
+    'better ravanusa': {
+        'nome': 'Better Ravanusa',
+        'primario': '#14602f',   # verde scuro (come Better)
+        'accento': '#8dc63f',    # verde lime
+        'logo_html': _wm('<span class="wm" style="font-style:italic;letter-spacing:.04em;color:#ffffff;'
+                         'text-shadow:0 1px 0 rgba(0,0,0,.25);">BETTER</span>'
+                         '<span style="font-size:.58em;font-weight:700;opacity:.85;margin-left:.3em;'
+                         'text-transform:uppercase;letter-spacing:.08em;">Ravanusa</span>'),
+    },
     'planet': {
         'nome': 'PlanetWin365',
         'primario': '#1b1b1b',   # nero

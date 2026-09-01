@@ -12,12 +12,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Mapping agenzia -> database
-AGENZIA_DATABASE_MAP = {
-    'goldbet': 'goldbet_db',
-    'better': 'better_db',
-    'planet': 'planet_db',
-}
+# Mapping agenzia -> database (fonte unica: database_utils, così le nuove agenzie
+# vengono incluse automaticamente nella sincronizzazione utenti)
+from app.database_utils import AGENZIA_DATABASE_MAP
 
 @receiver(post_save, sender=User)
 def sync_user_on_save(sender, instance, created, using, **kwargs):
@@ -115,6 +112,20 @@ def sync_user_on_delete(sender, instance, using, **kwargs):
 
     except Exception as e:
         logger.error(f"Errore eliminando utente {instance.username}: {str(e)}")
+
+
+@receiver(post_save, sender=ProfiloUtente)
+def sync_user_on_profilo_save(sender, instance, **kwargs):
+    """Quando si crea/riassegna un ProfiloUtente (utente <-> agenzia), ri-salva l'utente
+    sul database 'default' per far scattare la replica nel database dell'agenzia
+    (sync_user_on_save legge l'agenzia dal profilo, quindi va rieseguita dopo)."""
+    try:
+        if instance.user_id:
+            u = User.objects.using('default').filter(pk=instance.user_id).first()
+            if u:
+                u.save(using='default')
+    except Exception as e:
+        logger.error(f"Errore sync profilo->utente: {str(e)}")
 
 
 # ===========================================================================
