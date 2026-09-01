@@ -396,6 +396,50 @@
     </div>
 </div>
 
+<!-- Qualità del Credito (IQC) -->
+<div class="card mb-4 border-0 rounded-4 shadow">
+    <div class="card-header bg-dark text-white rounded-top-4 d-flex justify-content-between align-items-center flex-wrap">
+        <h5 class="mb-0"><i class="fas fa-gem me-2"></i>Qualità del Credito</h5>
+        <span class="small">IQC medio: <span class="badge bg-secondary">{{ kpi.qualita_media }}/100</span> · {{ kpi.qualita_n }} debitori</span>
+    </div>
+    <div class="card-body">
+        <p class="text-muted small mb-3">Indice 0–100 per debitore: combina <strong>rotazione</strong> (volume giocato ÷ credito), <strong>freschezza</strong> (età) ed <strong>esposizione</strong> (ammontare). Più alto = credito migliore.</p>
+        <div class="row text-center g-2 mb-3">
+            {% for d in kpi.qualita_distribuzione %}
+            <div class="col-6 col-md-3">
+                <div class="border rounded-3 p-2 h-100">
+                    <span class="badge" style="background-color:{{ d.colore }};{% if d.classe == 'Buono' %}color:#10131a;{% endif %}">{{ d.classe }}</span>
+                    <div class="h4 mb-0 mt-1">{{ d.n }}</div>
+                    <div class="small text-muted">{{ d.pct|floatformat:1 }}%</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="text-muted small mb-1"><i class="fas fa-triangle-exclamation me-1"></i>Crediti da tenere d'occhio (qualità più bassa)</div>
+        <div class="table-responsive">
+            <table class="table trend-table mb-0">
+                <thead>
+                    <tr><th>Cliente</th><th class="text-center">IQC</th><th>Classe</th><th class="text-end">Credito</th><th class="text-end">Età (gg)</th><th class="text-end">Volume 30g</th></tr>
+                </thead>
+                <tbody>
+                    {% for q in kpi.qualita_clienti %}
+                    <tr>
+                        <td><a href="{% url 'dettaglio_cliente' q.pk %}" class="text-decoration-none" style="color:#8ab4ff;">{{ q.nome }}</a></td>
+                        <td class="text-center"><span class="badge" style="background-color:{{ q.colore }};{% if q.classe == 'Buono' %}color:#10131a;{% endif %}">{{ q.iqc }}</span></td>
+                        <td>{{ q.classe }}</td>
+                        <td class="text-end text-danger">{{ q.credito|floatformat:2 }} €</td>
+                        <td class="text-end">{% if q.giorni is not None %}{{ q.giorni }}{% else %}—{% endif %}</td>
+                        <td class="text-end">{{ q.volume|floatformat:2 }} €</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-3">Nessun credito da valutare.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <!-- Modali: clienti per fascia di anzianità -->
 <style>
     .aging-modal .modal-content { background: #1c2126; color: #e9ecef; }

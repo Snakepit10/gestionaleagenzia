@@ -46,6 +46,70 @@ def is_admin(user):
 def home(request):
     return render(request, 'app/home.html')
 
+# ===== Indice Qualità del Credito (IQC) =====
+# Combina: rotazione (volume giocato / credito), freschezza (età del credito) ed
+# esposizione (ammontare del credito). Punteggio 0-100, più alto = credito migliore.
+def _iqc_freschezza(giorni):
+    if giorni is None:
+        return 0
+    if giorni < 7:
+        return 100
+    if giorni < 30:
+        return 80
+    if giorni < 90:
+        return 50
+    if giorni < 180:
+        return 25
+    return 0
+
+
+def _iqc_esposizione(credito):
+    # Solo valore assoluto del credito: più basso = meglio (soglie = fasce importo).
+    c = float(credito or 0)
+    if c <= 100:
+        return 100
+    if c <= 250:
+        return 85
+    if c <= 500:
+        return 65
+    if c <= 1000:
+        return 45
+    if c <= 2500:
+        return 25
+    return 5
+
+
+def _iqc_classe(score):
+    if score >= 75:
+        return ('Ottimo', '#28a745')
+    if score >= 50:
+        return ('Buono', '#8dc63f')
+    if score >= 25:
+        return ('Attenzione', '#fd7e14')
+    return ('Critico', '#dc3545')
+
+
+def calcola_iqc(credito, giorni, volume30):
+    """Ritorna il dizionario IQC per un cliente a debito.
+    credito: importo dovuto (positivo); giorni: età ultimo movimento; volume30: volume
+    giocato (schedine+ricariche) negli ultimi 30 giorni."""
+    credito = Decimal(str(credito or 0))
+    volume30 = Decimal(str(volume30 or 0))
+    if credito and credito != 0:
+        rot = volume30 / credito
+        score_rot = min(100.0, float(rot) / 3.0 * 100.0)
+    else:
+        rot = Decimal('0')
+        score_rot = 100.0
+    score_fre = _iqc_freschezza(giorni)
+    score_esp = _iqc_esposizione(credito)
+    iqc = round(0.40 * score_rot + 0.35 * score_fre + 0.25 * score_esp)
+    classe, colore = _iqc_classe(iqc)
+    return {'iqc': iqc, 'classe': classe, 'colore': colore,
+            'rotazione': round(float(rot), 2), 'score_rot': round(score_rot),
+            'score_fre': score_fre, 'score_esp': score_esp}
+
+
 # Dashboard (accesso ristretto)
 @login_required
 def dashboard(request):
@@ -199,6 +263,37 @@ def dashboard(request):
         'anno': _classifica_volumi(365),
     }
 
+    # Indice Qualità del Credito (IQC): volume giocato (30g) vs età vs ammontare, per debitore
+    _v30_inizio = adesso - timedelta(days=30)
+    vol30_map = {}
+    for r in (db.get_queryset(Movimento)
+              .filter(tipo__in=['schedina', 'ricarica'], cliente__conto_servizio=False, data__gte=_v30_inizio)
+              .values('cliente_id').annotate(tot=Sum('importo'))):
+        vol30_map[r['cliente_id']] = abs(r['tot'] or Decimal('0'))
+
+    qualita_clienti = []
+    _classi_ordine = ['Ottimo', 'Buono', 'Attenzione', 'Critico']
+    _classi_colore = {'Ottimo': '#28a745', 'Buono': '#8dc63f', 'Attenzione': '#fd7e14', 'Critico': '#dc3545'}
+    _conta_classi = {k: 0 for k in _classi_ordine}
+    _somma_iqc = 0
+    for c in debitori:
+        imp = -c.saldo
+        giorni = (adesso - c.ultimo_mov).days if c.ultimo_mov else None
+        vol30 = vol30_map.get(c.pk, Decimal('0'))
+        q = calcola_iqc(imp, giorni, vol30)
+        qualita_clienti.append({'pk': c.pk, 'nome': c.nome_completo, 'credito': imp,
+                                'giorni': giorni, 'volume': vol30, **q})
+        _conta_classi[q['classe']] += 1
+        _somma_iqc += q['iqc']
+    qualita_clienti.sort(key=lambda x: x['iqc'])  # dai più rischiosi
+    n_qual = len(qualita_clienti)
+    qualita_distribuzione = [
+        {'classe': k, 'colore': _classi_colore[k], 'n': _conta_classi[k],
+         'pct': (Decimal(_conta_classi[k]) / n_qual * 100) if n_qual else Decimal('0')}
+        for k in _classi_ordine
+    ]
+    qualita_media = round(_somma_iqc / n_qual) if n_qual else 0
+
     # Distribuzione del credito tra i clienti: top debitori, colorati per anzianità del credito
     top_debitori = []
     for c in debitori.order_by('saldo')[:10]:
@@ -273,6 +368,10 @@ def dashboard(request):
         'concentrazione_top5': concentrazione_top5,
         'distribuzione': distribuzione,
         'volumi': volumi,
+        'qualita_clienti': qualita_clienti[:15],
+        'qualita_distribuzione': qualita_distribuzione,
+        'qualita_media': qualita_media,
+        'qualita_n': n_qual,
     }
     
     # Aggiorna automaticamente il saldo della cassa dalle distinte e recupera il valore
@@ -390,13 +489,29 @@ def dettaglio_cliente(request, pk):
         stato='aperta'
     ).exists()
 
+    # Indice Qualità del Credito (IQC) del cliente, se a debito
+    from django.db.models import Max as _Max, Sum as _Sum
+    from datetime import timedelta as _td
+    iqc_cliente = None
+    if cliente.saldo < 0:
+        credito = -cliente.saldo
+        ultimo = cliente.movimenti.aggregate(u=_Max('data'))['u']
+        giorni = (timezone.now() - ultimo).days if ultimo else None
+        v30 = cliente.movimenti.filter(
+            tipo__in=['schedina', 'ricarica'], data__gte=timezone.now() - _td(days=30)
+        ).aggregate(t=_Sum('importo'))['t']
+        vol30 = abs(v30) if v30 else Decimal('0')
+        iqc_cliente = calcola_iqc(credito, giorni, vol30)
+        iqc_cliente.update({'credito': credito, 'giorni': giorni, 'volume': vol30})
+
     context = {
         'cliente': cliente,
         'movimenti': movimenti,
         'comunicazioni': comunicazioni,
         'distinta_aperta': distinta_aperta,
+        'iqc_cliente': iqc_cliente,
     }
-    
+
     return render(request, 'app/dettaglio_cliente.html', context)
 
 @login_required

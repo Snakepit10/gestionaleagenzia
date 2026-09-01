@@ -158,7 +158,26 @@
                         </div>
                     </div>
                 </div>
-                
+
+                {% if iqc_cliente %}
+                <div class="border rounded-3 p-3 mb-2">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <div class="text-muted small">Indice Qualità Credito (IQC)</div>
+                            <span class="badge fs-6" style="background-color:{{ iqc_cliente.colore }};{% if iqc_cliente.classe == 'Buono' %}color:#10131a;{% endif %}">{{ iqc_cliente.iqc }}/100 · {{ iqc_cliente.classe }}</span>
+                        </div>
+                        <div class="small text-muted text-end">
+                            Rotazione <strong>{{ iqc_cliente.rotazione }}×</strong> ·
+                            Età <strong>{% if iqc_cliente.giorni is not None %}{{ iqc_cliente.giorni }}gg{% else %}—{% endif %}</strong> ·
+                            Volume 30g <strong>{{ iqc_cliente.volume|floatformat:0 }} €</strong>
+                        </div>
+                    </div>
+                    <div class="progress mt-2" style="height:8px;">
+                        <div class="progress-bar" role="progressbar" style="width: {{ iqc_cliente.iqc }}%; background-color:{{ iqc_cliente.colore }};"></div>
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Azioni rapide -->
                 <div class="d-grid gap-2 mt-3">
                     {% if user.is_superuser or perms.app.change_cliente %}
