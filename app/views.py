@@ -54,37 +54,39 @@ def _iqc_freschezza(giorni):
         return 0
     if giorni < 7:
         return 100
+    if giorni < 15:
+        return 70
     if giorni < 30:
-        return 80
+        return 45
+    if giorni < 60:
+        return 20
     if giorni < 90:
-        return 50
-    if giorni < 180:
-        return 25
+        return 8
     return 0
 
 
 def _iqc_esposizione(credito):
     # Solo valore assoluto del credito: più basso = meglio (soglie = fasce importo).
     c = float(credito or 0)
-    if c <= 100:
+    if c <= 50:
         return 100
-    if c <= 250:
-        return 85
-    if c <= 500:
-        return 65
-    if c <= 1000:
-        return 45
-    if c <= 2500:
-        return 25
+    if c <= 150:
+        return 80
+    if c <= 300:
+        return 55
+    if c <= 600:
+        return 35
+    if c <= 1200:
+        return 15
     return 5
 
 
 def _iqc_classe(score):
-    if score >= 75:
+    if score >= 80:
         return ('Ottimo', '#28a745')
-    if score >= 50:
+    if score >= 60:
         return ('Buono', '#8dc63f')
-    if score >= 25:
+    if score >= 35:
         return ('Attenzione', '#fd7e14')
     return ('Critico', '#dc3545')
 
@@ -97,7 +99,7 @@ def calcola_iqc(credito, giorni, volume30):
     volume30 = Decimal(str(volume30 or 0))
     if credito and credito != 0:
         rot = volume30 / credito
-        score_rot = min(100.0, float(rot) / 3.0 * 100.0)
+        score_rot = min(100.0, float(rot) / 5.0 * 100.0)
     else:
         rot = Decimal('0')
         score_rot = 100.0
