@@ -97,11 +97,13 @@ def dashboard(request):
     clienti_reali = db.get_queryset(Cliente).filter(conto_servizio=False)
 
     # Fascia di anzianità del credito: si usa la data dell'ULTIMO movimento del cliente.
-    COLORI_AGING = {'recenti': '#28a745', 'm1_3': '#ffc107', 'm3_6': '#fd7e14', 'm6': '#dc3545'}
+    COLORI_AGING = {'settimana': '#20c997', 'recenti': '#28a745', 'm1_3': '#ffc107', 'm3_6': '#fd7e14', 'm6': '#dc3545'}
 
     def _bucket(riferimento):
         giorni = (adesso - riferimento).days if riferimento else 99999
-        if giorni < 30:
+        if giorni < 7:
+            return 'settimana'
+        elif giorni < 30:
             return 'recenti'
         elif giorni < 90:
             return 'm1_3'
@@ -112,8 +114,8 @@ def dashboard(request):
     # Credito in essere e aging (crediti fermi) per data dell'ultimo movimento
     debitori = clienti_reali.filter(saldo__lt=0).annotate(ultimo_mov=Max('movimenti__data'))
     credito_in_essere = Decimal('0')
-    aging = {'recenti': Decimal('0'), 'm1_3': Decimal('0'), 'm3_6': Decimal('0'), 'm6': Decimal('0')}
-    aging_clienti = {'recenti': [], 'm1_3': [], 'm3_6': [], 'm6': []}
+    aging = {'settimana': Decimal('0'), 'recenti': Decimal('0'), 'm1_3': Decimal('0'), 'm3_6': Decimal('0'), 'm6': Decimal('0')}
+    aging_clienti = {'settimana': [], 'recenti': [], 'm1_3': [], 'm3_6': [], 'm6': []}
     # Distribuzione del credito per fascia di importo (istogramma)
     distribuzione = [
         {'key': 'f0', 'label': '≤ 100 €', 'lo': Decimal('0'), 'hi': Decimal('100'), 'n': 0, 'tot': Decimal('0'), 'clienti': []},
@@ -143,9 +145,10 @@ def dashboard(request):
         aging_clienti[b].sort(key=lambda x: x['importo'], reverse=True)
     for f in distribuzione:
         f['clienti'].sort(key=lambda x: x['importo'], reverse=True)
-    _etichette_aging = {'recenti': '< 1 mese', 'm1_3': '1–3 mesi', 'm3_6': '3–6 mesi', 'm6': 'oltre 6 mesi'}
+    _etichette_aging = {'settimana': '< 1 settimana', 'recenti': '1 sett. – 1 mese',
+                        'm1_3': '1–3 mesi', 'm3_6': '3–6 mesi', 'm6': 'oltre 6 mesi'}
     aging_fasce = [{'key': k, 'label': _etichette_aging[k], 'clienti': aging_clienti[k],
-                    'totale': aging[k]} for k in ('recenti', 'm1_3', 'm3_6', 'm6')]
+                    'totale': aging[k]} for k in ('settimana', 'recenti', 'm1_3', 'm3_6', 'm6')]
 
     def _pct(v):
         return (v / credito_in_essere * 100) if credito_in_essere else Decimal('0')
@@ -162,6 +165,39 @@ def dashboard(request):
 
     # Rigiro del credito (7 gg): credito rientrato / credito in essere (formula precedente)
     rigiro_sett = _pct(rientrato_7)
+
+    # Classifica volumi giocato (schedine + ricariche) per cliente, per periodo.
+    def _classifica_volumi(giorni, limite=10):
+        inizio = adesso - timedelta(days=giorni)
+        rows = (db.get_queryset(Movimento)
+                .filter(tipo__in=['schedina', 'ricarica'], cliente__conto_servizio=False, data__gte=inizio)
+                .values('cliente_id', 'cliente__nome', 'cliente__cognome', 'tipo')
+                .annotate(tot=Sum('importo')))
+        agg = {}
+        for r in rows:
+            cid = r['cliente_id']
+            e = agg.get(cid)
+            if e is None:
+                e = {'pk': cid,
+                     'nome': ('%s %s' % (r['cliente__cognome'] or '', r['cliente__nome'] or '')).strip(),
+                     'schedina': Decimal('0'), 'ricarica': Decimal('0')}
+                agg[cid] = e
+            val = abs(r['tot'] or Decimal('0'))
+            if r['tipo'] == 'schedina':
+                e['schedina'] += val
+            else:
+                e['ricarica'] += val
+        lista = list(agg.values())
+        for e in lista:
+            e['totale'] = e['schedina'] + e['ricarica']
+        lista.sort(key=lambda x: x['totale'], reverse=True)
+        return lista[:limite]
+
+    volumi = {
+        'settimana': _classifica_volumi(7),
+        'mese': _classifica_volumi(30),
+        'anno': _classifica_volumi(365),
+    }
 
     # Distribuzione del credito tra i clienti: top debitori, colorati per anzianità del credito
     top_debitori = []
@@ -236,6 +272,7 @@ def dashboard(request):
         'top_debitori': top_debitori,
         'concentrazione_top5': concentrazione_top5,
         'distribuzione': distribuzione,
+        'volumi': volumi,
     }
     
     # Aggiorna automaticamente il saldo della cassa dalle distinte e recupera il valore
@@ -275,6 +312,9 @@ def dashboard(request):
         'saldo_cassa_agenzia': saldo_cassa_agenzia,
         'distinta_corrente': distinta_corrente,
         'kpi': kpi,
+        'vol_periodi': [('settimana', volumi['settimana']),
+                        ('mese', volumi['mese']),
+                        ('anno', volumi['anno'])],
     }
 
     return render(request, 'app/dashboard.html', context)
