@@ -55,13 +55,13 @@ def _iqc_freschezza(giorni):
     if giorni < 7:
         return 100
     if giorni < 15:
-        return 70
+        return 60
     if giorni < 30:
-        return 45
+        return 35
+    if giorni < 45:
+        return 15
     if giorni < 60:
-        return 20
-    if giorni < 90:
-        return 8
+        return 6
     return 0
 
 
@@ -99,13 +99,17 @@ def calcola_iqc(credito, giorni, volume30):
     volume30 = Decimal(str(volume30 or 0))
     if credito and credito != 0:
         rot = volume30 / credito
-        score_rot = min(100.0, float(rot) / 5.0 * 100.0)
+        # Curva convessa: le rotazioni basse (poco volume sul credito) sono
+        # penalizzate più che proporzionalmente; punteggio pieno a 5x.
+        score_rot = 100.0 * (min(float(rot), 5.0) / 5.0) ** 1.5
     else:
         rot = Decimal('0')
         score_rot = 100.0
     score_fre = _iqc_freschezza(giorni)
     score_esp = _iqc_esposizione(credito)
-    iqc = round(0.40 * score_rot + 0.35 * score_fre + 0.25 * score_esp)
+    # Pesi spostati su rotazione ed età: un credito fermo e poco movimentato
+    # deve pesare di più dell'ammontare.
+    iqc = round(0.45 * score_rot + 0.40 * score_fre + 0.15 * score_esp)
     classe, colore = _iqc_classe(iqc)
     return {'iqc': iqc, 'classe': classe, 'colore': colore,
             'rotazione': round(float(rot), 2), 'score_rot': round(score_rot),
