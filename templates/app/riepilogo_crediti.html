@@ -43,26 +43,30 @@
     /* Colonna Data ancorata a sinistra */
     .saldi-tab .col-data { position: sticky; left: 0; z-index: 2; font-weight: 600; color: #fff;
                  box-shadow: 6px 0 8px -6px rgba(0,0,0,.65); }
-    /* Totale e Differenza ancorate a destra */
-    .saldi-tab .col-tot  { position: sticky; right: 152px; z-index: 2; min-width: 132px; }
-    .saldi-tab .col-diff { position: sticky; right: 0; z-index: 2; min-width: 152px; text-align: right;
+    /* Totale, Differenza e Differenza Reale ancorate a destra */
+    .saldi-tab .col-tot  { position: sticky; right: 304px; z-index: 2; min-width: 132px;
                  box-shadow: -8px 0 8px -6px rgba(0,0,0,.65); }
+    .saldi-tab .col-diff { position: sticky; right: 152px; z-index: 2; min-width: 152px; text-align: right; }
+    .saldi-tab .col-diffreale { position: sticky; right: 0; z-index: 2; min-width: 152px; text-align: right; }
 
     /* Le celle fisse devono avere sfondo opaco: lo ridefinisco per riga */
     .saldi-tab tbody tr:nth-child(odd)  .col-data,
     .saldi-tab tbody tr:nth-child(odd)  .col-tot,
-    .saldi-tab tbody tr:nth-child(odd)  .col-diff { background: #2a3037; }
+    .saldi-tab tbody tr:nth-child(odd)  .col-diff,
+    .saldi-tab tbody tr:nth-child(odd)  .col-diffreale { background: #2a3037; }
     .saldi-tab tbody tr:nth-child(even) .col-data,
     .saldi-tab tbody tr:nth-child(even) .col-tot,
-    .saldi-tab tbody tr:nth-child(even) .col-diff { background: #22272d; }
+    .saldi-tab tbody tr:nth-child(even) .col-diff,
+    .saldi-tab tbody tr:nth-child(even) .col-diffreale { background: #22272d; }
     .saldi-tab tbody tr:hover .col-data,
     .saldi-tab tbody tr:hover .col-tot,
-    .saldi-tab tbody tr:hover .col-diff { background: #353e47; }
+    .saldi-tab tbody tr:hover .col-diff,
+    .saldi-tab tbody tr:hover .col-diffreale { background: #353e47; }
 
     /* Totale in evidenza */
     .saldi-tab .cella-totale { color: #fff; font-weight: 700; }
-    .saldi-tab thead .col-data, .saldi-tab thead .col-tot, .saldi-tab thead .col-diff {
-                 background: #10131a; z-index: 4; }
+    .saldi-tab thead .col-data, .saldi-tab thead .col-tot, .saldi-tab thead .col-diff,
+    .saldi-tab thead .col-diffreale { background: #10131a; z-index: 4; }
 
     /* Numeri +/- ben leggibili su fondo scuro */
     .saldi-tab .text-success { color: #4ade80 !important; }
@@ -84,7 +88,7 @@
         <h5 class="mb-0">
             <i class="fas fa-list me-2"></i>Tabella Riepilogo
         </h5>
-        <small class="ms-auto text-white-50"><i class="fas fa-arrows-left-right me-1"></i>scorri per vedere tutte le colonne · Totale e Differenza restano fissi a destra</small>
+        <small class="ms-auto text-white-50"><i class="fas fa-arrows-left-right me-1"></i>scorri per vedere tutte le colonne · Totale, Differenza e Differenza Reale restano fissi a destra</small>
     </div>
     <div class="card-body p-0">
         {% if righe %}
@@ -108,6 +112,7 @@
                         <th class="text-end">Altro</th>
                         <th class="text-end col-tot">Totale</th>
                         <th class="text-end col-diff">Differenza</th>
+                        <th class="text-end col-diffreale">Differenza Reale</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -209,6 +214,13 @@
                                 </span>
                             {% else %}<span class="text-muted">—</span>{% endif %}
                         </td>
+                        <td class="text-end fw-bold cella-differenza-reale col-diffreale">
+                            {% if riga.differenza_reale is not None %}
+                                <span class="badge bg-{% if riga.differenza_reale >= -0.01 and riga.differenza_reale <= 0.01 %}success{% else %}danger{% endif %}">
+                                    {{ riga.differenza_reale|floatformat:2 }} €
+                                </span>
+                            {% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -255,6 +267,7 @@
         // versamenti) e più i prelievi di ieri.
         righe.forEach(function(tr, i) {
             var cella = tr.querySelector('.cella-differenza');
+            var cellaReale = tr.querySelector('.cella-differenza-reale');
             if (i + 1 < righe.length) {
                 var y = righe[i + 1], yd = y.dataset;
                 var ypre = n(y.querySelector('[data-tipo="prelievi"]').value);
@@ -267,8 +280,13 @@
                            - yver + ypre + yalt;
                 var ok = diff >= -0.01 && diff <= 0.01;
                 cella.innerHTML = '<span class="badge bg-' + (ok ? 'success' : 'danger') + '">' + fmt(diff) + '</span>';
+                // Differenza reale = differenza depurata dalla differenza distinta del giorno
+                var diffReale = diff + n(tr.dataset.diffdistinta);
+                var okR = diffReale >= -0.01 && diffReale <= 0.01;
+                if (cellaReale) cellaReale.innerHTML = '<span class="badge bg-' + (okR ? 'success' : 'danger') + '">' + fmt(diffReale) + '</span>';
             } else {
                 cella.innerHTML = '<span class="text-muted">—</span>';
+                if (cellaReale) cellaReale.innerHTML = '<span class="text-muted">—</span>';
             }
         });
     }

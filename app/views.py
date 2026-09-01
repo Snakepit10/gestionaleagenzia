@@ -2070,8 +2070,11 @@ def riepilogo_crediti(request):
                 - num(y['giroconto_conti_servizio'])
                 - num(y['versamenti']) + num(y['prelievi']) + num(y['altro'])
             )
+            # Differenza reale = differenza depurata dalla differenza distinta del giorno
+            r['differenza_reale'] = r['differenza'] + num(r['differenza_distinta'])
         else:
             r['differenza'] = None
+            r['differenza_reale'] = None
 
     context = {'righe': righe}
     return render(request, 'app/riepilogo_crediti.html', context)
