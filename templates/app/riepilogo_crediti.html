@@ -216,7 +216,7 @@
                         </td>
                         <td class="text-end fw-bold cella-differenza-reale col-diffreale">
                             {% if riga.differenza_reale is not None %}
-                                <span class="badge bg-{% if riga.differenza_reale >= -0.01 and riga.differenza_reale <= 0.01 %}success{% else %}danger{% endif %}">
+                                <span class="badge bg-{% if riga.differenza_reale >= -0.01 %}success{% else %}danger{% endif %}">
                                     {{ riga.differenza_reale|floatformat:2 }} €
                                 </span>
                             {% else %}<span class="text-muted">—</span>{% endif %}
@@ -282,7 +282,7 @@
                 cella.innerHTML = '<span class="badge bg-' + (ok ? 'success' : 'danger') + '">' + fmt(diff) + '</span>';
                 // Differenza reale = differenza depurata dalla differenza distinta del giorno
                 var diffReale = diff + n(tr.dataset.diffdistinta);
-                var okR = diffReale >= -0.01 && diffReale <= 0.01;
+                var okR = diffReale >= -0.01;   // verde se >= 0, rosso se negativo
                 if (cellaReale) cellaReale.innerHTML = '<span class="badge bg-' + (okR ? 'success' : 'danger') + '">' + fmt(diffReale) + '</span>';
             } else {
                 cella.innerHTML = '<span class="text-muted">—</span>';
