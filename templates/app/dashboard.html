@@ -417,7 +417,7 @@
         <span class="small">IQC medio: <span class="badge bg-secondary">{{ kpi.qualita_media }}/100</span> · {{ kpi.qualita_n }} debitori</span>
     </div>
     <div class="card-body">
-        <p class="text-muted small mb-3">Indice 0–100 per debitore: combina <strong>rotazione</strong> (volume giocato ÷ credito), <strong>freschezza</strong> (età) ed <strong>esposizione</strong> (ammontare). Più alto = credito migliore.</p>
+        <p class="text-muted small mb-3">Indice 0–100 per debitore: combina <strong>rotazione</strong> (volume giocato ÷ credito), <strong>freschezza</strong> (età), <strong>valore</strong> (volume assoluto giocato = margine) ed <strong>esposizione</strong> (ammontare). Più alto = credito migliore.</p>
         <div class="row text-center g-2 mb-3">
             {% for d in kpi.qualita_distribuzione %}
             <div class="col-6 col-md-3">

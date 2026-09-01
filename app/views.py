@@ -81,6 +81,25 @@ def _iqc_esposizione(credito):
     return 5
 
 
+def _iqc_valore(volume30):
+    # Premia il volume ASSOLUTO giocato negli ultimi 30 giorni: più giro = più
+    # margine per l'agenzia, a prescindere dal rapporto col credito.
+    v = float(volume30 or 0)
+    if v >= 5000:
+        return 100
+    if v >= 2500:
+        return 80
+    if v >= 1000:
+        return 60
+    if v >= 500:
+        return 40
+    if v >= 200:
+        return 20
+    if v >= 50:
+        return 8
+    return 0
+
+
 def _iqc_classe(score):
     if score >= 80:
         return ('Ottimo', '#28a745')
@@ -107,13 +126,14 @@ def calcola_iqc(credito, giorni, volume30):
         score_rot = 100.0
     score_fre = _iqc_freschezza(giorni)
     score_esp = _iqc_esposizione(credito)
-    # Pesi spostati su rotazione ed età: un credito fermo e poco movimentato
-    # deve pesare di più dell'ammontare.
-    iqc = round(0.45 * score_rot + 0.40 * score_fre + 0.15 * score_esp)
+    score_val = _iqc_valore(volume30)
+    # Rotazione ed età pesano sul rischio; il valore assoluto giocato premia i
+    # clienti che generano più margine; l'ammontare pesa meno.
+    iqc = round(0.30 * score_rot + 0.30 * score_fre + 0.25 * score_val + 0.15 * score_esp)
     classe, colore = _iqc_classe(iqc)
     return {'iqc': iqc, 'classe': classe, 'colore': colore,
             'rotazione': round(float(rot), 2), 'score_rot': round(score_rot),
-            'score_fre': score_fre, 'score_esp': score_esp}
+            'score_fre': score_fre, 'score_esp': score_esp, 'score_val': score_val}
 
 
 # Dashboard (accesso ristretto)
