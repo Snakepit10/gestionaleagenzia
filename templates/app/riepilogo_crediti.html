@@ -43,29 +43,21 @@
     /* Colonna Data ancorata a sinistra */
     .saldi-tab .col-data { position: sticky; left: 0; z-index: 2; font-weight: 600; color: #fff;
                  box-shadow: 6px 0 8px -6px rgba(0,0,0,.65); }
-    /* Totale, Differenza e Differenza Reale ancorate a destra */
-    .saldi-tab .col-tot  { position: sticky; right: 304px; z-index: 2; min-width: 132px;
+    /* Solo Differenza Reale ancorata a destra; Totale e Differenza scorrono */
+    .saldi-tab .col-diffreale { position: sticky; right: 0; z-index: 2; min-width: 152px; text-align: right;
                  box-shadow: -8px 0 8px -6px rgba(0,0,0,.65); }
-    .saldi-tab .col-diff { position: sticky; right: 152px; z-index: 2; min-width: 152px; text-align: right; }
-    .saldi-tab .col-diffreale { position: sticky; right: 0; z-index: 2; min-width: 152px; text-align: right; }
 
     /* Le celle fisse devono avere sfondo opaco: lo ridefinisco per riga */
     .saldi-tab tbody tr:nth-child(odd)  .col-data,
-    .saldi-tab tbody tr:nth-child(odd)  .col-tot,
-    .saldi-tab tbody tr:nth-child(odd)  .col-diff,
     .saldi-tab tbody tr:nth-child(odd)  .col-diffreale { background: #2a3037; }
     .saldi-tab tbody tr:nth-child(even) .col-data,
-    .saldi-tab tbody tr:nth-child(even) .col-tot,
-    .saldi-tab tbody tr:nth-child(even) .col-diff,
     .saldi-tab tbody tr:nth-child(even) .col-diffreale { background: #22272d; }
     .saldi-tab tbody tr:hover .col-data,
-    .saldi-tab tbody tr:hover .col-tot,
-    .saldi-tab tbody tr:hover .col-diff,
     .saldi-tab tbody tr:hover .col-diffreale { background: #353e47; }
 
     /* Totale in evidenza */
     .saldi-tab .cella-totale { color: #fff; font-weight: 700; }
-    .saldi-tab thead .col-data, .saldi-tab thead .col-tot, .saldi-tab thead .col-diff,
+    .saldi-tab thead .col-data,
     .saldi-tab thead .col-diffreale { background: #10131a; z-index: 4; }
 
     /* Numeri +/- ben leggibili su fondo scuro */
