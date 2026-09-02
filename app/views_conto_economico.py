@@ -400,8 +400,10 @@ def importa_conto_spese(request, anno, mese):
 
     importati = saltati = 0
     for m in movimenti:
-        # solo uscite (importo negativo) = spese; dedup su FK movimento
-        if m.importo >= 0:
+        # Tutti i movimenti (di qualunque segno) del conto spese diventano costi:
+        # il segno del movimento dipende da come l'operatore lo registra, quindi non
+        # si filtra per segno. Si salta solo l'importo nullo. Dedup su FK movimento.
+        if m.importo == 0:
             continue
         if VoceCosto.objects.using(dbname).filter(conto_economico=conto, movimento=m).exists():
             saltati += 1

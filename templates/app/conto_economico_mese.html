@@ -155,7 +155,7 @@
         <div class="card mb-4">
             <div class="card-header"><i class="fas fa-file-import me-2"></i>Importa dal conto spese</div>
             <div class="card-body">
-                <p class="text-muted small">Importa i movimenti (uscite) di un conto di servizio nel mese come costi da classificare.</p>
+                <p class="text-muted small">Importa tutti i movimenti del mese di un conto di servizio come costi da classificare (importi in valore assoluto). Le voci non pertinenti si possono eliminare.</p>
                 {% if clienti_servizio %}
                 <form method="post" action="{% url 'importa_conto_spese' anno mese %}" class="row g-2 align-items-end">
                     {% csrf_token %}
