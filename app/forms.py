@@ -1,6 +1,14 @@
 from django import forms
 from django.utils import timezone
-from .models import Cliente, Movimento, DistintaCassa, Comunicazione, ContoFinanziario, BilancioPeriodico
+from .models import (Cliente, Movimento, DistintaCassa, Comunicazione, ContoFinanziario, BilancioPeriodico,
+                     ProdottoRicavo, CategoriaSpesa, VoceCosto, Agenzia)
+
+
+MESI_CHOICES = [
+    (1, 'Gennaio'), (2, 'Febbraio'), (3, 'Marzo'), (4, 'Aprile'),
+    (5, 'Maggio'), (6, 'Giugno'), (7, 'Luglio'), (8, 'Agosto'),
+    (9, 'Settembre'), (10, 'Ottobre'), (11, 'Novembre'), (12, 'Dicembre'),
+]
 
 
 class ClienteForm(forms.ModelForm):
@@ -299,3 +307,100 @@ class BilancioPeriodoForm(forms.ModelForm):
         widgets = {
             'note': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Inserisci note aggiuntive sul bilancio'}),
         }
+
+
+# ===========================================================================
+# Conto Economico
+# ===========================================================================
+
+class ProdottoRicavoForm(forms.ModelForm):
+    class Meta:
+        model = ProdottoRicavo
+        fields = ['nome', 'codice', 'ordine', 'attivo']
+        help_texts = {
+            'codice': 'Lascia vuoto per generarlo automaticamente dal nome.',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['codice'].required = False
+
+    def clean_codice(self):
+        from django.utils.text import slugify
+        codice = self.cleaned_data.get('codice') or ''
+        if not codice:
+            codice = slugify(self.cleaned_data.get('nome', ''))
+        return codice
+
+
+class CategoriaSpesaForm(forms.ModelForm):
+    class Meta:
+        model = CategoriaSpesa
+        fields = ['nome', 'codice', 'ordine', 'deducibile', 'attivo']
+        help_texts = {
+            'codice': 'Lascia vuoto per generarlo automaticamente dal nome.',
+            'deducibile': 'Se attivo, concorre alla stima delle imposte.',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['codice'].required = False
+
+    def clean_codice(self):
+        from django.utils.text import slugify
+        codice = self.cleaned_data.get('codice') or ''
+        if not codice:
+            codice = slugify(self.cleaned_data.get('nome', ''))
+        return codice
+
+
+class VoceCostoForm(forms.ModelForm):
+    """Inserimento manuale di una voce di costo. La categoria attinge alla tassonomia globale."""
+    class Meta:
+        model = VoceCosto
+        fields = ['categoria_codice', 'descrizione', 'importo', 'data']
+        widgets = {
+            'importo': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
+            'data': forms.DateInput(attrs={'type': 'date'}),
+        }
+        labels = {'categoria_codice': 'Categoria'}
+
+    importo = forms.DecimalField(
+        max_digits=12, decimal_places=2, localize=True,
+        widget=forms.TextInput(attrs={'inputmode': 'decimal', 'class': 'form-control', 'placeholder': '0,00'}))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        categorie = CategoriaSpesa.objects.using('default').filter(attivo=True).order_by('ordine', 'nome')
+        scelte = [('', '— Da classificare —')] + [(c.codice, c.nome) for c in categorie]
+        self.fields['categoria_codice'] = forms.ChoiceField(
+            choices=scelte, required=False, label='Categoria'
+        )
+        self.fields['descrizione'].required = True
+
+
+class VoceRicavoManualeForm(forms.Form):
+    """Voce di ricavo aggiuntiva/manuale (non legata a un prodotto)."""
+    descrizione = forms.CharField(max_length=200, label='Descrizione')
+    importo = forms.DecimalField(
+        max_digits=12, decimal_places=2, localize=True,
+        widget=forms.TextInput(attrs={'inputmode': 'decimal', 'class': 'form-control', 'placeholder': '0,00'}))
+
+
+class UploadEstrattoForm(forms.Form):
+    """Upload del CSV dell'estratto conto (elaborato in memoria, nessuno storage)."""
+    file = forms.FileField(label='File CSV estratto conto',
+                           widget=forms.ClearableFileInput(attrs={'accept': '.csv,text/csv,text/plain'}))
+
+
+class ConsolidatoForm(forms.Form):
+    """Selezione mese + agenzie per la vista consolidata (super-admin)."""
+    anno = forms.IntegerField(min_value=2000, max_value=2100,
+                              widget=forms.NumberInput(attrs={'class': 'form-control'}))
+    mese = forms.ChoiceField(choices=MESI_CHOICES,
+                             widget=forms.Select(attrs={'class': 'form-select'}))
+    agenzie = forms.ModelMultipleChoiceField(
+        queryset=Agenzia.objects.using('default').filter(attiva=True).order_by('nome'),
+        widget=forms.CheckboxSelectMultiple,
+        label='Agenzie da includere',
+    )

@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_conto_economico as ce
 
 urlpatterns = [
     # Homepage (accessibile a tutti gli utenti autenticati)
@@ -48,6 +49,30 @@ urlpatterns = [
     path('api/cast/giorni/', views.api_giorni_mancanti, name='api_giorni_mancanti'),
     path('api/cast/saldi/', views.api_ricevi_saldi, name='api_ricevi_saldi'),
     path('api/saldo-esterno/salva/', views.salva_valore_esterno, name='salva_valore_esterno'),
+
+    # Conto Economico (report mensili ricavi/spese)
+    path('conto-economico/', ce.conto_economico, name='conto_economico'),
+    path('conto-economico/apri/', ce.apri_mese, name='conto_economico_apri'),
+    path('conto-economico/consolidato/', ce.conto_economico_consolidato, name='conto_economico_consolidato'),
+    # tassonomia globale (super-admin)
+    path('conto-economico/categorie/', ce.categorie_spesa, name='categorie_spesa'),
+    path('conto-economico/categorie/nuova/', ce.nuova_categoria_spesa, name='nuova_categoria_spesa'),
+    path('conto-economico/categorie/<int:pk>/modifica/', ce.modifica_categoria_spesa, name='modifica_categoria_spesa'),
+    path('conto-economico/categorie/<int:pk>/elimina/', ce.elimina_categoria_spesa, name='elimina_categoria_spesa'),
+    path('conto-economico/prodotti/', ce.prodotti_ricavo, name='prodotti_ricavo'),
+    path('conto-economico/prodotti/nuovo/', ce.nuovo_prodotto_ricavo, name='nuovo_prodotto_ricavo'),
+    path('conto-economico/prodotti/<int:pk>/modifica/', ce.modifica_prodotto_ricavo, name='modifica_prodotto_ricavo'),
+    path('conto-economico/prodotti/<int:pk>/elimina/', ce.elimina_prodotto_ricavo, name='elimina_prodotto_ricavo'),
+    # dettaglio mese e operazioni
+    path('conto-economico/<int:anno>/<int:mese>/', ce.conto_economico_mese, name='conto_economico_mese'),
+    path('conto-economico/<int:anno>/<int:mese>/ricavi/', ce.conto_economico_ricavi, name='conto_economico_ricavi'),
+    path('conto-economico/<int:anno>/<int:mese>/ricavi/nuova/', ce.nuova_voce_ricavo, name='nuova_voce_ricavo'),
+    path('conto-economico/<int:anno>/<int:mese>/ricavi/<int:pk>/elimina/', ce.elimina_voce_ricavo, name='elimina_voce_ricavo'),
+    path('conto-economico/<int:anno>/<int:mese>/costi/nuova/', ce.nuova_voce_costo, name='nuova_voce_costo'),
+    path('conto-economico/<int:anno>/<int:mese>/costi/<int:pk>/elimina/', ce.elimina_voce_costo, name='elimina_voce_costo'),
+    path('conto-economico/<int:anno>/<int:mese>/conto-spese/importa/', ce.importa_conto_spese, name='importa_conto_spese'),
+    path('conto-economico/<int:anno>/<int:mese>/estratto/carica/', ce.carica_estratto, name='carica_estratto'),
+    path('conto-economico/<int:anno>/<int:mese>/estratto/', ce.classifica_estratto, name='classifica_estratto'),
 
     # Logs
     path('logs/', views.lista_logs, name='lista_logs'),

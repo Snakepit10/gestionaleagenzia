@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Carica estratto conto - {{ mese_nome }} {{ anno }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col"><h1 class="h3 mb-0"><i class="fas fa-file-csv me-2"></i>Carica estratto conto — {{ mese_nome }} {{ anno }}</h1></div>
+    <div class="col-auto">
+        <a href="{% url 'conto_economico_mese' anno mese %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Torna al mese</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-7 mx-auto">
+        <div class="card">
+            <div class="card-header bg-primary text-white"><h5 class="mb-0">File CSV</h5></div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ form.file|as_crispy_field }}
+                    <p class="text-muted small">
+                        Sono considerate spese solo le <strong>uscite</strong> (importi negativi). Le righe già
+                        importate vengono riconosciute e saltate (nessun doppione). Dopo il caricamento potrai
+                        classificare ogni riga in una categoria.
+                    </p>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-upload me-2"></i>Carica e prosegui</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

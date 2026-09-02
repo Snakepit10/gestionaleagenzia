@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Categorie di Spesa - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h1 class="h3 mb-0"><i class="fas fa-tags me-2"></i>Categorie di Spesa</h1>
+        <small class="text-muted">Lista condivisa da tutte le agenzie (usata dal conto economico).</small>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'conto_economico' %}" class="btn btn-outline-secondary me-2"><i class="fas fa-arrow-left me-1"></i>Conto Economico</a>
+        <a href="{% url 'nuova_categoria_spesa' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nuova categoria</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead><tr><th>Nome</th><th>Codice</th><th class="text-center">Ordine</th><th class="text-center">Deducibile</th><th class="text-center">Attivo</th><th class="text-end">Azioni</th></tr></thead>
+                <tbody>
+                    {% for c in categorie %}
+                    <tr>
+                        <td>{{ c.nome }}</td>
+                        <td><code>{{ c.codice }}</code></td>
+                        <td class="text-center">{{ c.ordine }}</td>
+                        <td class="text-center">{% if c.deducibile %}<span class="badge bg-success">Sì</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                        <td class="text-center">{% if c.attivo %}<span class="badge bg-success">Sì</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                        <td class="text-end">
+                            <a href="{% url 'modifica_categoria_spesa' c.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+                            <a href="{% url 'elimina_categoria_spesa' c.pk %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nessuna categoria. Creane una con "Nuova categoria".</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

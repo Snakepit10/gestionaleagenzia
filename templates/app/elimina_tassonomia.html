@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Elimina {{ tipo }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white"><h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Conferma eliminazione</h5></div>
+            <div class="card-body">
+                <p>Vuoi eliminare {{ tipo }} <strong>{{ oggetto.nome }}</strong> (<code>{{ oggetto.codice }}</code>)?</p>
+                <p class="text-muted small mb-3">Le voci già registrate nei conti economici che usano questo codice
+                resteranno, ma non mostreranno più il nome. Operazione consigliata solo se non è più utilizzato.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url annulla_url %}" class="btn btn-outline-secondary">Annulla</a>
+                        <button type="submit" class="btn btn-danger"><i class="fas fa-trash me-2"></i>Elimina</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

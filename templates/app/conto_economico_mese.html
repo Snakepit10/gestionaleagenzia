@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Conto Economico {{ mese_nome }} {{ anno }}{% endblock %}
+
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col">
+        <h1 class="h3 mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Conto Economico — {{ mese_nome }} {{ anno }}</h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'conto_economico' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Tutti i mesi</a>
+    </div>
+</div>
+
+<!-- Riepilogo -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="card h-100 border-success"><div class="card-body text-center">
+            <div class="text-muted small">Ricavi</div>
+            <div class="h4 mb-0 text-success">{{ tot_ricavi|floatformat:2 }} €</div>
+        </div></div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card h-100 border-danger"><div class="card-body text-center">
+            <div class="text-muted small">Costi</div>
+            <div class="h4 mb-0 text-danger">{{ tot_costi|floatformat:2 }} €</div>
+        </div></div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card h-100 {% if utile < 0 %}border-danger{% else %}border-primary{% endif %}"><div class="card-body text-center">
+            <div class="text-muted small">Utile lordo</div>
+            <div class="h4 mb-0 {% if utile < 0 %}text-danger{% else %}text-primary{% endif %}">{{ utile|floatformat:2 }} €</div>
+        </div></div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card h-100"><div class="card-body text-center">
+            <div class="text-muted small">Utile netto stimato <i class="fas fa-info-circle" title="Utile meno stima imposte (24% sui costi deducibili)"></i></div>
+            <div class="h4 mb-0">{{ utile_netto|floatformat:2 }} €</div>
+            <div class="small text-muted">imposte stimate {{ stima_imposte|floatformat:2 }} €</div>
+        </div></div>
+    </div>
+</div>
+
+<div class="d-flex flex-wrap gap-2 mb-4">
+    <a href="{% url 'conto_economico_ricavi' anno mese %}" class="btn btn-success"><i class="fas fa-coins me-1"></i>Inserisci ricavi</a>
+    <a href="{% url 'carica_estratto' anno mese %}" class="btn btn-primary"><i class="fas fa-file-csv me-1"></i>Carica estratto conto</a>
+    <a href="{% url 'classifica_estratto' anno mese %}" class="btn btn-outline-primary">
+        <i class="fas fa-list-check me-1"></i>Classifica estratto{% if n_bancari_pending %} <span class="badge bg-warning text-dark">{{ n_bancari_pending }}</span>{% endif %}
+    </a>
+</div>
+
+<div class="row">
+    <!-- RICAVI -->
+    <div class="col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-coins me-2"></i>Ricavi</span>
+                <a href="{% url 'conto_economico_ricavi' anno mese %}" class="btn btn-sm btn-light">Modifica</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0 align-middle">
+                    <tbody>
+                        {% for r in ricavi_prodotto %}
+                        <tr><td>{{ r.nome }}</td><td class="text-end">{{ r.voce.importo|floatformat:2 }} €</td></tr>
+                        {% endfor %}
+                        {% for v in ricavi_manuali %}
+                        <tr><td>{{ v.descrizione }} <span class="badge bg-secondary">manuale</span></td><td class="text-end">{{ v.importo|floatformat:2 }} €</td></tr>
+                        {% endfor %}
+                        {% if not ricavi_prodotto and not ricavi_manuali %}
+                        <tr><td colspan="2" class="text-center text-muted py-3">Nessun ricavo inserito. <a href="{% url 'conto_economico_ricavi' anno mese %}">Inseriscili</a>.</td></tr>
+                        {% endif %}
+                    </tbody>
+                    <tfoot class="table-light"><tr><th>Totale ricavi</th><th class="text-end text-success">{{ tot_ricavi|floatformat:2 }} €</th></tr></tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- COSTI -->
+    <div class="col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white"><i class="fas fa-file-invoice me-2"></i>Costi{% if n_da_classificare %} <span class="badge bg-warning text-dark ms-1">{{ n_da_classificare }} da classificare</span>{% endif %}</div>
+            <div class="card-body p-0">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="azione" value="classifica_costi">
+                    <table class="table mb-0 align-middle">
+                        <tbody>
+                            {% for g in costi_gruppi %}
+                            <tr class="table-light"><td colspan="3"><strong>{{ g.nome }}</strong> <span class="text-muted">({{ g.totale|floatformat:2 }} €)</span></td></tr>
+                            {% for v in g.voci %}
+                            <tr>
+                                <td class="small">
+                                    {{ v.descrizione|default:"(senza descrizione)" }}
+                                    <span class="badge bg-light text-dark border">{{ v.get_fonte_display }}</span>
+                                    {% if v.data %}<span class="text-muted small">{{ v.data|date:"d/m/Y" }}</span>{% endif %}
+                                </td>
+                                <td style="width:190px;">
+                                    <select name="catvoce_{{ v.pk }}" class="form-select form-select-sm">
+                                        <option value="">— Da classificare —</option>
+                                        {% for c in categorie %}
+                                        <option value="{{ c.codice }}" {% if c.codice == v.categoria_codice %}selected{% endif %}>{{ c.nome }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td class="text-end" style="width:120px;">
+                                    {{ v.importo|floatformat:2 }} €
+                                    <button formaction="{% url 'elimina_voce_costo' anno mese v.pk %}" class="btn btn-sm btn-outline-danger ms-1"
+                                            title="Elimina" onclick="return confirm('Eliminare questa voce di costo?');"><i class="fas fa-times"></i></button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted py-3">Nessun costo. Aggiungine sotto o importa da conto spese / estratto conto.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light"><tr><th colspan="2">Totale costi</th><th class="text-end text-danger">{{ tot_costi|floatformat:2 }} €</th></tr></tfoot>
+                    </table>
+                    {% if costi_gruppi %}
+                    <div class="p-2 text-end border-top">
+                        <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-save me-1"></i>Salva classificazione</button>
+                    </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Aggiungi costo manuale -->
+    <div class="col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header"><i class="fas fa-plus me-2"></i>Aggiungi costo manuale</div>
+            <div class="card-body">
+                <form method="post" action="{% url 'nuova_voce_costo' anno mese %}">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">{{ form_costo.descrizione|as_crispy_field }}</div>
+                        <div class="col-md-6">{{ form_costo.categoria_codice|as_crispy_field }}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">{{ form_costo.importo|as_crispy_field }}</div>
+                        <div class="col-md-6">{{ form_costo.data|as_crispy_field }}</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Aggiungi costo</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Importa conto spese -->
+    <div class="col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header"><i class="fas fa-file-import me-2"></i>Importa dal conto spese</div>
+            <div class="card-body">
+                <p class="text-muted small">Importa i movimenti (uscite) di un conto di servizio nel mese come costi da classificare.</p>
+                {% if clienti_servizio %}
+                <form method="post" action="{% url 'importa_conto_spese' anno mese %}" class="row g-2 align-items-end">
+                    {% csrf_token %}
+                    <div class="col">
+                        <label class="form-label mb-1">Conto di servizio</label>
+                        <select name="cliente" class="form-select" required>
+                            {% for c in clienti_servizio %}<option value="{{ c.pk }}">{{ c.nome_completo }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-download me-1"></i>Importa</button>
+                    </div>
+                </form>
+                {% else %}
+                <p class="text-muted mb-0">Nessun conto di servizio configurato tra i clienti.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

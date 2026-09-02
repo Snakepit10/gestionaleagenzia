@@ -1662,4 +1662,156 @@ class RiepilogoGiornaliero(MultiDatabaseMixin, models.Model):
             riepilogo.save(using=user_db)
             riepiloghi_creati.append(riepilogo)
 
+
+# ===========================================================================
+# CONTO ECONOMICO (report mensili ricavi/spese)
+# Tassonomia GLOBALE (prodotti/categorie, su DB 'default') + dati PER-AGENZIA.
+# ===========================================================================
+
+class ProdottoRicavo(models.Model):
+    """Prodotto/gioco per lo spaccato dei ricavi. Tassonomia GLOBALE condivisa da tutte
+    le agenzie: vive sul database 'default' (come Agenzia/SaldoEsterno)."""
+    codice = models.SlugField(max_length=40, unique=True,
+                              help_text="Codice stabile usato per aggregare tra agenzie")
+    nome = models.CharField(max_length=100)
+    ordine = models.PositiveIntegerField(default=0)
+    attivo = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Prodotto (Ricavi)"
+        verbose_name_plural = "Prodotti (Ricavi)"
+        ordering = ['ordine', 'nome']
+
+    def __str__(self):
+        return self.nome
+
+
+class CategoriaSpesa(models.Model):
+    """Categoria di costo per il conto economico. Tassonomia GLOBALE condivisa da tutte
+    le agenzie: vive sul database 'default'."""
+    codice = models.SlugField(max_length=40, unique=True,
+                              help_text="Codice stabile usato per aggregare tra agenzie")
+    nome = models.CharField(max_length=100)
+    ordine = models.PositiveIntegerField(default=0)
+    attivo = models.BooleanField(default=True)
+    deducibile = models.BooleanField(default=True, help_text="Concorre alla stima delle imposte")
+
+    class Meta:
+        verbose_name = "Categoria di Spesa"
+        verbose_name_plural = "Categorie di Spesa"
+        ordering = ['ordine', 'nome']
+
+    def __str__(self):
+        return self.nome
+
+
+class ContoEconomico(MultiDatabaseMixin, models.Model):
+    """Contenitore mensile del conto economico di una singola agenzia (per-database)."""
+    STATO_CHOICES = [('bozza', 'Bozza'), ('chiuso', 'Chiuso')]
+
+    anno = models.PositiveIntegerField()
+    mese = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(12)])
+    stato = models.CharField(max_length=10, choices=STATO_CHOICES, default='bozza')
+    note = models.TextField(blank=True, null=True)
+    creato_da = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                                  related_name='conti_economici_creati')
+    data_creazione = models.DateTimeField(auto_now_add=True)
+    data_modifica = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Conto Economico"
+        verbose_name_plural = "Conti Economici"
+        unique_together = [('anno', 'mese')]
+        ordering = ['-anno', '-mese']
+
+    def __str__(self):
+        return f"Conto Economico {self.mese:02d}/{self.anno}"
+
+    def totale_ricavi(self):
+        from django.db.models import Sum
+        return self.voci_ricavo.aggregate(t=Sum('importo'))['t'] or Decimal('0')
+
+    def totale_costi(self):
+        from django.db.models import Sum
+        return self.voci_costo.aggregate(t=Sum('importo'))['t'] or Decimal('0')
+
+    def utile(self):
+        return self.totale_ricavi() - self.totale_costi()
+
+
+class VoceRicavo(MultiDatabaseMixin, models.Model):
+    """Riga di ricavo del mese: per prodotto (prodotto_codice valorizzato) o voce manuale extra."""
+    FONTE_CHOICES = [('manuale', 'Manuale'), ('cast', 'Cast')]
+
+    conto_economico = models.ForeignKey(ContoEconomico, on_delete=models.CASCADE, related_name='voci_ricavo')
+    prodotto_codice = models.SlugField(max_length=40, blank=True, null=True,
+                                       help_text="Codice ProdottoRicavo (vuoto = voce manuale)")
+    descrizione = models.CharField(max_length=200, blank=True, default='')
+    importo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    fonte = models.CharField(max_length=10, choices=FONTE_CHOICES, default='manuale')
+    data_creazione = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Voce di Ricavo"
+        verbose_name_plural = "Voci di Ricavo"
+        ordering = ['id']
+
+    def __str__(self):
+        return f"{self.descrizione or self.prodotto_codice}: {self.importo} €"
+
+
+class VoceCosto(MultiDatabaseMixin, models.Model):
+    """Riga di costo del mese (unica fonte dei costi nel report)."""
+    FONTE_CHOICES = [('manuale', 'Manuale'), ('csv', 'Estratto conto'), ('conto_spese', 'Conto spese')]
+
+    conto_economico = models.ForeignKey(ContoEconomico, on_delete=models.CASCADE, related_name='voci_costo')
+    categoria_codice = models.SlugField(max_length=40, blank=True, null=True,
+                                        help_text="Codice CategoriaSpesa (vuoto = da classificare)")
+    descrizione = models.CharField(max_length=200, blank=True, default='')
+    importo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    data = models.DateField(null=True, blank=True)
+    fonte = models.CharField(max_length=12, choices=FONTE_CHOICES, default='manuale')
+    movimento = models.ForeignKey(Movimento, on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name='voci_costo',
+                                  help_text="Movimento conto-spese di origine (per dedup)")
+    data_creazione = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Voce di Costo"
+        verbose_name_plural = "Voci di Costo"
+        ordering = ['id']
+
+    def __str__(self):
+        return f"{self.descrizione or self.categoria_codice}: {self.importo} €"
+
+
+class MovimentoBancario(MultiDatabaseMixin, models.Model):
+    """Riga grezza importata dall'estratto conto bancario CSV (staging per la classificazione)."""
+    STATO_CHOICES = [
+        ('da_classificare', 'Da classificare'),
+        ('classificato', 'Classificato'),
+        ('ignorato', 'Ignorato'),
+    ]
+
+    conto_economico = models.ForeignKey(ContoEconomico, on_delete=models.CASCADE, related_name='righe_bancarie')
+    data = models.DateField(null=True, blank=True)
+    descrizione = models.CharField(max_length=300, blank=True, default='')
+    importo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    hash_riga = models.CharField(max_length=40, db_index=True)
+    categoria_codice = models.SlugField(max_length=40, blank=True, null=True)
+    stato = models.CharField(max_length=16, choices=STATO_CHOICES, default='da_classificare')
+    voce_costo = models.OneToOneField(VoceCosto, on_delete=models.SET_NULL, null=True, blank=True,
+                                      related_name='riga_bancaria')
+    file_nome = models.CharField(max_length=200, blank=True, default='')
+    importato_il = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Movimento Bancario"
+        verbose_name_plural = "Movimenti Bancari"
+        unique_together = [('conto_economico', 'hash_riga')]
+        ordering = ['data', 'id']
+
+    def __str__(self):
+        return f"{self.data} {self.descrizione[:30]} {self.importo} €"
+
         return riepiloghi_creati

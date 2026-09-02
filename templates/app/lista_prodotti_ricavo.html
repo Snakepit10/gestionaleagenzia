@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Prodotti (Ricavi) - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h1 class="h3 mb-0"><i class="fas fa-dice me-2"></i>Prodotti (Ricavi)</h1>
+        <small class="text-muted">Lista condivisa da tutte le agenzie (spaccato ricavi del conto economico).</small>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'conto_economico' %}" class="btn btn-outline-secondary me-2"><i class="fas fa-arrow-left me-1"></i>Conto Economico</a>
+        <a href="{% url 'nuovo_prodotto_ricavo' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nuovo prodotto</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead><tr><th>Nome</th><th>Codice</th><th class="text-center">Ordine</th><th class="text-center">Attivo</th><th class="text-end">Azioni</th></tr></thead>
+                <tbody>
+                    {% for p in prodotti %}
+                    <tr>
+                        <td>{{ p.nome }}</td>
+                        <td><code>{{ p.codice }}</code></td>
+                        <td class="text-center">{{ p.ordine }}</td>
+                        <td class="text-center">{% if p.attivo %}<span class="badge bg-success">Sì</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                        <td class="text-end">
+                            <a href="{% url 'modifica_prodotto_ricavo' p.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+                            <a href="{% url 'elimina_prodotto_ricavo' p.pk %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">Nessun prodotto. Creane uno con "Nuovo prodotto".</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
