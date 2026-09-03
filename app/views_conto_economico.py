@@ -298,12 +298,15 @@ def conto_economico_mese(request, anno, mese):
     # Solo i gruppi classificati entrano nel prospetto
     costi_gruppi_prospetto = [g for g in costi_gruppi if g['codice']]
 
-    # Stima imposte (solo categorie deducibili classificate)
+    # Stima imposte: la base imponibile esclude i costi NON deducibili (che quindi
+    # riducono l'utile reale ma non la stima delle imposte).
     cat_deducibili = {c.codice for c in CategoriaSpesa.objects.using('default').filter(deducibile=True)}
-    costi_deducibili = sum((c.importo for c in voci_costo if (c.categoria_codice in cat_deducibili)), Decimal('0'))
+    costi_deducibili = sum((c.importo for c in voci_costo
+                            if c.categoria_codice and c.categoria_codice in cat_deducibili), Decimal('0'))
+    costi_nondeducibili = tot_costi - costi_deducibili
     utile = tot_ricavi - tot_costi
-    utile_deducibile = tot_ricavi - costi_deducibili
-    stima_imposte = max(Decimal('0'), (utile_deducibile * Decimal('0.24')).quantize(Decimal('0.01')))
+    imponibile = tot_ricavi - costi_deducibili           # reddito imponibile stimato
+    stima_imposte = max(Decimal('0'), (imponibile * Decimal('0.24')).quantize(Decimal('0.01')))
 
     n_da_classificare = sum(1 for c in voci_costo if not c.categoria_codice)
     n_bancari_pending = MovimentoBancario.objects.using(dbname).filter(
@@ -315,6 +318,7 @@ def conto_economico_mese(request, anno, mese):
         'tot_ricavi': tot_ricavi,
         'costi_gruppi': costi_gruppi, 'costi_gruppi_prospetto': costi_gruppi_prospetto,
         'tot_costi': tot_costi, 'tot_costi_nonclass': tot_costi_nonclass,
+        'costi_nondeducibili': costi_nondeducibili, 'imponibile': imponibile,
         'utile': utile, 'stima_imposte': stima_imposte, 'utile_netto': utile - stima_imposte,
         'categorie': _categorie_attive(),
         'n_da_classificare': n_da_classificare,

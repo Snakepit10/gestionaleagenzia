@@ -98,7 +98,11 @@
                         <td class="{% if utile < 0 %}text-neg{% endif %}">{{ utile|floatformat:2 }} €</td></tr>
 
                     <!-- IMPOSTE E RISULTATO -->
-                    <tr class="ce-voce"><td>Imposte sul reddito d'esercizio (stima)</td><td>{{ stima_imposte|floatformat:2 }} €</td></tr>
+                    {% if costi_nondeducibili %}
+                    <tr class="ce-voce muted"><td>di cui costi non deducibili (esclusi dall'imponibile)</td><td>{{ costi_nondeducibili|floatformat:2 }} €</td></tr>
+                    {% endif %}
+                    <tr class="ce-voce"><td>Reddito imponibile stimato (ricavi − costi deducibili)</td><td>{{ imponibile|floatformat:2 }} €</td></tr>
+                    <tr class="ce-voce"><td>Imposte sul reddito d'esercizio (stima 24%)</td><td>{{ stima_imposte|floatformat:2 }} €</td></tr>
                     <tr class="ce-ris {% if utile_netto < 0 %}neg{% endif %}">
                         <td>UTILE (O PERDITA) DELL'ESERCIZIO</td>
                         <td class="{% if utile_netto < 0 %}text-neg{% endif %}">{{ utile_netto|floatformat:2 }} €</td></tr>
