@@ -16,6 +16,11 @@
     .ce-table .ce-ris.neg td { background: rgba(220,53,69,.18); }
     .ce-table .text-neg { color: #ff6b6b; }
     .ce-table .muted td:first-child { color: #9aa4ad; font-style: italic; }
+    .ce-table .ce-exp { cursor: pointer; }
+    .ce-table .ce-exp .ce-caret { transition: transform .15s; font-size: .8em; }
+    .ce-table .ce-exp.open .ce-caret { transform: rotate(90deg); }
+    .ce-table .ce-sub td { background: rgba(255,255,255,.02); }
+    .ce-table .ce-sub td:first-child { padding-left: 2.8rem; color: #aeb6bd; font-size: .9em; font-weight: 400; }
 </style>
 
 <div class="row mb-3 align-items-center">
@@ -60,7 +65,16 @@
                     <!-- B) COSTI DELLA PRODUZIONE (solo costi classificati) -->
                     <tr class="ce-sez"><td>B) COSTI DELLA PRODUZIONE</td><td></td></tr>
                     {% for g in costi_gruppi_prospetto %}
-                    <tr class="ce-voce"><td>{{ g.nome }}</td><td>{{ g.totale|floatformat:2 }} €</td></tr>
+                    <tr class="ce-voce ce-exp" data-target="cg{{ forloop.counter }}" role="button">
+                        <td><i class="fas fa-chevron-right ce-caret me-1"></i>{{ g.nome }} <span class="text-muted small">· {{ g.voci|length }} voci</span></td>
+                        <td>{{ g.totale|floatformat:2 }} €</td>
+                    </tr>
+                    {% for v in g.voci %}
+                    <tr class="ce-sub cg{{ forloop.parentloop.counter }} d-none">
+                        <td>{{ v.descrizione|default:"(senza descrizione)" }}{% if v.data %} · {{ v.data|date:"d/m/Y" }}{% endif %} <span class="badge bg-light text-dark border">{{ v.get_fonte_display }}</span></td>
+                        <td>{{ v.importo|floatformat:2 }} €</td>
+                    </tr>
+                    {% endfor %}
                     {% endfor %}
                     {% if not costi_gruppi_prospetto %}
                     <tr class="ce-voce muted"><td>Nessun costo classificato</td><td>0,00 €</td></tr>
@@ -183,4 +197,18 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Espandi/comprimi le righe di categoria del prospetto per mostrare le singole voci.
+    document.querySelectorAll('.ce-exp').forEach(function (row) {
+        row.addEventListener('click', function () {
+            var open = row.classList.toggle('open');
+            document.querySelectorAll('tr.' + row.dataset.target).forEach(function (sr) {
+                sr.classList.toggle('d-none', !open);
+            });
+        });
+    });
+</script>
 {% endblock %}
