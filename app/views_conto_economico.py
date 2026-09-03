@@ -27,6 +27,10 @@ from .views import is_manager_or_admin
 
 MESI_DICT = dict(MESI_CHOICES)
 
+# Causali/righe bancarie da mettere automaticamente tra le "escluse" all'import
+# (non sono né costi né ricavi: es. incassi POS = mera raccolta di cassa).
+CAUSALI_AUTO_ESCLUSE = ['incasso tramite p.o.s']
+
 
 def is_superadmin(user):
     return user.is_superuser
@@ -688,7 +692,7 @@ def carica_estratto(request, anno, mese):
             fname = getattr(f, 'name', '')[:200]
             per_mese = {}          # (anno, mese) -> ContoEconomico (creato on demand)
             conteggi = {}          # (anno, mese) -> nuove righe
-            duplicati = ignorati = senza_data = 0
+            duplicati = ignorati = senza_data = auto_escluse = 0
             for r in righe:
                 # Uscite (negativo) = costi; entrate (positivo) = possibili ricavi.
                 if r['importo'] == 0:
@@ -706,14 +710,20 @@ def carica_estratto(request, anno, mese):
                 if MovimentoBancario.objects.using(dbname).filter(conto_economico=conto_m, hash_riga=h).exists():
                     duplicati += 1
                     continue
+                descr_l = (r['descrizione'] or '').lower()
+                auto_escl = any(k in descr_l for k in CAUSALI_AUTO_ESCLUSE)
                 mb = MovimentoBancario(conto_economico=conto_m, data=r['data'],
                                        descrizione=r['descrizione'], importo=r['importo'],
-                                       hash_riga=h, stato='da_classificare', file_nome=fname)
+                                       hash_riga=h, stato='ignorato' if auto_escl else 'da_classificare',
+                                       file_nome=fname)
                 mb.save(using=dbname)
                 conteggi[ym] = conteggi.get(ym, 0) + 1
+                if auto_escl:
+                    auto_escluse += 1
 
             nuovi = sum(conteggi.values())
             coda = (f'{duplicati} duplicati saltati'
+                    + (f', {auto_escluse} incassi POS messi tra le escluse' if auto_escluse else '')
                     + (f', {senza_data} righe senza data' if senza_data else '') + '.')
             if conteggi:
                 dett = ', '.join(f'{MESI_DICT.get(m, m)} {a} ({n})'
