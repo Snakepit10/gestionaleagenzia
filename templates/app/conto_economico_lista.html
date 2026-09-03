@@ -45,7 +45,7 @@
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0 align-middle">
-                <thead><tr><th>Periodo</th><th class="text-end">Ricavi</th><th class="text-end">Costi</th><th class="text-end">Utile</th><th class="text-center">Stato</th><th class="text-end">Azioni</th></tr></thead>
+                <thead><tr><th>Periodo</th><th class="text-end">Ricavi</th><th class="text-end">Costi</th><th class="text-end">Utile</th><th class="text-center">Da classificare</th><th class="text-end">Azioni</th></tr></thead>
                 <tbody>
                     {% for r in righe %}
                     <tr>
@@ -53,7 +53,11 @@
                         <td class="text-end text-success">{{ r.ricavi|floatformat:2 }} €</td>
                         <td class="text-end text-danger">{{ r.costi|floatformat:2 }} €</td>
                         <td class="text-end fw-bold {% if r.utile < 0 %}text-danger{% else %}text-success{% endif %}">{{ r.utile|floatformat:2 }} €</td>
-                        <td class="text-center"><span class="badge {% if r.conto.stato == 'chiuso' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">{{ r.conto.get_stato_display }}</span></td>
+                        <td class="text-center">
+                            {% if r.pending %}
+                            <a href="{% url 'classifica_estratto' r.conto.anno r.conto.mese %}" class="badge bg-warning text-dark text-decoration-none">{{ r.pending }} da classificare</a>
+                            {% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
                         <td class="text-end"><a href="{% url 'conto_economico_mese' r.conto.anno r.conto.mese %}" class="btn btn-sm btn-primary"><i class="fas fa-eye me-1"></i>Apri</a></td>
                     </tr>
                     {% empty %}

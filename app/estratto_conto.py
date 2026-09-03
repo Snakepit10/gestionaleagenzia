@@ -70,9 +70,12 @@ def parse_csv(contenuto):
     ha_header = any(k in ' '.join(header_norm)
                     for k in ('data', 'date', 'importo', 'amount', 'descr', 'causal', 'dare', 'avere'))
 
-    i_data = _trova_colonna(header, ['data', 'date'])
-    i_desc = _trova_colonna(header, ['descr', 'causal', 'operazion', 'dettagl', 'narrat'])
-    i_imp = _trova_colonna(header, ['importo', 'amount', 'movimento'])
+    # Nota: la chiave 'movimento' NON va usata per l'importo, perché combacia con
+    # intestazioni come "Data movimento".
+    i_data = _trova_colonna(header, ['data movimento', 'data contabile', 'data', 'date'])
+    i_desc = _trova_colonna(header, ['descrizione', 'descr', 'operazion', 'dettagl', 'narrat', 'causal'])
+    i_caus = _trova_colonna(header, ['causale', 'causal'])
+    i_imp = _trova_colonna(header, ['importo', 'amount'])
     i_dare = _trova_colonna(header, ['dare', 'uscite', 'addebit', 'debit'])
     i_avere = _trova_colonna(header, ['avere', 'entrate', 'accredit', 'credit'])
 
@@ -92,6 +95,11 @@ def parse_csv(contenuto):
 
         d = _parse_data(cella(i_data))
         descr = cella(i_desc).strip()
+        # Antepone la causale alla descrizione (utile per classificare)
+        if i_caus >= 0 and i_caus != i_desc:
+            caus = cella(i_caus).strip()
+            if caus:
+                descr = f"{caus}: {descr}" if descr else caus
 
         importo = None
         if i_imp >= 0:

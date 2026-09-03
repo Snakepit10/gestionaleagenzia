@@ -129,8 +129,10 @@ def conto_economico(request):
     for c in conti:
         tr = c.totale_ricavi()
         tc = c.totale_costi()
+        pending = MovimentoBancario.objects.using(db.user_db).filter(
+            conto_economico=c, stato='da_classificare').count()
         righe.append({'conto': c, 'mese_nome': MESI_DICT.get(c.mese, c.mese),
-                      'ricavi': tr, 'costi': tc, 'utile': tr - tc})
+                      'ricavi': tr, 'costi': tc, 'utile': tr - tc, 'pending': pending})
 
     oggi = timezone.localdate()
     context = {
@@ -430,7 +432,6 @@ def importa_conto_spese(request, anno, mese):
 def carica_estratto(request, anno, mese):
     db = DatabaseManager(request.user)
     dbname = db.user_db
-    conto = _get_conto(dbname, anno, mese, request.user, crea=True)
 
     if request.method == 'POST':
         form = UploadEstrattoForm(request.POST, request.FILES)
@@ -447,29 +448,53 @@ def carica_estratto(request, anno, mese):
                 return redirect('carica_estratto', anno=anno, mese=mese)
 
             righe = estratto_conto.parse_csv(testo)
-            nuovi = duplicati = ignorati = 0
+            fname = getattr(f, 'name', '')[:200]
+            per_mese = {}          # (anno, mese) -> ContoEconomico (creato on demand)
+            conteggi = {}          # (anno, mese) -> nuove righe
+            duplicati = ignorati = senza_data = 0
             for r in righe:
+                # Solo le uscite (importo negativo) sono candidate a costo.
                 if r['importo'] >= 0:
-                    ignorati += 1  # entrate: non sono costi
+                    ignorati += 1
                     continue
+                if not r['data']:
+                    senza_data += 1
+                    continue
+                ym = (r['data'].year, r['data'].month)
+                conto_m = per_mese.get(ym)
+                if conto_m is None:
+                    conto_m = _get_conto(dbname, ym[0], ym[1], request.user, crea=True)
+                    per_mese[ym] = conto_m
                 h = estratto_conto.hash_riga(r['data'], r['descrizione'], r['importo'])
-                if MovimentoBancario.objects.using(dbname).filter(conto_economico=conto, hash_riga=h).exists():
+                if MovimentoBancario.objects.using(dbname).filter(conto_economico=conto_m, hash_riga=h).exists():
                     duplicati += 1
                     continue
-                mb = MovimentoBancario(conto_economico=conto, data=r['data'],
+                mb = MovimentoBancario(conto_economico=conto_m, data=r['data'],
                                        descrizione=r['descrizione'], importo=r['importo'],
-                                       hash_riga=h, stato='da_classificare',
-                                       file_nome=getattr(f, 'name', '')[:200])
+                                       hash_riga=h, stato='da_classificare', file_nome=fname)
                 mb.save(using=dbname)
-                nuovi += 1
-            messages.success(request,
-                             f'Import completato: {nuovi} nuove righe, {duplicati} duplicati saltati, '
-                             f'{ignorati} entrate ignorate.')
-            return redirect('classifica_estratto', anno=anno, mese=mese)
+                conteggi[ym] = conteggi.get(ym, 0) + 1
+
+            nuovi = sum(conteggi.values())
+            coda = (f'{duplicati} duplicati saltati, {ignorati} entrate ignorate'
+                    + (f', {senza_data} righe senza data' if senza_data else '') + '.')
+            if conteggi:
+                dett = ', '.join(f'{MESI_DICT.get(m, m)} {a} ({n})'
+                                 for (a, m), n in sorted(conteggi.items()))
+                messages.success(request,
+                                 f'Import completato: {nuovi} nuove righe ripartite per mese — {dett}. ' + coda)
+            else:
+                messages.warning(request, f'Nessuna nuova riga importata. ' + coda)
+
+            # Un solo mese -> vai alla sua classificazione; più mesi -> vai alla lista.
+            if len(conteggi) == 1:
+                (a, m) = next(iter(conteggi))
+                return redirect('classifica_estratto', anno=a, mese=m)
+            return redirect('conto_economico')
     else:
         form = UploadEstrattoForm()
 
-    context = {'conto': conto, 'anno': anno, 'mese': mese,
+    context = {'anno': anno, 'mese': mese,
                'mese_nome': MESI_DICT.get(mese, mese), 'form': form}
     return render(request, 'app/carica_estratto.html', context)
 

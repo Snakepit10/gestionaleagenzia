@@ -20,9 +20,12 @@
                     {% csrf_token %}
                     {{ form.file|as_crispy_field }}
                     <p class="text-muted small">
-                        Sono considerate spese solo le <strong>uscite</strong> (importi negativi). Le righe già
-                        importate vengono riconosciute e saltate (nessun doppione). Dopo il caricamento potrai
-                        classificare ogni riga in una categoria.
+                        Sono considerate spese solo le <strong>uscite</strong> (importi negativi). Se il file copre
+                        <strong>più mesi</strong>, le righe vengono <strong>ripartite automaticamente nel mese di
+                        competenza</strong> (in base alla data del movimento): basta caricare il file una sola volta.
+                        Le righe già importate vengono riconosciute e saltate (nessun doppione). Dopo il caricamento
+                        classificherai ogni riga in una categoria (dalla lista mesi vedi quanti movimenti restano da
+                        classificare per ciascun mese).
                     </p>
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary"><i class="fas fa-upload me-2"></i>Carica e prosegui</button>
