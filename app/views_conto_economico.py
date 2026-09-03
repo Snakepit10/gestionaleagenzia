@@ -777,52 +777,77 @@ def conto_economico_consolidato(request):
     if request.GET.get('anno') and form.is_valid():
         anno = form.cleaned_data['anno']
         mese = int(form.cleaned_data['mese'])
-        agenzie = form.cleaned_data['agenzie']
+        agenzie_sel = form.cleaned_data['agenzie']
         map_prod = _mappa_prodotti()
         map_cat = _mappa_categorie()
+        cat_deducibili = {c.codice for c in CategoriaSpesa.objects.using('default').filter(deducibile=True)}
 
-        per_agenzia = []
-        agg_prod, agg_cat = {}, {}
-        agg_manuali = Decimal('0')
-        tot_ricavi = tot_costi = Decimal('0')
+        cols = []                 # [{db, nome}] una per agenzia selezionata
+        prod_rows, cat_rows = {}, {}
+        manuali = {}              # db -> ricavi manuali
+        tot_ric, tot_cos = {}, {}
+        imponibile_col, imposte_col = {}, {}
 
-        for ag in agenzie:
-            dbname = AGENZIA_DATABASE_MAP.get(ag.nome.lower())
-            if not dbname:
+        for ag in agenzie_sel:
+            dbn = AGENZIA_DATABASE_MAP.get(ag.nome.lower())
+            if not dbn:
                 continue
-            rep = _report(dbname, anno, mese)
-            per_agenzia.append({'agenzia': ag, 'report': rep})
-            tot_ricavi += rep['tot_ricavi']
-            tot_costi += rep['tot_costi']
-            agg_manuali += rep['ricavi_manuali']
-            for k, v in rep['ricavi_prodotto'].items():
-                agg_prod[k] = agg_prod.get(k, Decimal('0')) + v
-            for k, v in rep['costi_categoria'].items():
-                agg_cat[k] = agg_cat.get(k, Decimal('0')) + v
+            cols.append({'db': dbn, 'nome': ag.nome})
+            conto = ContoEconomico.objects.using(dbn).filter(anno=anno, mese=mese).first()
+            tr = tc = ded = man = Decimal('0')
+            if conto:
+                for r in VoceRicavo.objects.using(dbn).filter(conto_economico=conto):
+                    tr += r.importo
+                    if r.prodotto_codice:
+                        row = prod_rows.setdefault(r.prodotto_codice, {
+                            'nome': map_prod.get(r.prodotto_codice, r.prodotto_codice), 'valori': {}, 'totale': Decimal('0')})
+                        row['valori'][dbn] = row['valori'].get(dbn, Decimal('0')) + r.importo
+                        row['totale'] += r.importo
+                    else:
+                        man += r.importo
+                for v in VoceCosto.objects.using(dbn).filter(conto_economico=conto):
+                    if not v.categoria_codice:
+                        continue
+                    tc += v.importo
+                    row = cat_rows.setdefault(v.categoria_codice, {
+                        'nome': map_cat.get(v.categoria_codice, v.categoria_codice), 'valori': {}, 'totale': Decimal('0')})
+                    row['valori'][dbn] = row['valori'].get(dbn, Decimal('0')) + v.importo
+                    row['totale'] += v.importo
+                    if v.categoria_codice in cat_deducibili:
+                        ded += v.importo
+            manuali[dbn] = man
+            tot_ric[dbn] = tr
+            tot_cos[dbn] = tc
+            imponibile_col[dbn] = tr - ded
+            imposte_col[dbn] = max(Decimal('0'), ((tr - ded) * Decimal('0.24')).quantize(Decimal('0.01')))
 
-        ricavi_prodotto = sorted(
-            [{'codice': k, 'nome': map_prod.get(k, k), 'importo': v} for k, v in agg_prod.items()],
-            key=lambda x: x['nome'].lower())
-        costi_categoria = sorted(
-            [{'codice': k, 'nome': (map_cat.get(k, 'Da classificare') if k else 'Da classificare'),
-              'importo': v} for k, v in agg_cat.items()],
-            key=lambda x: (x['codice'] == '', x['nome'].lower()))
+        def celle(dcol):
+            return [dcol.get(c['db'], Decimal('0')) for c in cols]
 
-        # nomi mesi/agenzie per il dettaglio espandibile
-        for pa in per_agenzia:
-            rep = pa['report']
-            pa['ricavi_prodotto'] = [{'nome': map_prod.get(k, k), 'importo': v}
-                                     for k, v in sorted(rep['ricavi_prodotto'].items())]
-            pa['costi_categoria'] = [{'nome': (map_cat.get(k, 'Da classificare') if k else 'Da classificare'),
-                                      'importo': v}
-                                     for k, v in sorted(rep['costi_categoria'].items())]
+        for row in list(prod_rows.values()) + list(cat_rows.values()):
+            row['celle'] = [row['valori'].get(c['db'], Decimal('0')) for c in cols]
+        prod_list = sorted(prod_rows.values(), key=lambda x: x['nome'].lower())
+        cat_list = sorted(cat_rows.values(), key=lambda x: x['nome'].lower())
+
+        utile_col = {c['db']: tot_ric[c['db']] - tot_cos[c['db']] for c in cols}
+        netto_col = {c['db']: utile_col[c['db']] - imposte_col[c['db']] for c in cols}
+        g_ric = sum(tot_ric.values(), Decimal('0'))
+        g_cos = sum(tot_cos.values(), Decimal('0'))
+        g_man = sum(manuali.values(), Decimal('0'))
+        g_imposte = sum(imposte_col.values(), Decimal('0'))
 
         dati = {
             'anno': anno, 'mese': mese, 'mese_nome': MESI_DICT.get(mese, mese),
-            'per_agenzia': per_agenzia,
-            'ricavi_prodotto': ricavi_prodotto, 'ricavi_manuali': agg_manuali,
-            'costi_categoria': costi_categoria,
-            'tot_ricavi': tot_ricavi, 'tot_costi': tot_costi, 'utile': tot_ricavi - tot_costi,
+            'cols': cols,
+            'prod_rows': prod_list, 'cat_rows': cat_list,
+            'manuali_celle': celle(manuali), 'g_man': g_man, 'ha_manuali': g_man != 0,
+            'totA_celle': celle(tot_ric), 'g_ric': g_ric,
+            'totB_celle': celle(tot_cos), 'g_cos': g_cos,
+            'diff_celle': celle(utile_col), 'g_utile': g_ric - g_cos,
+            'imponibile_celle': celle(imponibile_col), 'g_imponibile': sum(imponibile_col.values(), Decimal('0')),
+            'imposte_celle': celle(imposte_col), 'g_imposte': g_imposte,
+            'netto_celle': celle(netto_col), 'g_netto': (g_ric - g_cos) - g_imposte,
+            'n_cols': len(cols) + 2,
         }
 
     return render(request, 'app/conto_economico_consolidato.html', {'form': form, 'dati': dati})

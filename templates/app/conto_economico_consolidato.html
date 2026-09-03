@@ -4,6 +4,20 @@
 {% block title %}Conto Economico Consolidato{% endblock %}
 
 {% block content %}
+<style>
+    .ce-mtx { width: 100%; margin-bottom: 0; border-collapse: separate; border-spacing: 0; }
+    .ce-mtx th, .ce-mtx td { border: 1px solid rgba(255,255,255,.14); padding: .45rem .7rem; vertical-align: middle; }
+    .ce-mtx thead th { background: #10131a; color: #cfd4da; font-weight: 600; }
+    .ce-mtx td.n, .ce-mtx th.n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .ce-mtx .col-tot { background: rgba(255,255,255,.04); font-weight: 700; }
+    .ce-mtx .ce-sez td { background: rgba(255,255,255,.07); font-weight: 700; letter-spacing: .02em; }
+    .ce-mtx .ce-voce td:first-child { padding-left: 1.6rem; }
+    .ce-mtx .ce-tot td { background: rgba(255,255,255,.05); font-weight: 700; }
+    .ce-mtx .ce-diff td { background: rgba(255,255,255,.06); font-weight: 700; }
+    .ce-mtx .ce-ris td { background: rgba(13,110,253,.16); font-weight: 700; }
+    .ce-mtx .muted td:first-child { color: #9aa4ad; font-style: italic; }
+</style>
+
 <div class="row mb-4 align-items-center">
     <div class="col"><h1 class="h3 mb-0"><i class="fas fa-layer-group me-2"></i>Conto Economico Consolidato</h1></div>
     <div class="col-auto"><a href="{% url 'conto_economico' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Conto Economico</a></div>
@@ -20,85 +34,81 @@
                 <div>{{ form.agenzie }}</div>
             </div>
             <div class="col-12">
-                <button type="submit" class="btn btn-primary"><i class="fas fa-chart-column me-1"></i>Genera consolidato</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-table me-1"></i>Genera consolidato</button>
             </div>
         </form>
     </div>
 </div>
 
 {% if dati %}
-<div class="row g-3 mb-4">
-    <div class="col-md-4"><div class="card border-success h-100"><div class="card-body text-center">
-        <div class="text-muted small">Ricavi consolidati</div><div class="h4 mb-0 text-success">{{ dati.tot_ricavi|floatformat:2 }} €</div></div></div></div>
-    <div class="col-md-4"><div class="card border-danger h-100"><div class="card-body text-center">
-        <div class="text-muted small">Costi consolidati</div><div class="h4 mb-0 text-danger">{{ dati.tot_costi|floatformat:2 }} €</div></div></div></div>
-    <div class="col-md-4"><div class="card {% if dati.utile < 0 %}border-danger{% else %}border-primary{% endif %} h-100"><div class="card-body text-center">
-        <div class="text-muted small">Utile consolidato</div><div class="h4 mb-0 {% if dati.utile < 0 %}text-danger{% else %}text-primary{% endif %}">{{ dati.utile|floatformat:2 }} €</div></div></div></div>
-</div>
-
-<div class="row">
-    <div class="col-lg-6">
-        <div class="card mb-4">
-            <div class="card-header bg-success text-white"><i class="fas fa-coins me-2"></i>Ricavi per prodotto ({{ dati.mese_nome }} {{ dati.anno }})</div>
-            <div class="card-body p-0"><table class="table mb-0">
+<div class="card mb-4">
+    <div class="card-header bg-dark text-white text-center"><strong>CONTO ECONOMICO CONSOLIDATO</strong> — {{ dati.mese_nome }} {{ dati.anno }}</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="ce-mtx">
+                <thead>
+                    <tr>
+                        <th>Voce</th>
+                        {% for c in dati.cols %}<th class="n">{{ c.nome }}</th>{% endfor %}
+                        <th class="n col-tot">Totale</th>
+                    </tr>
+                </thead>
                 <tbody>
-                    {% for r in dati.ricavi_prodotto %}<tr><td>{{ r.nome }}</td><td class="text-end">{{ r.importo|floatformat:2 }} €</td></tr>{% endfor %}
-                    {% if dati.ricavi_manuali %}<tr><td>Voci manuali</td><td class="text-end">{{ dati.ricavi_manuali|floatformat:2 }} €</td></tr>{% endif %}
-                    {% if not dati.ricavi_prodotto and not dati.ricavi_manuali %}<tr><td colspan="2" class="text-center text-muted py-3">Nessun ricavo.</td></tr>{% endif %}
-                </tbody>
-                <tfoot class="table-light"><tr><th>Totale</th><th class="text-end text-success">{{ dati.tot_ricavi|floatformat:2 }} €</th></tr></tfoot>
-            </table></div>
-        </div>
-    </div>
-    <div class="col-lg-6">
-        <div class="card mb-4">
-            <div class="card-header bg-danger text-white"><i class="fas fa-file-invoice me-2"></i>Costi per categoria</div>
-            <div class="card-body p-0"><table class="table mb-0">
-                <tbody>
-                    {% for c in dati.costi_categoria %}<tr><td>{{ c.nome }}</td><td class="text-end">{{ c.importo|floatformat:2 }} €</td></tr>{% endfor %}
-                    {% if not dati.costi_categoria %}<tr><td colspan="2" class="text-center text-muted py-3">Nessun costo.</td></tr>{% endif %}
-                </tbody>
-                <tfoot class="table-light"><tr><th>Totale</th><th class="text-end text-danger">{{ dati.tot_costi|floatformat:2 }} €</th></tr></tfoot>
-            </table></div>
-        </div>
-    </div>
-</div>
+                    <!-- A) VALORE DELLA PRODUZIONE -->
+                    <tr class="ce-sez"><td colspan="{{ dati.n_cols }}">A) VALORE DELLA PRODUZIONE</td></tr>
+                    {% for row in dati.prod_rows %}
+                    <tr class="ce-voce">
+                        <td>{{ row.nome }}</td>
+                        {% for v in row.celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ row.totale|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% if dati.ha_manuali %}
+                    <tr class="ce-voce"><td>Altri ricavi (manuali)</td>
+                        {% for v in dati.manuali_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ dati.g_man|floatformat:2 }}</td></tr>
+                    {% endif %}
+                    {% if not dati.prod_rows and not dati.ha_manuali %}
+                    <tr class="ce-voce muted"><td>Nessun ricavo</td>{% for c in dati.cols %}<td class="n">0,00</td>{% endfor %}<td class="n col-tot">0,00</td></tr>
+                    {% endif %}
+                    <tr class="ce-tot"><td>Totale valore della produzione (A)</td>
+                        {% for v in dati.totA_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ dati.g_ric|floatformat:2 }}</td></tr>
 
-<h5 class="mb-3"><i class="fas fa-sitemap me-2"></i>Dettaglio per agenzia</h5>
-<div class="accordion mb-4" id="accAgenzie">
-    {% for pa in dati.per_agenzia %}
-    <div class="accordion-item">
-        <h2 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#ag{{ forloop.counter }}">
-                <span class="me-3"><strong>{{ pa.agenzia.nome }}</strong></span>
-                <span class="me-3 text-success">Ricavi {{ pa.report.tot_ricavi|floatformat:2 }} €</span>
-                <span class="me-3 text-danger">Costi {{ pa.report.tot_costi|floatformat:2 }} €</span>
-                <span class="{% if pa.report.utile < 0 %}text-danger{% else %}text-primary{% endif %}">Utile {{ pa.report.utile|floatformat:2 }} €</span>
-            </button>
-        </h2>
-        <div id="ag{{ forloop.counter }}" class="accordion-collapse collapse" data-bs-parent="#accAgenzie">
-            <div class="accordion-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="text-success">Ricavi</h6>
-                        <table class="table table-sm"><tbody>
-                            {% for r in pa.ricavi_prodotto %}<tr><td>{{ r.nome }}</td><td class="text-end">{{ r.importo|floatformat:2 }} €</td></tr>{% endfor %}
-                            {% if pa.report.ricavi_manuali %}<tr><td>Voci manuali</td><td class="text-end">{{ pa.report.ricavi_manuali|floatformat:2 }} €</td></tr>{% endif %}
-                            {% if not pa.ricavi_prodotto and not pa.report.ricavi_manuali %}<tr><td colspan="2" class="text-muted">—</td></tr>{% endif %}
-                        </tbody></table>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-danger">Costi</h6>
-                        <table class="table table-sm"><tbody>
-                            {% for c in pa.costi_categoria %}<tr><td>{{ c.nome }}</td><td class="text-end">{{ c.importo|floatformat:2 }} €</td></tr>{% endfor %}
-                            {% if not pa.costi_categoria %}<tr><td colspan="2" class="text-muted">—</td></tr>{% endif %}
-                        </tbody></table>
-                    </div>
-                </div>
-            </div>
+                    <!-- B) COSTI DELLA PRODUZIONE -->
+                    <tr class="ce-sez"><td colspan="{{ dati.n_cols }}">B) COSTI DELLA PRODUZIONE</td></tr>
+                    {% for row in dati.cat_rows %}
+                    <tr class="ce-voce">
+                        <td>{{ row.nome }}</td>
+                        {% for v in row.celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ row.totale|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% if not dati.cat_rows %}
+                    <tr class="ce-voce muted"><td>Nessun costo classificato</td>{% for c in dati.cols %}<td class="n">0,00</td>{% endfor %}<td class="n col-tot">0,00</td></tr>
+                    {% endif %}
+                    <tr class="ce-tot"><td>Totale costi della produzione (B)</td>
+                        {% for v in dati.totB_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ dati.g_cos|floatformat:2 }}</td></tr>
+
+                    <!-- DIFFERENZA + IMPOSTE + RISULTATO -->
+                    <tr class="ce-diff"><td>DIFFERENZA (A − B)</td>
+                        {% for v in dati.diff_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ dati.g_utile|floatformat:2 }}</td></tr>
+                    <tr class="ce-voce"><td>Reddito imponibile stimato</td>
+                        {% for v in dati.imponibile_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ dati.g_imponibile|floatformat:2 }}</td></tr>
+                    <tr class="ce-voce"><td>Imposte (stima 24%)</td>
+                        {% for v in dati.imposte_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ dati.g_imposte|floatformat:2 }}</td></tr>
+                    <tr class="ce-ris"><td>UTILE (O PERDITA) DELL'ESERCIZIO</td>
+                        {% for v in dati.netto_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ dati.g_netto|floatformat:2 }}</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
-    {% endfor %}
+    <div class="card-footer text-muted small">Importi in €. Colonna "Totale" = somma delle agenzie selezionate.</div>
 </div>
 {% elif form.is_bound %}
 <div class="alert alert-warning">Correggi i campi del filtro per generare il consolidato.</div>
