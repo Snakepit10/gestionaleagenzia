@@ -1741,7 +1741,7 @@ class ContoEconomico(MultiDatabaseMixin, models.Model):
 
 class VoceRicavo(MultiDatabaseMixin, models.Model):
     """Riga di ricavo del mese: per prodotto (prodotto_codice valorizzato) o voce manuale extra."""
-    FONTE_CHOICES = [('manuale', 'Manuale'), ('cast', 'Cast')]
+    FONTE_CHOICES = [('manuale', 'Manuale'), ('cast', 'Cast'), ('csv', 'Estratto conto')]
 
     conto_economico = models.ForeignKey(ContoEconomico, on_delete=models.CASCADE, related_name='voci_ricavo')
     prodotto_codice = models.SlugField(max_length=40, blank=True, null=True,
@@ -1749,6 +1749,9 @@ class VoceRicavo(MultiDatabaseMixin, models.Model):
     descrizione = models.CharField(max_length=200, blank=True, default='')
     importo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     fonte = models.CharField(max_length=10, choices=FONTE_CHOICES, default='manuale')
+    # Tracciabilità/dedup cross-DB per i ricavi generati da una riga bancaria positiva ripartita.
+    origine_db = models.CharField(max_length=40, blank=True, default='')
+    origine_mb_id = models.IntegerField(null=True, blank=True)
     data_creazione = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -1804,6 +1807,8 @@ class MovimentoBancario(MultiDatabaseMixin, models.Model):
     importo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     hash_riga = models.CharField(max_length=40, db_index=True)
     categoria_codice = models.SlugField(max_length=40, blank=True, null=True)
+    # Per le righe positive (entrate) classificate come ricavo: codice ProdottoRicavo.
+    prodotto_codice = models.SlugField(max_length=40, blank=True, null=True)
     # Ripartizione della riga tra le agenzie: [{"db": "goldbet_db", "perc": 50}, ...].
     # Vuoto = 100% all'agenzia che ha caricato l'estratto.
     allocazioni = models.JSONField(default=list, blank=True)

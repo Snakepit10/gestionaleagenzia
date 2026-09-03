@@ -1,14 +1,23 @@
 <tr class="riga-estratto {% if r.stato == 'ignorato' %}riga-ignorata{% elif r.stato == 'classificato' %}riga-classificata{% endif %}">
     <td>{% if r.data %}{{ r.data|date:"d/m/Y" }}{% else %}—{% endif %}</td>
     <td class="small">{{ r.descrizione }}</td>
-    <td class="text-end text-danger">{{ r.importo|floatformat:2 }} €</td>
+    <td class="text-end {% if r.importo < 0 %}text-danger{% else %}text-success{% endif %}">{{ r.importo|floatformat:2 }} €</td>
     <td>
+        {% if r.importo < 0 %}
         <select name="cat_{{ r.pk }}" class="form-select form-select-sm">
-            <option value="">— Da classificare —</option>
+            <option value="">— Categoria costo —</option>
             {% for c in categorie %}
             <option value="{{ c.codice }}" {% if c.codice == r.categoria_codice %}selected{% endif %}>{{ c.nome }}</option>
             {% endfor %}
         </select>
+        {% else %}
+        <select name="prod_{{ r.pk }}" class="form-select form-select-sm">
+            <option value="">— Prodotto ricavo —</option>
+            {% for p in prodotti %}
+            <option value="{{ p.codice }}" {% if p.codice == r.prodotto_codice %}selected{% endif %}>{{ p.nome }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
     </td>
     {% if is_super %}{% for cell in r.alloc_cells %}
     <td><input type="text" inputmode="decimal" name="perc_{{ r.pk }}_{{ cell.db }}" value="{{ cell.perc }}"

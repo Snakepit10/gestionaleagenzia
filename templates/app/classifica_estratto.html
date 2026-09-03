@@ -12,7 +12,7 @@
 <div class="row mb-4 align-items-center">
     <div class="col">
         <h1 class="h3 mb-0"><i class="fas fa-list-check me-2"></i>Classifica estratto conto — {{ mese_nome }} {{ anno }}</h1>
-        <small class="text-muted">{{ n_da }} da classificare · {{ n_class }} classificate · {{ n_escl }} escluse.{% if is_super %} Le percentuali ripartiscono ogni costo tra le agenzie (somma consigliata 100%).{% endif %}</small>
+        <small class="text-muted">{{ n_costi_da }} costi + {{ n_entrate_da }} entrate da classificare · {{ n_class }} classificate · {{ n_escl }} escluse.{% if is_super %} Le percentuali ripartiscono ogni voce tra le agenzie (somma consigliata 100%).{% endif %}</small>
     </div>
     <div class="col-auto">
         <a href="{% url 'carica_estratto' anno mese %}" class="btn btn-outline-primary me-2"><i class="fas fa-upload me-1"></i>Carica altro CSV</a>
@@ -24,23 +24,45 @@
 <form method="post">
     {% csrf_token %}
 
-    <!-- DA CLASSIFICARE -->
+    <!-- COSTI DA CLASSIFICARE -->
     <div class="card mb-4">
         <div class="card-header bg-warning text-dark">
-            <i class="fas fa-hourglass-half me-2"></i>Da classificare <span class="badge bg-dark ms-1">{{ n_da }}</span>
+            <i class="fas fa-hourglass-half me-2"></i>Costi da classificare <span class="badge bg-dark ms-1">{{ n_costi_da }}</span>
         </div>
         <div class="card-body p-0">
-            {% if righe_da %}
+            {% if costi_da %}
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>{% include 'app/_thead_estratto.html' %}</thead>
                     <tbody>
-                        {% for r in righe_da %}{% include 'app/_riga_estratto.html' %}{% endfor %}
+                        {% for r in costi_da %}{% include 'app/_riga_estratto.html' %}{% endfor %}
                     </tbody>
                 </table>
             </div>
             {% else %}
-            <div class="p-4 text-center text-success"><i class="fas fa-check-circle me-1"></i>Nessuna riga da classificare: tutte gestite.</div>
+            <div class="p-4 text-center text-success"><i class="fas fa-check-circle me-1"></i>Nessun costo da classificare.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ENTRATE DA CLASSIFICARE -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-dark">
+            <i class="fas fa-arrow-down me-2"></i>Entrate (possibili ricavi) da classificare <span class="badge bg-dark ms-1">{{ n_entrate_da }}</span>
+        </div>
+        <div class="card-body p-0">
+            {% if entrate_da %}
+            <div class="p-2 small text-muted">Assegna un <strong>prodotto</strong> solo alle entrate che sono ricavi; lascia vuote o escludi le altre (incassi POS, versamenti, giroconti). Solo quelle con un prodotto entrano nei ricavi.</div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>{% include 'app/_thead_estratto.html' %}</thead>
+                    <tbody>
+                        {% for r in entrate_da %}{% include 'app/_riga_estratto.html' %}{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-center text-muted"><i class="fas fa-check-circle me-1"></i>Nessuna entrata da classificare.</div>
             {% endif %}
         </div>
     </div>

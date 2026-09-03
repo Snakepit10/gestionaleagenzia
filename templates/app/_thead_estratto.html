@@ -1,5 +1,5 @@
 <tr>
-    <th>Data</th><th>Descrizione</th><th class="text-end">Importo</th><th style="width:190px;">Categoria</th>
+    <th>Data</th><th>Descrizione</th><th class="text-end">Importo</th><th style="width:190px;">Categoria / Prodotto</th>
     {% if is_super %}{% for a in agenzie %}<th class="text-center" style="width:80px;" title="{{ a.nome }}">{{ a.nome|truncatechars:10 }} %</th>{% endfor %}{% endif %}
     <th class="text-center" style="width:90px;">Includi</th>
 </tr>

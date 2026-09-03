@@ -51,13 +51,22 @@
                 <tbody>
                     <!-- A) VALORE DELLA PRODUZIONE -->
                     <tr class="ce-sez"><td>A) VALORE DELLA PRODUZIONE</td><td></td></tr>
-                    {% for r in ricavi_prodotto %}
-                    <tr class="ce-voce"><td>{{ r.nome }}</td><td>{{ r.voce.importo|floatformat:2 }} €</td></tr>
+                    {% for g in ricavi_gruppi %}
+                    <tr class="ce-voce ce-exp" data-target="rg{{ forloop.counter }}" role="button">
+                        <td><i class="fas fa-chevron-right ce-caret me-1"></i>{{ g.nome }} <span class="text-muted small">· {{ g.voci|length }} voci</span></td>
+                        <td>{{ g.totale|floatformat:2 }} €</td>
+                    </tr>
+                    {% for v in g.voci %}
+                    <tr class="ce-sub rg{{ forloop.parentloop.counter }} d-none">
+                        <td>{{ v.descrizione|default:"(senza descrizione)" }} <span class="badge bg-light text-dark border">{{ v.get_fonte_display }}</span></td>
+                        <td>{{ v.importo|floatformat:2 }} €</td>
+                    </tr>
+                    {% endfor %}
                     {% endfor %}
                     {% for v in ricavi_manuali %}
-                    <tr class="ce-voce"><td>{{ v.descrizione }}</td><td>{{ v.importo|floatformat:2 }} €</td></tr>
+                    <tr class="ce-voce"><td>{{ v.descrizione }} <span class="text-muted small">(manuale)</span></td><td>{{ v.importo|floatformat:2 }} €</td></tr>
                     {% endfor %}
-                    {% if not ricavi_prodotto and not ricavi_manuali %}
+                    {% if not ricavi_gruppi and not ricavi_manuali %}
                     <tr class="ce-voce muted"><td>Nessun ricavo inserito</td><td>0,00 €</td></tr>
                     {% endif %}
                     <tr class="ce-tot"><td>Totale valore della produzione (A)</td><td>{{ tot_ricavi|floatformat:2 }} €</td></tr>

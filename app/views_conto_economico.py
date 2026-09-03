@@ -136,16 +136,20 @@ def _fmt_perc(v):
     return ('%g' % d).replace('.', ',')
 
 
-def _rigenera_voci_da_riga(src_db, mb, anno, mese, cat, allocazioni, user):
-    """Rigenera le VoceCosto generate da una riga bancaria ripartita.
+def _rigenera_voci_da_riga(src_db, mb, anno, mese, allocazioni, user):
+    """Rigenera le voci (costo o ricavo) generate da una riga bancaria ripartita.
 
     Elimina prima le voci precedenti (in tutti i DB agenzia) identificate da
-    (origine_db, origine_mb_id), poi — se c'è una categoria — crea una voce per ogni
-    fetta della ripartizione nel database dell'agenzia relativa, per il mese indicato.
+    (origine_db, origine_mb_id), poi crea una voce per ogni fetta della ripartizione nel
+    database dell'agenzia relativa, per il mese indicato. Una riga con importo negativo
+    genera VoceCosto (categoria), una positiva genera VoceRicavo (prodotto).
     """
     for dbn in set(AGENZIA_DATABASE_MAP.values()):
         VoceCosto.objects.using(dbn).filter(origine_db=src_db, origine_mb_id=mb.pk).delete()
-    if not cat:
+        VoceRicavo.objects.using(dbn).filter(origine_db=src_db, origine_mb_id=mb.pk).delete()
+    is_costo = mb.importo < 0
+    codice = (mb.categoria_codice if is_costo else mb.prodotto_codice)
+    if not codice:
         return
     base = abs(mb.importo)
     for a in allocazioni or []:
@@ -160,10 +164,15 @@ def _rigenera_voci_da_riga(src_db, mb, anno, mese, cat, allocazioni, user):
         # user=None: chi ripartisce può non esistere nel DB dell'agenzia di destinazione
         # (FK creato_da), quindi il contenitore mensile viene creato senza autore.
         conto_m = _get_conto(dbn, anno, mese, None, crea=True)
-        vc = VoceCosto(conto_economico=conto_m, categoria_codice=cat,
-                       descrizione=mb.descrizione[:200], importo=importo, data=mb.data,
-                       fonte='csv', origine_db=src_db, origine_mb_id=mb.pk)
-        vc.save(using=dbn)
+        if is_costo:
+            v = VoceCosto(conto_economico=conto_m, categoria_codice=codice,
+                          descrizione=mb.descrizione[:200], importo=importo, data=mb.data,
+                          fonte='csv', origine_db=src_db, origine_mb_id=mb.pk)
+        else:
+            v = VoceRicavo(conto_economico=conto_m, prodotto_codice=codice,
+                           descrizione=mb.descrizione[:200], importo=importo,
+                           fonte='csv', origine_db=src_db, origine_mb_id=mb.pk)
+        v.save(using=dbn)
 
 
 # ---------------------------------------------------------------------------
@@ -247,15 +256,22 @@ def conto_economico_mese(request, anno, mese):
     map_prod = _mappa_prodotti()
     map_cat = _mappa_categorie()
 
-    # Ricavi
+    # Ricavi raggruppati per prodotto (somma di più voci: manuali dal cast + da CSV)
     voci_ricavo = list(VoceRicavo.objects.using(dbname).filter(conto_economico=conto))
-    ricavi_prodotto, ricavi_manuali, tot_ricavi = [], [], Decimal('0')
+    prod_gruppi = {}
+    ricavi_manuali, tot_ricavi = [], Decimal('0')
     for r in voci_ricavo:
         tot_ricavi += r.importo
         if r.prodotto_codice:
-            ricavi_prodotto.append({'voce': r, 'nome': map_prod.get(r.prodotto_codice, r.prodotto_codice)})
+            g = prod_gruppi.setdefault(r.prodotto_codice,
+                                       {'nome': map_prod.get(r.prodotto_codice, r.prodotto_codice),
+                                        'voci': [], 'totale': Decimal('0')})
+            g['voci'].append(r)
+            g['totale'] += r.importo
         else:
             ricavi_manuali.append(r)
+    ricavi_gruppi = sorted([{'codice': k, **v} for k, v in prod_gruppi.items()],
+                           key=lambda g: g['nome'].lower())
 
     # Costi raggruppati per categoria (le non classificate in un gruppo a parte).
     # Le voci non classificate NON entrano nel conto economico (totali/utile): restano
@@ -295,7 +311,7 @@ def conto_economico_mese(request, anno, mese):
 
     context = {
         'conto': conto, 'anno': anno, 'mese': mese, 'mese_nome': MESI_DICT.get(mese, mese),
-        'ricavi_prodotto': ricavi_prodotto, 'ricavi_manuali': ricavi_manuali,
+        'ricavi_gruppi': ricavi_gruppi, 'ricavi_manuali': ricavi_manuali,
         'tot_ricavi': tot_ricavi,
         'costi_gruppi': costi_gruppi, 'costi_gruppi_prospetto': costi_gruppi_prospetto,
         'tot_costi': tot_costi, 'tot_costi_nonclass': tot_costi_nonclass,
@@ -326,8 +342,9 @@ def conto_economico_ricavi(request, anno, mese):
         n = 0
         for p in prodotti:
             importo = _parse_importo(request.POST.get(f'imp_{p.codice}', ''))
+            # gestisce solo la voce manuale del prodotto (le voci da CSV restano intatte)
             esistente = VoceRicavo.objects.using(dbname).filter(
-                conto_economico=conto, prodotto_codice=p.codice).first()
+                conto_economico=conto, prodotto_codice=p.codice, origine_mb_id__isnull=True).first()
             if importo is None or importo == 0:
                 if esistente:
                     esistente.delete(using=dbname)
@@ -347,7 +364,8 @@ def conto_economico_ricavi(request, anno, mese):
         return redirect('conto_economico_mese', anno=anno, mese=mese)
 
     esistenti = {v.prodotto_codice: v.importo
-                 for v in VoceRicavo.objects.using(dbname).filter(conto_economico=conto)
+                 for v in VoceRicavo.objects.using(dbname).filter(
+                     conto_economico=conto, origine_mb_id__isnull=True)
                  if v.prodotto_codice}
     righe = [{'prodotto': p, 'importo': esistenti.get(p.codice)} for p in prodotti]
     voci_manuali = list(VoceRicavo.objects.using(dbname).filter(
@@ -516,8 +534,8 @@ def carica_estratto(request, anno, mese):
             conteggi = {}          # (anno, mese) -> nuove righe
             duplicati = ignorati = senza_data = 0
             for r in righe:
-                # Solo le uscite (importo negativo) sono candidate a costo.
-                if r['importo'] >= 0:
+                # Uscite (negativo) = costi; entrate (positivo) = possibili ricavi.
+                if r['importo'] == 0:
                     ignorati += 1
                     continue
                 if not r['data']:
@@ -539,7 +557,7 @@ def carica_estratto(request, anno, mese):
                 conteggi[ym] = conteggi.get(ym, 0) + 1
 
             nuovi = sum(conteggi.values())
-            coda = (f'{duplicati} duplicati saltati, {ignorati} entrate ignorate'
+            coda = (f'{duplicati} duplicati saltati'
                     + (f', {senza_data} righe senza data' if senza_data else '') + '.')
             if conteggi:
                 dett = ', '.join(f'{MESI_DICT.get(m, m)} {a} ({n})'
@@ -575,6 +593,7 @@ def classifica_estratto(request, anno, mese):
 
     if request.method == 'POST':
         cat_valide = {c.codice for c in _categorie_attive()}
+        prod_valide = {p.codice for p in _prodotti_attivi()}
         n_class = n_ign = warn_sum = 0
         for riga in MovimentoBancario.objects.using(dbname).filter(conto_economico=conto):
             stato = request.POST.get(f'stato_{riga.pk}')  # 'includi' | 'ignora' | None
@@ -583,15 +602,13 @@ def classifica_estratto(request, anno, mese):
             if stato == 'ignora':
                 riga.stato = 'ignorato'
                 riga.categoria_codice = None
+                riga.prodotto_codice = None
                 riga.allocazioni = []
                 riga.voce_costo = None
-                riga.save(using=dbname, update_fields=['stato', 'categoria_codice', 'allocazioni', 'voce_costo'])
-                _rigenera_voci_da_riga(dbname, riga, anno, mese, None, [], request.user)
+                riga.save(using=dbname, update_fields=['stato', 'categoria_codice', 'prodotto_codice', 'allocazioni', 'voce_costo'])
+                _rigenera_voci_da_riga(dbname, riga, anno, mese, [], request.user)
                 n_ign += 1
                 continue
-
-            cat = request.POST.get(f'cat_{riga.pk}', '') or ''
-            cat = cat if cat in cat_valide else ''
 
             # Ripartizione: percentuali per agenzia (solo super-admin);
             # altrimenti 100% all'agenzia che ha caricato l'estratto.
@@ -608,16 +625,29 @@ def classifica_estratto(request, anno, mese):
             if not alloc:
                 alloc = [{'db': dbname, 'perc': 100.0}]
 
+            # Uscita = costo (categoria); entrata = ricavo (prodotto).
+            if riga.importo < 0:
+                cat = request.POST.get(f'cat_{riga.pk}', '') or ''
+                cat = cat if cat in cat_valide else ''
+                riga.categoria_codice = cat or None
+                riga.prodotto_codice = None
+                codice = cat
+            else:
+                prod = request.POST.get(f'prod_{riga.pk}', '') or ''
+                prod = prod if prod in prod_valide else ''
+                riga.prodotto_codice = prod or None
+                riga.categoria_codice = None
+                codice = prod
+
             somma = sum((Decimal(str(a['perc'])) for a in alloc), Decimal('0'))
-            if cat and abs(somma - Decimal('100')) > Decimal('0.5'):
+            if codice and abs(somma - Decimal('100')) > Decimal('0.5'):
                 warn_sum += 1
 
-            riga.categoria_codice = cat or None
             riga.allocazioni = alloc
-            riga.stato = 'classificato' if cat else 'da_classificare'
+            riga.stato = 'classificato' if codice else 'da_classificare'
             riga.voce_costo = None
-            riga.save(using=dbname, update_fields=['categoria_codice', 'allocazioni', 'stato', 'voce_costo'])
-            _rigenera_voci_da_riga(dbname, riga, anno, mese, cat, alloc, request.user)
+            riga.save(using=dbname, update_fields=['categoria_codice', 'prodotto_codice', 'allocazioni', 'stato', 'voce_costo'])
+            _rigenera_voci_da_riga(dbname, riga, anno, mese, alloc, request.user)
             n_class += 1
 
         # Bonifica: dopo aver rigenerato tutte le righe con il tracciamento d'origine,
@@ -640,8 +670,11 @@ def classifica_estratto(request, anno, mese):
 
     righe = list(MovimentoBancario.objects.using(dbname).filter(conto_economico=conto))
     map_cat = _mappa_categorie()
+    map_prod = _mappa_prodotti()
     for r in righe:
+        r.is_ricavo = r.importo >= 0
         r.categoria_nome = map_cat.get(r.categoria_codice, '') if r.categoria_codice else ''
+        r.prodotto_nome = map_prod.get(r.prodotto_codice, '') if r.prodotto_codice else ''
         perc_map = {a['db']: '' for a in agenzie}
         if r.allocazioni:
             for a in r.allocazioni:
@@ -650,16 +683,19 @@ def classifica_estratto(request, anno, mese):
         elif dbname in perc_map:
             perc_map[dbname] = '100'
         r.alloc_cells = [{'db': a['db'], 'nome': a['nome'], 'perc': perc_map.get(a['db'], '')} for a in agenzie]
-    righe_da = [r for r in righe if r.stato == 'da_classificare']
+    costi_da = [r for r in righe if r.stato == 'da_classificare' and r.importo < 0]
+    entrate_da = [r for r in righe if r.stato == 'da_classificare' and r.importo >= 0]
     righe_class = [r for r in righe if r.stato == 'classificato']
     righe_escl = [r for r in righe if r.stato == 'ignorato']
     context = {
         'conto': conto, 'anno': anno, 'mese': mese, 'mese_nome': MESI_DICT.get(mese, mese),
-        'righe_da': righe_da, 'righe_class': righe_class, 'righe_escl': righe_escl,
-        'n_da': len(righe_da), 'n_class': len(righe_class), 'n_escl': len(righe_escl),
+        'costi_da': costi_da, 'entrate_da': entrate_da,
+        'righe_class': righe_class, 'righe_escl': righe_escl,
+        'n_costi_da': len(costi_da), 'n_entrate_da': len(entrate_da),
+        'n_class': len(righe_class), 'n_escl': len(righe_escl),
         'n_righe': len(righe),
-        'categorie': _categorie_attive(),
-        'n_pending': len(righe_da),
+        'categorie': _categorie_attive(), 'prodotti': _prodotti_attivi(),
+        'n_pending': len(costi_da) + len(entrate_da),
         'agenzie': agenzie, 'is_super': is_super,
     }
     return render(request, 'app/classifica_estratto.html', context)
