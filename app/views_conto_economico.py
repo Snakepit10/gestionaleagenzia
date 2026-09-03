@@ -95,6 +95,33 @@ def _prodotti_per_categoria():
     return gruppi
 
 
+def _prod_categoria_of():
+    """Mappa codice prodotto -> codice categoria prodotto (vuoto se assente)."""
+    return {p.codice: (p.categoria_codice or '') for p in ProdottoRicavo.objects.using('default')}
+
+
+def _raggruppa_prodotti_per_categoria(items):
+    """Raggruppa una lista di prodotti (dict con 'codice', 'nome', 'totale') per categoria
+    prodotto. Ritorna [{'nome', 'prodotti': [...], 'totale'}] ordinati per categoria."""
+    cats = _categorie_prodotto()
+    ordine = {c.codice: i for i, c in enumerate(cats)}
+    map_cat = _mappa_cat_prodotto()
+    prod_cat = _prod_categoria_of()
+    gruppi = {}
+    for it in items:
+        cc = prod_cat.get(it['codice'], '') or ''
+        if cc not in ordine:
+            cc = ''
+        g = gruppi.setdefault(cc, {
+            'nome': (map_cat.get(cc) if cc else 'Senza categoria') or 'Senza categoria',
+            'ord': ordine.get(cc, 9999), 'prodotti': [], 'totale': Decimal('0')})
+        g['prodotti'].append(it)
+        g['totale'] += it.get('totale', Decimal('0'))
+    for g in gruppi.values():
+        g['prodotti'].sort(key=lambda x: x.get('nome', '').lower())
+    return sorted(gruppi.values(), key=lambda g: (g['ord'], g['nome'].lower()))
+
+
 def _get_conto(dbname, anno, mese, user=None, crea=False):
     """Ritorna il ContoEconomico del mese sul DB indicato; opzionalmente lo crea."""
     if crea:
@@ -287,8 +314,8 @@ def riepilogo_annuale(request, anno):
         per_mese.append({'mese': c.mese, 'mese_nome': MESI_DICT.get(c.mese, c.mese),
                          'ricavi': r_m, 'costi': c_m, 'utile': r_m - c_m})
 
-    ricavi_gruppi = sorted([{'nome': map_prod.get(k, k), 'importo': v} for k, v in ricavi_prod.items()],
-                           key=lambda x: x['nome'].lower())
+    ricavi_catgruppi = _raggruppa_prodotti_per_categoria(
+        [{'codice': k, 'nome': map_prod.get(k, k), 'totale': v} for k, v in ricavi_prod.items()])
     costi_gruppi = sorted([{'nome': map_cat.get(k, k), 'importo': v} for k, v in costi_cat.items()],
                           key=lambda x: x['nome'].lower())
     costi_nondeducibili = tot_costi - costi_deducibili
@@ -299,7 +326,7 @@ def riepilogo_annuale(request, anno):
     oggi = timezone.localdate()
     context = {
         'anno': anno,
-        'ricavi_gruppi': ricavi_gruppi, 'ricavi_manuali_tot': ricavi_manuali_tot,
+        'ricavi_catgruppi': ricavi_catgruppi, 'ricavi_manuali_tot': ricavi_manuali_tot,
         'costi_gruppi': costi_gruppi,
         'tot_ricavi': tot_ricavi, 'tot_costi': tot_costi,
         'costi_nondeducibili': costi_nondeducibili, 'imponibile': imponibile,
@@ -339,22 +366,21 @@ def conto_economico_mese(request, anno, mese):
     map_prod = _mappa_prodotti()
     map_cat = _mappa_categorie()
 
-    # Ricavi raggruppati per prodotto (somma di più voci: manuali dal cast + da CSV)
+    # Ricavi: somma per prodotto, poi raggruppati per categoria prodotto
     voci_ricavo = list(VoceRicavo.objects.using(dbname).filter(conto_economico=conto))
-    prod_gruppi = {}
+    prod_tot = {}
     ricavi_manuali, tot_ricavi = [], Decimal('0')
     for r in voci_ricavo:
         tot_ricavi += r.importo
         if r.prodotto_codice:
-            g = prod_gruppi.setdefault(r.prodotto_codice,
-                                       {'nome': map_prod.get(r.prodotto_codice, r.prodotto_codice),
-                                        'voci': [], 'totale': Decimal('0')})
-            g['voci'].append(r)
+            g = prod_tot.setdefault(r.prodotto_codice,
+                                    {'codice': r.prodotto_codice,
+                                     'nome': map_prod.get(r.prodotto_codice, r.prodotto_codice),
+                                     'totale': Decimal('0')})
             g['totale'] += r.importo
         else:
             ricavi_manuali.append(r)
-    ricavi_gruppi = sorted([{'codice': k, **v} for k, v in prod_gruppi.items()],
-                           key=lambda g: g['nome'].lower())
+    ricavi_catgruppi = _raggruppa_prodotti_per_categoria(list(prod_tot.values()))
 
     # Costi raggruppati per categoria (le non classificate in un gruppo a parte).
     # Le voci non classificate NON entrano nel conto economico (totali/utile): restano
@@ -397,7 +423,7 @@ def conto_economico_mese(request, anno, mese):
 
     context = {
         'conto': conto, 'anno': anno, 'mese': mese, 'mese_nome': MESI_DICT.get(mese, mese),
-        'ricavi_gruppi': ricavi_gruppi, 'ricavi_manuali': ricavi_manuali,
+        'ricavi_catgruppi': ricavi_catgruppi, 'ricavi_manuali': ricavi_manuali,
         'tot_ricavi': tot_ricavi,
         'costi_gruppi': costi_gruppi, 'costi_gruppi_prospetto': costi_gruppi_prospetto,
         'tot_costi': tot_costi, 'tot_costi_nonclass': tot_costi_nonclass,
@@ -853,10 +879,31 @@ def conto_economico_consolidato(request):
         def celle(dcol):
             return [dcol.get(c['db'], Decimal('0')) for c in cols]
 
-        for row in list(prod_rows.values()) + list(cat_rows.values()):
+        for row in list(cat_rows.values()):
             row['celle'] = [row['valori'].get(c['db'], Decimal('0')) for c in cols]
-        prod_list = sorted(prod_rows.values(), key=lambda x: x['nome'].lower())
         cat_list = sorted(cat_rows.values(), key=lambda x: x['nome'].lower())
+
+        # Ricavi: righe prodotto raggruppate per categoria prodotto (subtotale per colonna)
+        prod_cat = _prod_categoria_of()
+        catp = _categorie_prodotto()
+        ordine_cp = {c.codice: i for i, c in enumerate(catp)}
+        map_catp = _mappa_cat_prodotto()
+        prod_catgroups = {}
+        for code, row in prod_rows.items():
+            cc = prod_cat.get(code, '') or ''
+            if cc not in ordine_cp:
+                cc = ''
+            g = prod_catgroups.setdefault(cc, {
+                'nome': (map_catp.get(cc) if cc else 'Senza categoria') or 'Senza categoria',
+                'ord': ordine_cp.get(cc, 9999), 'prodotti': [],
+                'celle': [Decimal('0')] * len(cols), 'totale': Decimal('0')})
+            pcelle = [row['valori'].get(c['db'], Decimal('0')) for c in cols]
+            g['prodotti'].append({'nome': row['nome'], 'celle': pcelle, 'totale': row['totale']})
+            g['celle'] = [a + b for a, b in zip(g['celle'], pcelle)]
+            g['totale'] += row['totale']
+        for g in prod_catgroups.values():
+            g['prodotti'].sort(key=lambda x: x['nome'].lower())
+        prod_catlist = sorted(prod_catgroups.values(), key=lambda g: (g['ord'], g['nome'].lower()))
 
         utile_col = {c['db']: tot_ric[c['db']] - tot_cos[c['db']] for c in cols}
         netto_col = {c['db']: utile_col[c['db']] - imposte_col[c['db']] for c in cols}
@@ -875,7 +922,7 @@ def conto_economico_consolidato(request):
         dati = {
             'anno': anno, 'periodo': periodo,
             'cols': cols,
-            'prod_rows': prod_list, 'cat_rows': cat_list,
+            'prod_catlist': prod_catlist, 'cat_rows': cat_list,
             'manuali_celle': celle(manuali), 'g_man': g_man, 'ha_manuali': g_man != 0,
             'totA_celle': celle(tot_ric), 'g_ric': g_ric,
             'totB_celle': celle(tot_cos), 'g_cos': g_cos,

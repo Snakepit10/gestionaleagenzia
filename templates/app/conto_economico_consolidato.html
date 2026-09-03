@@ -21,6 +21,11 @@
     .inline-check ul { list-style: none; padding-left: 0; margin-bottom: 0; }
     .inline-check label { white-space: nowrap; font-weight: 400; }
     .inline-check input { margin-right: .3rem; }
+    .ce-mtx .ce-exp { cursor: pointer; }
+    .ce-mtx .ce-exp .ce-caret { transition: transform .15s; font-size: .8em; }
+    .ce-mtx .ce-exp.open .ce-caret { transform: rotate(90deg); }
+    .ce-mtx .ce-sub td { background: rgba(255,255,255,.02); }
+    .ce-mtx .ce-sub td:first-child { padding-left: 2.2rem; color: #aeb6bd; font-weight: 400; }
 </style>
 
 <div class="row mb-4 align-items-center">
@@ -62,21 +67,28 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- A) VALORE DELLA PRODUZIONE -->
+                    <!-- A) VALORE DELLA PRODUZIONE (per categoria prodotto) -->
                     <tr class="ce-sez"><td colspan="{{ dati.n_cols }}">A) VALORE DELLA PRODUZIONE</td></tr>
-                    {% for row in dati.prod_rows %}
-                    <tr class="ce-voce">
-                        <td>{{ row.nome }}</td>
-                        {% for v in row.celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
-                        <td class="n col-tot">{{ row.totale|floatformat:2 }}</td>
+                    {% for g in dati.prod_catlist %}
+                    <tr class="ce-voce ce-exp" data-target="pc{{ forloop.counter }}" role="button">
+                        <td><i class="fas fa-chevron-right ce-caret me-1"></i>{{ g.nome }} <span class="text-muted small">· {{ g.prodotti|length }}</span></td>
+                        {% for v in g.celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ g.totale|floatformat:2 }}</td>
                     </tr>
+                    {% for p in g.prodotti %}
+                    <tr class="ce-sub pc{{ forloop.parentloop.counter }} d-none">
+                        <td>{{ p.nome }}</td>
+                        {% for v in p.celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ p.totale|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
                     {% endfor %}
                     {% if dati.ha_manuali %}
                     <tr class="ce-voce"><td>Altri ricavi (manuali)</td>
                         {% for v in dati.manuali_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
                         <td class="n col-tot">{{ dati.g_man|floatformat:2 }}</td></tr>
                     {% endif %}
-                    {% if not dati.prod_rows and not dati.ha_manuali %}
+                    {% if not dati.prod_catlist and not dati.ha_manuali %}
                     <tr class="ce-voce muted"><td>Nessun ricavo</td>{% for c in dati.cols %}<td class="n">0,00</td>{% endfor %}<td class="n col-tot">0,00</td></tr>
                     {% endif %}
                     <tr class="ce-tot"><td>Totale valore della produzione (A)</td>
@@ -121,4 +133,17 @@
 {% elif form.is_bound %}
 <div class="alert alert-warning">Correggi i campi del filtro per generare il consolidato.</div>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.querySelectorAll('.ce-exp').forEach(function (row) {
+        row.addEventListener('click', function () {
+            var open = row.classList.toggle('open');
+            document.querySelectorAll('tr.' + row.dataset.target).forEach(function (sr) {
+                sr.classList.toggle('d-none', !open);
+            });
+        });
+    });
+</script>
 {% endblock %}

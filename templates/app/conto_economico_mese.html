@@ -49,24 +49,21 @@
         <div class="table-responsive">
             <table class="ce-table">
                 <tbody>
-                    <!-- A) VALORE DELLA PRODUZIONE -->
+                    <!-- A) VALORE DELLA PRODUZIONE (per categoria prodotto) -->
                     <tr class="ce-sez"><td>A) VALORE DELLA PRODUZIONE</td><td></td></tr>
-                    {% for g in ricavi_gruppi %}
+                    {% for g in ricavi_catgruppi %}
                     <tr class="ce-voce ce-exp" data-target="rg{{ forloop.counter }}" role="button">
-                        <td><i class="fas fa-chevron-right ce-caret me-1"></i>{{ g.nome }} <span class="text-muted small">· {{ g.voci|length }} voci</span></td>
+                        <td><i class="fas fa-chevron-right ce-caret me-1"></i>{{ g.nome }} <span class="text-muted small">· {{ g.prodotti|length }} prodotti</span></td>
                         <td>{{ g.totale|floatformat:2 }} €</td>
                     </tr>
-                    {% for v in g.voci %}
-                    <tr class="ce-sub rg{{ forloop.parentloop.counter }} d-none">
-                        <td>{{ v.descrizione|default:"(senza descrizione)" }} <span class="badge bg-light text-dark border">{{ v.get_fonte_display }}</span></td>
-                        <td>{{ v.importo|floatformat:2 }} €</td>
-                    </tr>
+                    {% for p in g.prodotti %}
+                    <tr class="ce-sub rg{{ forloop.parentloop.counter }} d-none"><td>{{ p.nome }}</td><td>{{ p.totale|floatformat:2 }} €</td></tr>
                     {% endfor %}
                     {% endfor %}
                     {% for v in ricavi_manuali %}
                     <tr class="ce-voce"><td>{{ v.descrizione }} <span class="text-muted small">(manuale)</span></td><td>{{ v.importo|floatformat:2 }} €</td></tr>
                     {% endfor %}
-                    {% if not ricavi_gruppi and not ricavi_manuali %}
+                    {% if not ricavi_catgruppi and not ricavi_manuali %}
                     <tr class="ce-voce muted"><td>Nessun ricavo inserito</td><td>0,00 €</td></tr>
                     {% endif %}
                     <tr class="ce-tot"><td>Totale valore della produzione (A)</td><td>{{ tot_ricavi|floatformat:2 }} €</td></tr>

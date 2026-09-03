@@ -15,6 +15,11 @@
     .ce-table .ce-ris.neg td { background: rgba(220,53,69,.18); }
     .ce-table .text-neg { color: #ff6b6b; }
     .ce-table .muted td:first-child { color: #9aa4ad; font-style: italic; }
+    .ce-table .ce-exp { cursor: pointer; }
+    .ce-table .ce-exp .ce-caret { transition: transform .15s; font-size: .8em; }
+    .ce-table .ce-exp.open .ce-caret { transform: rotate(90deg); }
+    .ce-table .ce-sub td { background: rgba(255,255,255,.02); }
+    .ce-table .ce-sub td:first-child { padding-left: 2.8rem; color: #aeb6bd; font-size: .9em; font-weight: 400; }
 </style>
 
 <div class="row mb-3 align-items-center">
@@ -42,13 +47,19 @@
             <table class="ce-table">
                 <tbody>
                     <tr class="ce-sez"><td>A) VALORE DELLA PRODUZIONE</td><td></td></tr>
-                    {% for g in ricavi_gruppi %}
-                    <tr class="ce-voce"><td>{{ g.nome }}</td><td>{{ g.importo|floatformat:2 }} €</td></tr>
+                    {% for g in ricavi_catgruppi %}
+                    <tr class="ce-voce ce-exp" data-target="rg{{ forloop.counter }}" role="button">
+                        <td><i class="fas fa-chevron-right ce-caret me-1"></i>{{ g.nome }} <span class="text-muted small">· {{ g.prodotti|length }} prodotti</span></td>
+                        <td>{{ g.totale|floatformat:2 }} €</td>
+                    </tr>
+                    {% for p in g.prodotti %}
+                    <tr class="ce-sub rg{{ forloop.parentloop.counter }} d-none"><td>{{ p.nome }}</td><td>{{ p.totale|floatformat:2 }} €</td></tr>
+                    {% endfor %}
                     {% endfor %}
                     {% if ricavi_manuali_tot %}
                     <tr class="ce-voce"><td>Altri ricavi (voci manuali)</td><td>{{ ricavi_manuali_tot|floatformat:2 }} €</td></tr>
                     {% endif %}
-                    {% if not ricavi_gruppi and not ricavi_manuali_tot %}
+                    {% if not ricavi_catgruppi and not ricavi_manuali_tot %}
                     <tr class="ce-voce muted"><td>Nessun ricavo</td><td>0,00 €</td></tr>
                     {% endif %}
                     <tr class="ce-tot"><td>Totale valore della produzione (A)</td><td>{{ tot_ricavi|floatformat:2 }} €</td></tr>
@@ -112,4 +123,17 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.querySelectorAll('.ce-exp').forEach(function (row) {
+        row.addEventListener('click', function () {
+            var open = row.classList.toggle('open');
+            document.querySelectorAll('tr.' + row.dataset.target).forEach(function (sr) {
+                sr.classList.toggle('d-none', !open);
+            });
+        });
+    });
+</script>
 {% endblock %}
