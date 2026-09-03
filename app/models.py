@@ -1774,6 +1774,11 @@ class VoceCosto(MultiDatabaseMixin, models.Model):
     movimento = models.ForeignKey(Movimento, on_delete=models.SET_NULL, null=True, blank=True,
                                   related_name='voci_costo',
                                   help_text="Movimento conto-spese di origine (per dedup)")
+    # Tracciabilità/dedup cross-DB per le voci generate da una riga bancaria ripartita:
+    # (origine_db, origine_mb_id) identifica la riga MovimentoBancario di origine
+    # (che può vivere nel DB di un'altra agenzia).
+    origine_db = models.CharField(max_length=40, blank=True, default='')
+    origine_mb_id = models.IntegerField(null=True, blank=True)
     data_creazione = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -1799,6 +1804,9 @@ class MovimentoBancario(MultiDatabaseMixin, models.Model):
     importo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     hash_riga = models.CharField(max_length=40, db_index=True)
     categoria_codice = models.SlugField(max_length=40, blank=True, null=True)
+    # Ripartizione della riga tra le agenzie: [{"db": "goldbet_db", "perc": 50}, ...].
+    # Vuoto = 100% all'agenzia che ha caricato l'estratto.
+    allocazioni = models.JSONField(default=list, blank=True)
     stato = models.CharField(max_length=16, choices=STATO_CHOICES, default='da_classificare')
     voce_costo = models.OneToOneField(VoceCosto, on_delete=models.SET_NULL, null=True, blank=True,
                                       related_name='riga_bancaria')

@@ -118,6 +118,54 @@ def _report(dbname, anno, mese):
     }
 
 
+def _agenzie_db():
+    """Agenzie attive con il rispettivo database (per la ripartizione dei costi)."""
+    res = []
+    for ag in Agenzia.objects.using('default').filter(attiva=True).order_by('nome'):
+        dbn = AGENZIA_DATABASE_MAP.get(ag.nome.lower())
+        if dbn:
+            res.append({'db': dbn, 'nome': ag.nome})
+    return res
+
+
+def _fmt_perc(v):
+    try:
+        d = Decimal(str(v))
+    except Exception:
+        return ''
+    return ('%g' % d).replace('.', ',')
+
+
+def _rigenera_voci_da_riga(src_db, mb, anno, mese, cat, allocazioni, user):
+    """Rigenera le VoceCosto generate da una riga bancaria ripartita.
+
+    Elimina prima le voci precedenti (in tutti i DB agenzia) identificate da
+    (origine_db, origine_mb_id), poi — se c'è una categoria — crea una voce per ogni
+    fetta della ripartizione nel database dell'agenzia relativa, per il mese indicato.
+    """
+    for dbn in set(AGENZIA_DATABASE_MAP.values()):
+        VoceCosto.objects.using(dbn).filter(origine_db=src_db, origine_mb_id=mb.pk).delete()
+    if not cat:
+        return
+    base = abs(mb.importo)
+    for a in allocazioni or []:
+        dbn = a.get('db')
+        try:
+            perc = Decimal(str(a.get('perc') or 0))
+        except Exception:
+            perc = Decimal('0')
+        if not dbn or perc <= 0:
+            continue
+        importo = (base * perc / Decimal('100')).quantize(Decimal('0.01'))
+        # user=None: chi ripartisce può non esistere nel DB dell'agenzia di destinazione
+        # (FK creato_da), quindi il contenitore mensile viene creato senza autore.
+        conto_m = _get_conto(dbn, anno, mese, None, crea=True)
+        vc = VoceCosto(conto_economico=conto_m, categoria_codice=cat,
+                       descrizione=mb.descrizione[:200], importo=importo, data=mb.data,
+                       fonte='csv', origine_db=src_db, origine_mb_id=mb.pk)
+        vc.save(using=dbn)
+
+
 # ---------------------------------------------------------------------------
 # Lista mesi (per agenzia)
 # ---------------------------------------------------------------------------
@@ -521,57 +569,80 @@ def classifica_estratto(request, anno, mese):
     dbname = db.user_db
     conto = _get_conto(dbname, anno, mese, request.user, crea=True)
 
+    is_super = request.user.is_superuser
+    agenzie = _agenzie_db()
+    dbs_validi = {a['db'] for a in agenzie}
+
     if request.method == 'POST':
         cat_valide = {c.codice for c in _categorie_attive()}
-        n_class = n_ign = 0
+        n_class = n_ign = warn_sum = 0
         for riga in MovimentoBancario.objects.using(dbname).filter(conto_economico=conto):
             stato = request.POST.get(f'stato_{riga.pk}')  # 'includi' | 'ignora' | None
             if stato is None:
                 continue
             if stato == 'ignora':
                 riga.stato = 'ignorato'
-                if riga.voce_costo_id:
-                    vc = VoceCosto.objects.using(dbname).filter(pk=riga.voce_costo_id).first()
-                    riga.voce_costo = None
-                    riga.save(using=dbname, update_fields=['stato', 'voce_costo'])
-                    if vc:
-                        vc.delete(using=dbname)
-                else:
-                    riga.save(using=dbname, update_fields=['stato'])
+                riga.categoria_codice = None
+                riga.allocazioni = []
+                riga.voce_costo = None
+                riga.save(using=dbname, update_fields=['stato', 'categoria_codice', 'allocazioni', 'voce_costo'])
+                _rigenera_voci_da_riga(dbname, riga, anno, mese, None, [], request.user)
                 n_ign += 1
                 continue
 
             cat = request.POST.get(f'cat_{riga.pk}', '') or ''
             cat = cat if cat in cat_valide else ''
-            riga.categoria_codice = cat or None
-            riga.stato = 'classificato' if cat else 'da_classificare'
 
-            if riga.voce_costo_id:
-                vc = VoceCosto.objects.using(dbname).filter(pk=riga.voce_costo_id).first()
-            else:
-                vc = None
-            if vc is None:
-                vc = VoceCosto(conto_economico=conto, fonte='csv')
-            vc.categoria_codice = cat or None
-            vc.descrizione = riga.descrizione[:200]
-            vc.importo = abs(riga.importo)
-            vc.data = riga.data
-            vc.save(using=dbname)
-            riga.voce_costo = vc
-            riga.save(using=dbname, update_fields=['categoria_codice', 'stato', 'voce_costo'])
+            # Ripartizione: percentuali per agenzia (solo super-admin);
+            # altrimenti 100% all'agenzia che ha caricato l'estratto.
+            alloc = []
+            if is_super:
+                for a in agenzie:
+                    raw = (request.POST.get(f'perc_{riga.pk}_{a["db"]}', '') or '').strip().replace(',', '.')
+                    try:
+                        perc = Decimal(raw) if raw else Decimal('0')
+                    except Exception:
+                        perc = Decimal('0')
+                    if perc > 0:
+                        alloc.append({'db': a['db'], 'perc': float(perc)})
+            if not alloc:
+                alloc = [{'db': dbname, 'perc': 100.0}]
+
+            somma = sum((Decimal(str(a['perc'])) for a in alloc), Decimal('0'))
+            if cat and abs(somma - Decimal('100')) > Decimal('0.5'):
+                warn_sum += 1
+
+            riga.categoria_codice = cat or None
+            riga.allocazioni = alloc
+            riga.stato = 'classificato' if cat else 'da_classificare'
+            riga.voce_costo = None
+            riga.save(using=dbname, update_fields=['categoria_codice', 'allocazioni', 'stato', 'voce_costo'])
+            _rigenera_voci_da_riga(dbname, riga, anno, mese, cat, alloc, request.user)
             n_class += 1
 
-        messages.success(request, f'{n_class} righe classificate, {n_ign} ignorate.')
+        msg = f'{n_class} righe classificate, {n_ign} ignorate.'
+        if warn_sum:
+            msg += f' Attenzione: {warn_sum} righe con percentuali che non sommano a 100%.'
+        messages.success(request, msg)
         return redirect('classifica_estratto', anno=anno, mese=mese)
 
     righe = list(MovimentoBancario.objects.using(dbname).filter(conto_economico=conto))
     map_cat = _mappa_categorie()
     for r in righe:
         r.categoria_nome = map_cat.get(r.categoria_codice, '') if r.categoria_codice else ''
+        perc_map = {a['db']: '' for a in agenzie}
+        if r.allocazioni:
+            for a in r.allocazioni:
+                if a.get('db') in perc_map:
+                    perc_map[a['db']] = _fmt_perc(a.get('perc'))
+        elif dbname in perc_map:
+            perc_map[dbname] = '100'
+        r.alloc_cells = [{'db': a['db'], 'nome': a['nome'], 'perc': perc_map.get(a['db'], '')} for a in agenzie]
     context = {
         'conto': conto, 'anno': anno, 'mese': mese, 'mese_nome': MESI_DICT.get(mese, mese),
         'righe': righe, 'categorie': _categorie_attive(),
         'n_pending': sum(1 for r in righe if r.stato == 'da_classificare'),
+        'agenzie': agenzie, 'is_super': is_super,
     }
     return render(request, 'app/classifica_estratto.html', context)
 

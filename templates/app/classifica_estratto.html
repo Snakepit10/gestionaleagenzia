@@ -6,7 +6,7 @@
 <div class="row mb-4 align-items-center">
     <div class="col">
         <h1 class="h3 mb-0"><i class="fas fa-list-check me-2"></i>Classifica estratto conto — {{ mese_nome }} {{ anno }}</h1>
-        <small class="text-muted">{{ n_pending }} righe ancora da classificare.</small>
+        <small class="text-muted">{{ n_pending }} righe ancora da classificare.{% if is_super %} Le percentuali ripartiscono ogni costo tra le agenzie (somma consigliata 100%).{% endif %}</small>
     </div>
     <div class="col-auto">
         <a href="{% url 'carica_estratto' anno mese %}" class="btn btn-outline-primary me-2"><i class="fas fa-upload me-1"></i>Carica altro CSV</a>
@@ -22,7 +22,11 @@
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
-                        <tr><th>Data</th><th>Descrizione</th><th class="text-end">Importo</th><th style="width:220px;">Categoria</th><th class="text-center" style="width:120px;">Includi</th></tr>
+                        <tr>
+                            <th>Data</th><th>Descrizione</th><th class="text-end">Importo</th><th style="width:190px;">Categoria</th>
+                            {% if is_super %}{% for a in agenzie %}<th class="text-center" style="width:80px;" title="{{ a.nome }}">{{ a.nome|truncatechars:10 }} %</th>{% endfor %}{% endif %}
+                            <th class="text-center" style="width:90px;">Includi</th>
+                        </tr>
                     </thead>
                     <tbody>
                         {% for r in righe %}
@@ -38,6 +42,10 @@
                                     {% endfor %}
                                 </select>
                             </td>
+                            {% if is_super %}{% for cell in r.alloc_cells %}
+                            <td><input type="text" inputmode="decimal" name="perc_{{ r.pk }}_{{ cell.db }}" value="{{ cell.perc }}"
+                                       class="form-control form-control-sm text-end perc-input" data-row="{{ r.pk }}" placeholder="0" style="min-width:60px;"></td>
+                            {% endfor %}{% endif %}
                             <td class="text-center">
                                 <div class="form-check form-switch d-inline-block">
                                     <input type="hidden" name="stato_{{ r.pk }}" value="ignora">
@@ -61,3 +69,22 @@
 <div class="alert alert-info">Nessuna riga importata per questo mese. <a href="{% url 'carica_estratto' anno mese %}">Carica un CSV</a>.</div>
 {% endif %}
 {% endblock %}
+
+{% if is_super %}
+{% block extra_js %}
+<script>
+    // Evidenzia le righe la cui somma delle percentuali non fa 100.
+    function num(v){ v=(v||'').toString().replace(',','.'); var n=parseFloat(v); return isNaN(n)?0:n; }
+    function aggiornaRiga(row){
+        var inputs = document.querySelectorAll('.perc-input[data-row="'+row+'"]');
+        var somma = 0; inputs.forEach(function(i){ somma += num(i.value); });
+        inputs.forEach(function(i){
+            i.classList.toggle('is-invalid', somma > 0 && Math.abs(somma-100) > 0.5);
+        });
+    }
+    document.querySelectorAll('.perc-input').forEach(function(i){
+        i.addEventListener('input', function(){ aggiornaRiga(i.getAttribute('data-row')); });
+    });
+</script>
+{% endblock %}
+{% endif %}
