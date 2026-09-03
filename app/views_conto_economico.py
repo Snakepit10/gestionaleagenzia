@@ -14,11 +14,11 @@ from django.utils import timezone
 
 from .models import (
     ContoEconomico, VoceRicavo, VoceCosto, MovimentoBancario,
-    ProdottoRicavo, CategoriaSpesa, Cliente, Movimento, Agenzia,
+    ProdottoRicavo, CategoriaSpesa, CategoriaProdotto, Cliente, Movimento, Agenzia,
 )
 from .database_utils import DatabaseManager, AGENZIA_DATABASE_MAP
 from .forms import (
-    ProdottoRicavoForm, CategoriaSpesaForm, VoceCostoForm,
+    ProdottoRicavoForm, CategoriaSpesaForm, CategoriaProdottoForm, VoceCostoForm,
     VoceRicavoManualeForm, UploadEstrattoForm, ConsolidatoForm, MESI_CHOICES,
 )
 from . import estratto_conto
@@ -68,6 +68,31 @@ def _mappa_prodotti():
 
 def _mappa_categorie():
     return {c.codice: c.nome for c in CategoriaSpesa.objects.using('default')}
+
+
+def _categorie_prodotto():
+    return list(CategoriaProdotto.objects.using('default').filter(attivo=True).order_by('ordine', 'nome'))
+
+
+def _mappa_cat_prodotto():
+    return {c.codice: c.nome for c in CategoriaProdotto.objects.using('default')}
+
+
+def _prodotti_per_categoria():
+    """Prodotti attivi raggruppati per categoria: [{nome, codice, prodotti:[...]}, ...],
+    con 'Senza categoria' in fondo."""
+    cats = _categorie_prodotto()
+    cod_validi = {c.codice for c in cats}
+    prodotti = _prodotti_attivi()
+    gruppi = []
+    for c in cats:
+        pl = [p for p in prodotti if p.categoria_codice == c.codice]
+        if pl:
+            gruppi.append({'nome': c.nome, 'codice': c.codice, 'prodotti': pl})
+    senza = [p for p in prodotti if not p.categoria_codice or p.categoria_codice not in cod_validi]
+    if senza:
+        gruppi.append({'nome': 'Senza categoria', 'codice': '', 'prodotti': senza})
+    return gruppi
 
 
 def _get_conto(dbname, anno, mese, user=None, crea=False):
@@ -429,13 +454,15 @@ def conto_economico_ricavi(request, anno, mese):
                  for v in VoceRicavo.objects.using(dbname).filter(
                      conto_economico=conto, origine_mb_id__isnull=True)
                  if v.prodotto_codice}
-    righe = [{'prodotto': p, 'importo': esistenti.get(p.codice)} for p in prodotti]
+    gruppi = [{'nome': g['nome'], 'codice': g['codice'],
+               'righe': [{'prodotto': p, 'importo': esistenti.get(p.codice)} for p in g['prodotti']]}
+              for g in _prodotti_per_categoria()]
     voci_manuali = list(VoceRicavo.objects.using(dbname).filter(
         conto_economico=conto, prodotto_codice__isnull=True))
 
     context = {
         'conto': conto, 'anno': anno, 'mese': mese, 'mese_nome': MESI_DICT.get(mese, mese),
-        'righe': righe, 'voci_manuali': voci_manuali,
+        'gruppi': gruppi, 'voci_manuali': voci_manuali,
         'form_ricavo': VoceRicavoManualeForm(),
         'nessun_prodotto': len(prodotti) == 0,
     }
@@ -756,7 +783,8 @@ def classifica_estratto(request, anno, mese):
         'n_costi_da': len(costi_da), 'n_entrate_da': len(entrate_da),
         'n_class': len(righe_class), 'n_escl': len(righe_escl),
         'n_righe': len(righe),
-        'categorie': _categorie_attive(), 'prodotti': _prodotti_attivi(),
+        'categorie': _categorie_attive(),
+        'prodotti': _prodotti_attivi(), 'prodotti_gruppi': _prodotti_per_categoria(),
         'n_pending': len(costi_da) + len(entrate_da),
         'agenzie': agenzie, 'is_super': is_super,
     }
@@ -967,3 +995,65 @@ def elimina_prodotto_ricavo(request, pk):
         return redirect('prodotti_ricavo')
     return render(request, 'app/elimina_tassonomia.html',
                   {'oggetto': obj, 'tipo': 'prodotto', 'annulla_url': 'prodotti_ricavo'})
+
+
+# ---------------------------------------------------------------------------
+# CRUD Categorie Prodotto (raggruppamento prodotti) — su DB 'default'
+# ---------------------------------------------------------------------------
+
+@login_required
+@user_passes_test(is_superadmin)
+def categorie_prodotto(request):
+    categorie = CategoriaProdotto.objects.using('default').all()
+    map_cat = _mappa_cat_prodotto()
+    conteggi = {}
+    for p in ProdottoRicavo.objects.using('default').all():
+        conteggi[p.categoria_codice or ''] = conteggi.get(p.categoria_codice or '', 0) + 1
+    righe = [{'cat': c, 'n_prodotti': conteggi.get(c.codice, 0)} for c in categorie]
+    return render(request, 'app/lista_categorie_prodotto.html',
+                  {'righe': righe, 'senza_categoria': conteggi.get('', 0)})
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def nuova_categoria_prodotto(request):
+    if request.method == 'POST':
+        form = CategoriaProdottoForm(request.POST)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.save(using='default')
+            messages.success(request, f'Categoria prodotto "{obj.nome}" creata.')
+            return redirect('categorie_prodotto')
+    else:
+        form = CategoriaProdottoForm()
+    return render(request, 'app/form_categoria_prodotto.html', {'form': form, 'titolo': 'Nuova Categoria Prodotto'})
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def modifica_categoria_prodotto(request, pk):
+    obj = get_object_or_404(CategoriaProdotto.objects.using('default'), pk=pk)
+    if request.method == 'POST':
+        form = CategoriaProdottoForm(request.POST, instance=obj)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.save(using='default')
+            messages.success(request, f'Categoria prodotto "{obj.nome}" aggiornata.')
+            return redirect('categorie_prodotto')
+    else:
+        form = CategoriaProdottoForm(instance=obj)
+    return render(request, 'app/form_categoria_prodotto.html',
+                  {'form': form, 'oggetto': obj, 'titolo': f'Modifica: {obj.nome}'})
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def elimina_categoria_prodotto(request, pk):
+    obj = get_object_or_404(CategoriaProdotto.objects.using('default'), pk=pk)
+    if request.method == 'POST':
+        nome = obj.nome
+        obj.delete(using='default')
+        messages.success(request, f'Categoria prodotto "{nome}" eliminata.')
+        return redirect('categorie_prodotto')
+    return render(request, 'app/elimina_tassonomia.html',
+                  {'oggetto': obj, 'tipo': 'categoria prodotto', 'annulla_url': 'categorie_prodotto'})

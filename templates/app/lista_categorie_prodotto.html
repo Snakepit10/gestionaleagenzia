@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Categorie Prodotto - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h1 class="h3 mb-0"><i class="fas fa-layer-group me-2"></i>Categorie Prodotto</h1>
+        <small class="text-muted">Raggruppano i prodotti ricavo (lista condivisa da tutte le agenzie).</small>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'prodotti_ricavo' %}" class="btn btn-outline-secondary me-2"><i class="fas fa-dice me-1"></i>Prodotti</a>
+        <a href="{% url 'nuova_categoria_prodotto' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nuova categoria</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead><tr><th>Nome</th><th>Codice</th><th class="text-center">Ordine</th><th class="text-center">Prodotti</th><th class="text-center">Attiva</th><th class="text-end">Azioni</th></tr></thead>
+                <tbody>
+                    {% for r in righe %}
+                    <tr>
+                        <td>{{ r.cat.nome }}</td>
+                        <td><code>{{ r.cat.codice }}</code></td>
+                        <td class="text-center">{{ r.cat.ordine }}</td>
+                        <td class="text-center">{{ r.n_prodotti }}</td>
+                        <td class="text-center">{% if r.cat.attivo %}<span class="badge bg-success">Sì</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                        <td class="text-end">
+                            <a href="{% url 'modifica_categoria_prodotto' r.cat.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+                            <a href="{% url 'elimina_categoria_prodotto' r.cat.pk %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nessuna categoria prodotto. Creane una per raggruppare i prodotti.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if senza_categoria %}
+    <div class="card-footer text-muted small">{{ senza_categoria }} prodotti senza categoria (mostrati nel gruppo "Senza categoria").</div>
+    {% endif %}
+</div>
+{% endblock %}

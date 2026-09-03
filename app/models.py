@@ -1668,12 +1668,31 @@ class RiepilogoGiornaliero(MultiDatabaseMixin, models.Model):
 # Tassonomia GLOBALE (prodotti/categorie, su DB 'default') + dati PER-AGENZIA.
 # ===========================================================================
 
+class CategoriaProdotto(models.Model):
+    """Raggruppamento dei prodotti ricavo (es. 'Scommesse', 'Gioco online'). Tassonomia
+    GLOBALE su database 'default'."""
+    codice = models.SlugField(max_length=40, unique=True)
+    nome = models.CharField(max_length=100)
+    ordine = models.PositiveIntegerField(default=0)
+    attivo = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Categoria Prodotto"
+        verbose_name_plural = "Categorie Prodotto"
+        ordering = ['ordine', 'nome']
+
+    def __str__(self):
+        return self.nome
+
+
 class ProdottoRicavo(models.Model):
     """Prodotto/gioco per lo spaccato dei ricavi. Tassonomia GLOBALE condivisa da tutte
     le agenzie: vive sul database 'default' (come Agenzia/SaldoEsterno)."""
     codice = models.SlugField(max_length=40, unique=True,
                               help_text="Codice stabile usato per aggregare tra agenzie")
     nome = models.CharField(max_length=100)
+    categoria_codice = models.SlugField(max_length=40, blank=True, null=True,
+                                        help_text="Categoria prodotto (raggruppamento)")
     ordine = models.PositiveIntegerField(default=0)
     attivo = models.BooleanField(default=True)
 

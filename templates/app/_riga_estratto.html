@@ -13,8 +13,12 @@
         {% else %}
         <select name="prod_{{ r.pk }}" class="form-select form-select-sm">
             <option value="">— Prodotto ricavo —</option>
-            {% for p in prodotti %}
-            <option value="{{ p.codice }}" {% if p.codice == r.prodotto_codice %}selected{% endif %}>{{ p.nome }}</option>
+            {% for g in prodotti_gruppi %}
+            <optgroup label="{{ g.nome }}">
+                {% for p in g.prodotti %}
+                <option value="{{ p.codice }}" {% if p.codice == r.prodotto_codice %}selected{% endif %}>{{ p.nome }}</option>
+                {% endfor %}
+            </optgroup>
             {% endfor %}
         </select>
         {% endif %}

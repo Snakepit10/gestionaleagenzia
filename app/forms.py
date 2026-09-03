@@ -1,7 +1,7 @@
 from django import forms
 from django.utils import timezone
 from .models import (Cliente, Movimento, DistintaCassa, Comunicazione, ContoFinanziario, BilancioPeriodico,
-                     ProdottoRicavo, CategoriaSpesa, VoceCosto, Agenzia)
+                     ProdottoRicavo, CategoriaSpesa, CategoriaProdotto, VoceCosto, Agenzia)
 
 
 MESI_CHOICES = [
@@ -313,17 +313,41 @@ class BilancioPeriodoForm(forms.ModelForm):
 # Conto Economico
 # ===========================================================================
 
-class ProdottoRicavoForm(forms.ModelForm):
+class CategoriaProdottoForm(forms.ModelForm):
     class Meta:
-        model = ProdottoRicavo
+        model = CategoriaProdotto
         fields = ['nome', 'codice', 'ordine', 'attivo']
-        help_texts = {
-            'codice': 'Lascia vuoto per generarlo automaticamente dal nome.',
-        }
+        help_texts = {'codice': 'Lascia vuoto per generarlo automaticamente dal nome.'}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['codice'].required = False
+
+    def clean_codice(self):
+        from django.utils.text import slugify
+        codice = self.cleaned_data.get('codice') or ''
+        if not codice:
+            codice = slugify(self.cleaned_data.get('nome', ''))
+        return codice
+
+
+class ProdottoRicavoForm(forms.ModelForm):
+    class Meta:
+        model = ProdottoRicavo
+        fields = ['nome', 'codice', 'categoria_codice', 'ordine', 'attivo']
+        help_texts = {
+            'codice': 'Lascia vuoto per generarlo automaticamente dal nome.',
+        }
+        labels = {'categoria_codice': 'Categoria prodotto'}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['codice'].required = False
+        cats = CategoriaProdotto.objects.using('default').filter(attivo=True).order_by('ordine', 'nome')
+        self.fields['categoria_codice'] = forms.ChoiceField(
+            choices=[('', '— Senza categoria —')] + [(c.codice, c.nome) for c in cats],
+            required=False, label='Categoria prodotto',
+            initial=(self.instance.categoria_codice if self.instance and self.instance.pk else ''))
 
     def clean_codice(self):
         from django.utils.text import slugify

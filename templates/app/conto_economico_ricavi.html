@@ -21,17 +21,29 @@
         <div class="card mb-4">
             <div class="card-header bg-success text-white"><i class="fas fa-dice me-2"></i>Ricavi per prodotto</div>
             <div class="card-body">
-                <p class="text-muted small">Inserisci il ricavo del mese per ciascun prodotto (dai dati del cast). Lascia vuoto o 0 per rimuoverlo.</p>
+                <p class="text-muted small">Inserisci il ricavo del mese per ciascun prodotto (dai dati del cast). Lascia vuoto o 0 per rimuoverlo. Clicca sull'intestazione di una categoria per aprirla/chiuderla.</p>
                 <form method="post">
                     {% csrf_token %}
-                    {% for r in righe %}
-                    <div class="row align-items-center mb-2">
-                        <label class="col-6 col-form-label">{{ r.prodotto.nome }}</label>
-                        <div class="col-6">
-                            <div class="input-group">
-                                <input type="text" inputmode="decimal" class="form-control text-end" name="imp_{{ r.prodotto.codice }}"
-                                       value="{% if r.importo is not None %}{{ r.importo|floatformat:2 }}{% endif %}" placeholder="0,00">
-                                <span class="input-group-text">€</span>
+                    {% for g in gruppi %}
+                    <div class="border rounded mb-2">
+                        <div class="d-flex justify-content-between align-items-center px-2 py-2" role="button"
+                             data-bs-toggle="collapse" data-bs-target="#grp{{ forloop.counter }}" style="background:rgba(255,255,255,.05);">
+                            <span><i class="fas fa-chevron-down me-1"></i><strong>{{ g.nome }}</strong> <span class="text-muted small">({{ g.righe|length }})</span></span>
+                        </div>
+                        <div class="collapse show" id="grp{{ forloop.counter }}">
+                            <div class="p-2">
+                                {% for r in g.righe %}
+                                <div class="row align-items-center mb-2">
+                                    <label class="col-6 col-form-label">{{ r.prodotto.nome }}</label>
+                                    <div class="col-6">
+                                        <div class="input-group">
+                                            <input type="text" inputmode="decimal" class="form-control text-end" name="imp_{{ r.prodotto.codice }}"
+                                                   value="{% if r.importo is not None %}{{ r.importo|floatformat:2 }}{% endif %}" placeholder="0,00">
+                                            <span class="input-group-text">€</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
                             </div>
                         </div>
                     </div>
