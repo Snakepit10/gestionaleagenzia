@@ -620,7 +620,19 @@ def classifica_estratto(request, anno, mese):
             _rigenera_voci_da_riga(dbname, riga, anno, mese, cat, alloc, request.user)
             n_class += 1
 
+        # Bonifica: dopo aver rigenerato tutte le righe con il tracciamento d'origine,
+        # elimina le eventuali vecchie voci CSV senza origine per questo mese (create
+        # dalla logica precedente alla ripartizione) che duplicherebbero i costi.
+        rimosse = 0
+        for dbn in set(AGENZIA_DATABASE_MAP.values()):
+            conto_m = ContoEconomico.objects.using(dbn).filter(anno=anno, mese=mese).first()
+            if conto_m:
+                rimosse += VoceCosto.objects.using(dbn).filter(
+                    conto_economico=conto_m, fonte='csv', origine_mb_id__isnull=True).delete()[0]
+
         msg = f'{n_class} righe classificate, {n_ign} ignorate.'
+        if rimosse:
+            msg += f' Rimossi {rimosse} doppioni residui.'
         if warn_sum:
             msg += f' Attenzione: {warn_sum} righe con percentuali che non sommano a 100%.'
         messages.success(request, msg)
