@@ -639,11 +639,13 @@ def classifica_estratto(request, anno, mese):
             perc_map[dbname] = '100'
         r.alloc_cells = [{'db': a['db'], 'nome': a['nome'], 'perc': perc_map.get(a['db'], '')} for a in agenzie]
     righe_da = [r for r in righe if r.stato == 'da_classificare']
-    righe_fatte = [r for r in righe if r.stato != 'da_classificare']
+    righe_class = [r for r in righe if r.stato == 'classificato']
+    righe_escl = [r for r in righe if r.stato == 'ignorato']
     context = {
         'conto': conto, 'anno': anno, 'mese': mese, 'mese_nome': MESI_DICT.get(mese, mese),
-        'righe_da': righe_da, 'righe_fatte': righe_fatte,
-        'n_da': len(righe_da), 'n_fatte': len(righe_fatte), 'n_righe': len(righe),
+        'righe_da': righe_da, 'righe_class': righe_class, 'righe_escl': righe_escl,
+        'n_da': len(righe_da), 'n_class': len(righe_class), 'n_escl': len(righe_escl),
+        'n_righe': len(righe),
         'categorie': _categorie_attive(),
         'n_pending': len(righe_da),
         'agenzie': agenzie, 'is_super': is_super,
