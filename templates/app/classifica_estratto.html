@@ -3,6 +3,12 @@
 {% block title %}Classifica estratto conto - {{ mese_nome }} {{ anno }}{% endblock %}
 
 {% block content %}
+<style>
+    /* Righe di stato leggibili sul tema scuro (niente sfondi chiari di Bootstrap) */
+    .riga-classificata > td { background-color: rgba(40, 167, 69, .14) !important; }
+    .riga-ignorata > td { background-color: rgba(255, 255, 255, .035) !important; color: #9aa4ad !important; }
+    .riga-ignorata > td .text-danger { color: #c98b8b !important; }
+</style>
 <div class="row mb-4 align-items-center">
     <div class="col">
         <h1 class="h3 mb-0"><i class="fas fa-list-check me-2"></i>Classifica estratto conto — {{ mese_nome }} {{ anno }}</h1>

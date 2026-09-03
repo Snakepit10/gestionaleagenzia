@@ -1,4 +1,4 @@
-<tr class="{% if r.stato == 'ignorato' %}table-secondary{% elif r.stato == 'classificato' %}table-success{% endif %}">
+<tr class="riga-estratto {% if r.stato == 'ignorato' %}riga-ignorata{% elif r.stato == 'classificato' %}riga-classificata{% endif %}">
     <td>{% if r.data %}{{ r.data|date:"d/m/Y" }}{% else %}—{% endif %}</td>
     <td class="small">{{ r.descrizione }}</td>
     <td class="text-end text-danger">{{ r.importo|floatformat:2 }} €</td>
