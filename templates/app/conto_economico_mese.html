@@ -57,15 +57,18 @@
                     {% endif %}
                     <tr class="ce-tot"><td>Totale valore della produzione (A)</td><td>{{ tot_ricavi|floatformat:2 }} €</td></tr>
 
-                    <!-- B) COSTI DELLA PRODUZIONE -->
+                    <!-- B) COSTI DELLA PRODUZIONE (solo costi classificati) -->
                     <tr class="ce-sez"><td>B) COSTI DELLA PRODUZIONE</td><td></td></tr>
-                    {% for g in costi_gruppi %}
+                    {% for g in costi_gruppi_prospetto %}
                     <tr class="ce-voce"><td>{{ g.nome }}</td><td>{{ g.totale|floatformat:2 }} €</td></tr>
                     {% endfor %}
-                    {% if not costi_gruppi %}
-                    <tr class="ce-voce muted"><td>Nessun costo registrato</td><td>0,00 €</td></tr>
+                    {% if not costi_gruppi_prospetto %}
+                    <tr class="ce-voce muted"><td>Nessun costo classificato</td><td>0,00 €</td></tr>
                     {% endif %}
                     <tr class="ce-tot"><td>Totale costi della produzione (B)</td><td>{{ tot_costi|floatformat:2 }} €</td></tr>
+                    {% if tot_costi_nonclass %}
+                    <tr class="ce-voce muted"><td>(escluso: {{ n_da_classificare }} voci da classificare)</td><td>{{ tot_costi_nonclass|floatformat:2 }} €</td></tr>
+                    {% endif %}
 
                     <!-- DIFFERENZA -->
                     <tr class="ce-diff"><td>DIFFERENZA TRA VALORE E COSTI DELLA PRODUZIONE (A − B)</td>

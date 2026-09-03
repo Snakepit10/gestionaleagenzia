@@ -101,8 +101,10 @@ def _report(dbname, anno, mese):
             else:
                 ricavi_manuali += r.importo
         for c in VoceCosto.objects.using(dbname).filter(conto_economico=conto):
-            tot_costi += c.importo
             key = c.categoria_codice or ''
+            if not key:
+                continue  # i costi da classificare non entrano nel conto economico
+            tot_costi += c.importo
             costi_categoria[key] = costi_categoria.get(key, Decimal('0')) + c.importo
 
     return {
@@ -128,7 +130,11 @@ def conto_economico(request):
     righe = []
     for c in conti:
         tr = c.totale_ricavi()
-        tc = c.totale_costi()
+        # solo costi classificati entrano nei totali/utile
+        tc = (VoceCosto.objects.using(db.user_db)
+              .filter(conto_economico=c, categoria_codice__isnull=False)
+              .exclude(categoria_codice='')
+              .aggregate(t=Sum('importo'))['t'] or Decimal('0'))
         pending = MovimentoBancario.objects.using(db.user_db).filter(
             conto_economico=c, stato='da_classificare').count()
         righe.append({'conto': c, 'mese_nome': MESI_DICT.get(c.mese, c.mese),
@@ -203,13 +209,19 @@ def conto_economico_mese(request, anno, mese):
         else:
             ricavi_manuali.append(r)
 
-    # Costi raggruppati per categoria (le non classificate in un gruppo a parte)
+    # Costi raggruppati per categoria (le non classificate in un gruppo a parte).
+    # Le voci non classificate NON entrano nel conto economico (totali/utile): restano
+    # solo nel pannello di gestione finché non viene assegnata una categoria.
     voci_costo = list(VoceCosto.objects.using(dbname).filter(conto_economico=conto))
     gruppi = {}
-    tot_costi = Decimal('0')
+    tot_costi = Decimal('0')          # solo costi classificati (nel prospetto)
+    tot_costi_nonclass = Decimal('0')  # costi ancora da classificare (fuori dal prospetto)
     for c in voci_costo:
-        tot_costi += c.importo
         key = c.categoria_codice or ''
+        if key:
+            tot_costi += c.importo
+        else:
+            tot_costi_nonclass += c.importo
         gruppi.setdefault(key, {'nome': map_cat.get(key, 'Da classificare') if key else 'Da classificare',
                                 'voci': [], 'totale': Decimal('0')})
         gruppi[key]['voci'].append(c)
@@ -219,8 +231,10 @@ def conto_economico_mese(request, anno, mese):
         [{'codice': k, **v} for k, v in gruppi.items()],
         key=lambda g: (g['codice'] == '', g['nome'].lower())
     )
+    # Solo i gruppi classificati entrano nel prospetto
+    costi_gruppi_prospetto = [g for g in costi_gruppi if g['codice']]
 
-    # Stima imposte (solo categorie deducibili)
+    # Stima imposte (solo categorie deducibili classificate)
     cat_deducibili = {c.codice for c in CategoriaSpesa.objects.using('default').filter(deducibile=True)}
     costi_deducibili = sum((c.importo for c in voci_costo if (c.categoria_codice in cat_deducibili)), Decimal('0'))
     utile = tot_ricavi - tot_costi
@@ -235,7 +249,8 @@ def conto_economico_mese(request, anno, mese):
         'conto': conto, 'anno': anno, 'mese': mese, 'mese_nome': MESI_DICT.get(mese, mese),
         'ricavi_prodotto': ricavi_prodotto, 'ricavi_manuali': ricavi_manuali,
         'tot_ricavi': tot_ricavi,
-        'costi_gruppi': costi_gruppi, 'tot_costi': tot_costi,
+        'costi_gruppi': costi_gruppi, 'costi_gruppi_prospetto': costi_gruppi_prospetto,
+        'tot_costi': tot_costi, 'tot_costi_nonclass': tot_costi_nonclass,
         'utile': utile, 'stima_imposte': stima_imposte, 'utile_netto': utile - stima_imposte,
         'categorie': _categorie_attive(),
         'n_da_classificare': n_da_classificare,
