@@ -28,8 +28,13 @@ from .views import is_manager_or_admin
 MESI_DICT = dict(MESI_CHOICES)
 
 # Causali/righe bancarie da mettere automaticamente tra le "escluse" all'import
-# (non sono né costi né ricavi: es. incassi POS = mera raccolta di cassa).
-CAUSALI_AUTO_ESCLUSE = ['incasso tramite p.o.s']
+# (non sono né costi né ricavi: raccolta di cassa, versamenti, giroconti, rimesse gioco).
+CAUSALI_AUTO_ESCLUSE = [
+    'incasso tramite p.o.s',   # incassi POS
+    'vers. cont. atm',         # versamenti contanti ATM
+    'giroconto',               # giroconti interni
+    'gbo italy',               # rientro settimanale raccolta di gioco (concessionario)
+]
 
 
 def is_superadmin(user):
