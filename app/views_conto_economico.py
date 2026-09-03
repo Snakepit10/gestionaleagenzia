@@ -227,6 +227,64 @@ def apri_mese(request):
     return redirect('conto_economico_mese', anno=anno, mese=mese)
 
 
+@login_required
+@user_passes_test(is_manager_or_admin)
+def riepilogo_annuale(request, anno):
+    """Conto economico dell'intero anno (somma dei mesi) per l'agenzia."""
+    db = DatabaseManager(request.user)
+    dbname = db.user_db
+    map_prod = _mappa_prodotti()
+    map_cat = _mappa_categorie()
+    cat_deducibili = {c.codice for c in CategoriaSpesa.objects.using('default').filter(deducibile=True)}
+
+    conti = list(ContoEconomico.objects.using(dbname).filter(anno=anno))
+    ricavi_prod, costi_cat = {}, {}
+    ricavi_manuali_tot = Decimal('0')
+    tot_ricavi = tot_costi = costi_deducibili = Decimal('0')
+    per_mese = []
+    for c in sorted(conti, key=lambda x: x.mese):
+        r_m = c_m = Decimal('0')
+        for r in VoceRicavo.objects.using(dbname).filter(conto_economico=c):
+            r_m += r.importo
+            if r.prodotto_codice:
+                ricavi_prod[r.prodotto_codice] = ricavi_prod.get(r.prodotto_codice, Decimal('0')) + r.importo
+            else:
+                ricavi_manuali_tot += r.importo
+        for v in VoceCosto.objects.using(dbname).filter(conto_economico=c):
+            if not v.categoria_codice:
+                continue
+            c_m += v.importo
+            costi_cat[v.categoria_codice] = costi_cat.get(v.categoria_codice, Decimal('0')) + v.importo
+            if v.categoria_codice in cat_deducibili:
+                costi_deducibili += v.importo
+        tot_ricavi += r_m
+        tot_costi += c_m
+        per_mese.append({'mese': c.mese, 'mese_nome': MESI_DICT.get(c.mese, c.mese),
+                         'ricavi': r_m, 'costi': c_m, 'utile': r_m - c_m})
+
+    ricavi_gruppi = sorted([{'nome': map_prod.get(k, k), 'importo': v} for k, v in ricavi_prod.items()],
+                           key=lambda x: x['nome'].lower())
+    costi_gruppi = sorted([{'nome': map_cat.get(k, k), 'importo': v} for k, v in costi_cat.items()],
+                          key=lambda x: x['nome'].lower())
+    costi_nondeducibili = tot_costi - costi_deducibili
+    utile = tot_ricavi - tot_costi
+    imponibile = tot_ricavi - costi_deducibili
+    stima_imposte = max(Decimal('0'), (imponibile * Decimal('0.24')).quantize(Decimal('0.01')))
+
+    oggi = timezone.localdate()
+    context = {
+        'anno': anno,
+        'ricavi_gruppi': ricavi_gruppi, 'ricavi_manuali_tot': ricavi_manuali_tot,
+        'costi_gruppi': costi_gruppi,
+        'tot_ricavi': tot_ricavi, 'tot_costi': tot_costi,
+        'costi_nondeducibili': costi_nondeducibili, 'imponibile': imponibile,
+        'utile': utile, 'stima_imposte': stima_imposte, 'utile_netto': utile - stima_imposte,
+        'per_mese': per_mese, 'n_mesi': len(conti),
+        'anni': list(range(oggi.year, oggi.year - 6, -1)),
+    }
+    return render(request, 'app/conto_economico_annuale.html', context)
+
+
 # ---------------------------------------------------------------------------
 # Dettaglio mese (P&L)
 # ---------------------------------------------------------------------------

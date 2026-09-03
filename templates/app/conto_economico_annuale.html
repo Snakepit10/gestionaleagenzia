@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Conto Economico {{ anno }} (annuale){% endblock %}
+
+{% block content %}
+<style>
+    .ce-table { width: 100%; margin-bottom: 0; }
+    .ce-table td { border: 1px solid rgba(255,255,255,.14); padding: .45rem .8rem; vertical-align: middle; }
+    .ce-table td:last-child { text-align: right; white-space: nowrap; width: 190px; font-variant-numeric: tabular-nums; }
+    .ce-table .ce-sez td { background: rgba(255,255,255,.07); font-weight: 700; letter-spacing: .02em; }
+    .ce-table .ce-voce td:first-child { padding-left: 1.8rem; }
+    .ce-table .ce-tot td { background: rgba(255,255,255,.035); font-weight: 700; }
+    .ce-table .ce-diff td { background: rgba(255,255,255,.05); font-weight: 700; }
+    .ce-table .ce-ris td { background: rgba(13,110,253,.16); font-weight: 700; font-size: 1.03rem; }
+    .ce-table .ce-ris.neg td { background: rgba(220,53,69,.18); }
+    .ce-table .text-neg { color: #ff6b6b; }
+    .ce-table .muted td:first-child { color: #9aa4ad; font-style: italic; }
+</style>
+
+<div class="row mb-3 align-items-center">
+    <div class="col">
+        <h1 class="h3 mb-0"><i class="fas fa-calendar-alt me-2"></i>Conto Economico Annuale — {{ anno }}</h1>
+        <small class="text-muted">Somma di {{ n_mesi }} mesi registrati.</small>
+    </div>
+    <div class="col-auto">
+        <form method="get" action="{% url 'riepilogo_annuale' anno %}" class="d-inline">
+            <div class="input-group input-group-sm d-inline-flex" style="width:auto;">
+                <label class="input-group-text">Anno</label>
+                <select class="form-select" onchange="location.href='/conto-economico/anno/'+this.value+'/';">
+                    {% for a in anni %}<option value="{{ a }}" {% if a == anno %}selected{% endif %}>{{ a }}</option>{% endfor %}
+                </select>
+            </div>
+        </form>
+        <a href="{% url 'conto_economico' %}" class="btn btn-outline-secondary ms-2"><i class="fas fa-arrow-left me-1"></i>Mesi</a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-dark text-white text-center"><strong>CONTO ECONOMICO {{ anno }}</strong></div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="ce-table">
+                <tbody>
+                    <tr class="ce-sez"><td>A) VALORE DELLA PRODUZIONE</td><td></td></tr>
+                    {% for g in ricavi_gruppi %}
+                    <tr class="ce-voce"><td>{{ g.nome }}</td><td>{{ g.importo|floatformat:2 }} €</td></tr>
+                    {% endfor %}
+                    {% if ricavi_manuali_tot %}
+                    <tr class="ce-voce"><td>Altri ricavi (voci manuali)</td><td>{{ ricavi_manuali_tot|floatformat:2 }} €</td></tr>
+                    {% endif %}
+                    {% if not ricavi_gruppi and not ricavi_manuali_tot %}
+                    <tr class="ce-voce muted"><td>Nessun ricavo</td><td>0,00 €</td></tr>
+                    {% endif %}
+                    <tr class="ce-tot"><td>Totale valore della produzione (A)</td><td>{{ tot_ricavi|floatformat:2 }} €</td></tr>
+
+                    <tr class="ce-sez"><td>B) COSTI DELLA PRODUZIONE</td><td></td></tr>
+                    {% for g in costi_gruppi %}
+                    <tr class="ce-voce"><td>{{ g.nome }}</td><td>{{ g.importo|floatformat:2 }} €</td></tr>
+                    {% endfor %}
+                    {% if not costi_gruppi %}
+                    <tr class="ce-voce muted"><td>Nessun costo classificato</td><td>0,00 €</td></tr>
+                    {% endif %}
+                    <tr class="ce-tot"><td>Totale costi della produzione (B)</td><td>{{ tot_costi|floatformat:2 }} €</td></tr>
+
+                    <tr class="ce-diff"><td>DIFFERENZA TRA VALORE E COSTI DELLA PRODUZIONE (A − B)</td>
+                        <td class="{% if utile < 0 %}text-neg{% endif %}">{{ utile|floatformat:2 }} €</td></tr>
+
+                    {% if costi_nondeducibili %}
+                    <tr class="ce-voce muted"><td>di cui costi non deducibili (esclusi dall'imponibile)</td><td>{{ costi_nondeducibili|floatformat:2 }} €</td></tr>
+                    {% endif %}
+                    <tr class="ce-voce"><td>Reddito imponibile stimato (ricavi − costi deducibili)</td><td>{{ imponibile|floatformat:2 }} €</td></tr>
+                    <tr class="ce-voce"><td>Imposte sul reddito d'esercizio (stima 24%)</td><td>{{ stima_imposte|floatformat:2 }} €</td></tr>
+                    <tr class="ce-ris {% if utile_netto < 0 %}neg{% endif %}">
+                        <td>UTILE (O PERDITA) DELL'ESERCIZIO</td>
+                        <td class="{% if utile_netto < 0 %}text-neg{% endif %}">{{ utile_netto|floatformat:2 }} €</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Andamento per mese -->
+<div class="card mb-4">
+    <div class="card-header"><i class="fas fa-chart-bar me-2"></i>Andamento mensile</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Mese</th><th class="text-end">Ricavi</th><th class="text-end">Costi</th><th class="text-end">Utile</th><th></th></tr></thead>
+                <tbody>
+                    {% for m in per_mese %}
+                    <tr>
+                        <td>{{ m.mese_nome }}</td>
+                        <td class="text-end text-success">{{ m.ricavi|floatformat:2 }} €</td>
+                        <td class="text-end text-danger">{{ m.costi|floatformat:2 }} €</td>
+                        <td class="text-end fw-bold {% if m.utile < 0 %}text-danger{% else %}text-success{% endif %}">{{ m.utile|floatformat:2 }} €</td>
+                        <td class="text-end"><a href="{% url 'conto_economico_mese' anno m.mese %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">Nessun mese registrato per il {{ anno }}.</td></tr>
+                    {% endfor %}
+                </tbody>
+                {% if per_mese %}
+                <tfoot class="table-light"><tr>
+                    <th>Totale {{ anno }}</th>
+                    <th class="text-end text-success">{{ tot_ricavi|floatformat:2 }} €</th>
+                    <th class="text-end text-danger">{{ tot_costi|floatformat:2 }} €</th>
+                    <th class="text-end {% if utile < 0 %}text-danger{% else %}text-success{% endif %}">{{ utile|floatformat:2 }} €</th>
+                    <th></th>
+                </tr></tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

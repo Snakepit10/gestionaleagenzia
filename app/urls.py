@@ -53,6 +53,7 @@ urlpatterns = [
     # Conto Economico (report mensili ricavi/spese)
     path('conto-economico/', ce.conto_economico, name='conto_economico'),
     path('conto-economico/apri/', ce.apri_mese, name='conto_economico_apri'),
+    path('conto-economico/anno/<int:anno>/', ce.riepilogo_annuale, name='riepilogo_annuale'),
     path('conto-economico/consolidato/', ce.conto_economico_consolidato, name='conto_economico_consolidato'),
     # tassonomia globale (super-admin)
     path('conto-economico/categorie/', ce.categorie_spesa, name='categorie_spesa'),
