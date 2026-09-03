@@ -13,7 +13,8 @@
     .ce-mtx .ce-sez td { background: rgba(255,255,255,.07); font-weight: 700; letter-spacing: .02em; }
     .ce-mtx .ce-voce td:first-child { padding-left: 1.6rem; }
     .ce-mtx .ce-tot td { background: rgba(255,255,255,.05); font-weight: 700; }
-    .ce-mtx .ce-diff td { background: rgba(255,255,255,.06); font-weight: 700; }
+    .ce-mtx .ce-diff td { background: rgba(32,201,151,.20); font-weight: 700; }
+    .ce-mtx .ce-diff .liq { font-weight: 400; font-size: .85em; color: #63e6be; }
     .ce-mtx .ce-ris td { background: rgba(13,110,253,.16); font-weight: 700; }
     .ce-mtx .muted td:first-child { color: #9aa4ad; font-style: italic; }
     /* checkbox multipli in linea (mesi / agenzie) */
@@ -119,7 +120,7 @@
                         <td class="n col-tot">{{ dati.g_cos|floatformat:2 }}</td></tr>
 
                     <!-- DIFFERENZA + IMPOSTE + RISULTATO -->
-                    <tr class="ce-diff"><td>DIFFERENZA (A − B)</td>
+                    <tr class="ce-diff"><td>DIFFERENZA (A − B) <span class="liq">— liquidità generata</span></td>
                         {% for v in dati.diff_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
                         <td class="n col-tot">{{ dati.g_utile|floatformat:2 }}</td></tr>
                     <tr class="ce-voce"><td>Reddito imponibile stimato</td>
