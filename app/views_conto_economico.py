@@ -14,11 +14,11 @@ from django.utils import timezone
 
 from .models import (
     ContoEconomico, VoceRicavo, VoceCosto, MovimentoBancario,
-    ProdottoRicavo, CategoriaSpesa, CategoriaProdotto, Cliente, Movimento, Agenzia,
+    ProdottoRicavo, CategoriaSpesa, CategoriaProdotto, CategoriaCosto, Cliente, Movimento, Agenzia,
 )
 from .database_utils import DatabaseManager, AGENZIA_DATABASE_MAP
 from .forms import (
-    ProdottoRicavoForm, CategoriaSpesaForm, CategoriaProdottoForm, VoceCostoForm,
+    ProdottoRicavoForm, CategoriaSpesaForm, CategoriaProdottoForm, CategoriaCostoForm, VoceCostoForm,
     VoceRicavoManualeForm, UploadEstrattoForm, ConsolidatoForm, MESI_CHOICES,
 )
 from . import estratto_conto
@@ -102,13 +102,15 @@ def _prod_categoria_of():
 
 def _raggruppa_prodotti_per_categoria(items):
     """Raggruppa una lista di prodotti (dict con 'codice', 'nome', 'totale') per categoria
-    prodotto. Ritorna [{'nome', 'prodotti': [...], 'totale'}] ordinati per categoria."""
+    prodotto. Salta prodotti e categorie con totale 0."""
     cats = _categorie_prodotto()
     ordine = {c.codice: i for i, c in enumerate(cats)}
     map_cat = _mappa_cat_prodotto()
     prod_cat = _prod_categoria_of()
     gruppi = {}
     for it in items:
+        if not it.get('totale'):
+            continue
         cc = prod_cat.get(it['codice'], '') or ''
         if cc not in ordine:
             cc = ''
@@ -119,7 +121,44 @@ def _raggruppa_prodotti_per_categoria(items):
         g['totale'] += it.get('totale', Decimal('0'))
     for g in gruppi.values():
         g['prodotti'].sort(key=lambda x: x.get('nome', '').lower())
-    return sorted(gruppi.values(), key=lambda g: (g['ord'], g['nome'].lower()))
+    return [g for g in sorted(gruppi.values(), key=lambda g: (g['ord'], g['nome'].lower())) if g['totale']]
+
+
+def _categorie_costo():
+    return list(CategoriaCosto.objects.using('default').filter(attivo=True).order_by('ordine', 'nome'))
+
+
+def _mappa_cat_costo():
+    return {c.codice: c.nome for c in CategoriaCosto.objects.using('default')}
+
+
+def _spesa_categoria_of():
+    """Mappa codice conto-spesa -> codice macro-categoria costo (vuoto se assente)."""
+    return {c.codice: (c.categoria_costo_codice or '') for c in CategoriaSpesa.objects.using('default')}
+
+
+def _raggruppa_costi_per_categoria(items):
+    """Raggruppa i conti di costo (dict con 'codice', 'nome', 'totale') per macro-categoria
+    costo. Salta conti e macro-categorie con totale 0."""
+    cats = _categorie_costo()
+    ordine = {c.codice: i for i, c in enumerate(cats)}
+    map_cat = _mappa_cat_costo()
+    spesa_cat = _spesa_categoria_of()
+    gruppi = {}
+    for it in items:
+        if not it.get('totale'):
+            continue
+        cc = spesa_cat.get(it['codice'], '') or ''
+        if cc not in ordine:
+            cc = ''
+        g = gruppi.setdefault(cc, {
+            'nome': (map_cat.get(cc) if cc else 'Senza macro-categoria') or 'Senza macro-categoria',
+            'ord': ordine.get(cc, 9999), 'costi': [], 'totale': Decimal('0')})
+        g['costi'].append(it)
+        g['totale'] += it.get('totale', Decimal('0'))
+    for g in gruppi.values():
+        g['costi'].sort(key=lambda x: x.get('nome', '').lower())
+    return [g for g in sorted(gruppi.values(), key=lambda g: (g['ord'], g['nome'].lower())) if g['totale']]
 
 
 def _get_conto(dbname, anno, mese, user=None, crea=False):
@@ -316,8 +355,8 @@ def riepilogo_annuale(request, anno):
 
     ricavi_catgruppi = _raggruppa_prodotti_per_categoria(
         [{'codice': k, 'nome': map_prod.get(k, k), 'totale': v} for k, v in ricavi_prod.items()])
-    costi_gruppi = sorted([{'nome': map_cat.get(k, k), 'importo': v} for k, v in costi_cat.items()],
-                          key=lambda x: x['nome'].lower())
+    costi_catgruppi = _raggruppa_costi_per_categoria(
+        [{'codice': k, 'nome': map_cat.get(k, k), 'totale': v} for k, v in costi_cat.items()])
     costi_nondeducibili = tot_costi - costi_deducibili
     utile = tot_ricavi - tot_costi
     imponibile = tot_ricavi - costi_deducibili
@@ -327,7 +366,7 @@ def riepilogo_annuale(request, anno):
     context = {
         'anno': anno,
         'ricavi_catgruppi': ricavi_catgruppi, 'ricavi_manuali_tot': ricavi_manuali_tot,
-        'costi_gruppi': costi_gruppi,
+        'costi_catgruppi': costi_catgruppi,
         'tot_ricavi': tot_ricavi, 'tot_costi': tot_costi,
         'costi_nondeducibili': costi_nondeducibili, 'imponibile': imponibile,
         'utile': utile, 'stima_imposte': stima_imposte, 'utile_netto': utile - stima_imposte,
@@ -404,8 +443,10 @@ def conto_economico_mese(request, anno, mese):
         [{'codice': k, **v} for k, v in gruppi.items()],
         key=lambda g: (g['codice'] == '', g['nome'].lower())
     )
-    # Solo i gruppi classificati entrano nel prospetto
+    # Solo i gruppi classificati entrano nel prospetto, raggruppati per macro-categoria costo
     costi_gruppi_prospetto = [g for g in costi_gruppi if g['codice']]
+    costi_catgruppi = _raggruppa_costi_per_categoria(
+        [{'codice': g['codice'], 'nome': g['nome'], 'totale': g['totale']} for g in costi_gruppi_prospetto])
 
     # Stima imposte: la base imponibile esclude i costi NON deducibili (che quindi
     # riducono l'utile reale ma non la stima delle imposte).
@@ -425,7 +466,7 @@ def conto_economico_mese(request, anno, mese):
         'conto': conto, 'anno': anno, 'mese': mese, 'mese_nome': MESI_DICT.get(mese, mese),
         'ricavi_catgruppi': ricavi_catgruppi, 'ricavi_manuali': ricavi_manuali,
         'tot_ricavi': tot_ricavi,
-        'costi_gruppi': costi_gruppi, 'costi_gruppi_prospetto': costi_gruppi_prospetto,
+        'costi_gruppi': costi_gruppi, 'costi_catgruppi': costi_catgruppi,
         'tot_costi': tot_costi, 'tot_costi_nonclass': tot_costi_nonclass,
         'costi_nondeducibili': costi_nondeducibili, 'imponibile': imponibile,
         'utile': utile, 'stima_imposte': stima_imposte, 'utile_netto': utile - stima_imposte,
@@ -903,7 +944,29 @@ def conto_economico_consolidato(request):
             g['totale'] += row['totale']
         for g in prod_catgroups.values():
             g['prodotti'].sort(key=lambda x: x['nome'].lower())
-        prod_catlist = sorted(prod_catgroups.values(), key=lambda g: (g['ord'], g['nome'].lower()))
+        prod_catlist = [g for g in sorted(prod_catgroups.values(), key=lambda g: (g['ord'], g['nome'].lower())) if g['totale']]
+
+        # Costi: righe conto raggruppate per macro-categoria costo (subtotale per colonna)
+        spesa_cat = _spesa_categoria_of()
+        catc = _categorie_costo()
+        ordine_cc = {c.codice: i for i, c in enumerate(catc)}
+        map_catc = _mappa_cat_costo()
+        cost_catgroups = {}
+        for code, row in cat_rows.items():
+            cc = spesa_cat.get(code, '') or ''
+            if cc not in ordine_cc:
+                cc = ''
+            g = cost_catgroups.setdefault(cc, {
+                'nome': (map_catc.get(cc) if cc else 'Senza macro-categoria') or 'Senza macro-categoria',
+                'ord': ordine_cc.get(cc, 9999), 'costi': [],
+                'celle': [Decimal('0')] * len(cols), 'totale': Decimal('0')})
+            pcelle = [row['valori'].get(c['db'], Decimal('0')) for c in cols]
+            g['costi'].append({'nome': row['nome'], 'celle': pcelle, 'totale': row['totale']})
+            g['celle'] = [a + b for a, b in zip(g['celle'], pcelle)]
+            g['totale'] += row['totale']
+        for g in cost_catgroups.values():
+            g['costi'].sort(key=lambda x: x['nome'].lower())
+        cost_catlist = [g for g in sorted(cost_catgroups.values(), key=lambda g: (g['ord'], g['nome'].lower())) if g['totale']]
 
         utile_col = {c['db']: tot_ric[c['db']] - tot_cos[c['db']] for c in cols}
         netto_col = {c['db']: utile_col[c['db']] - imposte_col[c['db']] for c in cols}
@@ -922,7 +985,7 @@ def conto_economico_consolidato(request):
         dati = {
             'anno': anno, 'periodo': periodo,
             'cols': cols,
-            'prod_catlist': prod_catlist, 'cat_rows': cat_list,
+            'prod_catlist': prod_catlist, 'cost_catlist': cost_catlist,
             'manuali_celle': celle(manuali), 'g_man': g_man, 'ha_manuali': g_man != 0,
             'totA_celle': celle(tot_ric), 'g_ric': g_ric,
             'totB_celle': celle(tot_cos), 'g_cos': g_cos,
@@ -1104,3 +1167,64 @@ def elimina_categoria_prodotto(request, pk):
         return redirect('categorie_prodotto')
     return render(request, 'app/elimina_tassonomia.html',
                   {'oggetto': obj, 'tipo': 'categoria prodotto', 'annulla_url': 'categorie_prodotto'})
+
+
+# ---------------------------------------------------------------------------
+# CRUD Categorie Costo (macro-categorie dei conti di spesa) — su DB 'default'
+# ---------------------------------------------------------------------------
+
+@login_required
+@user_passes_test(is_superadmin)
+def categorie_costo(request):
+    categorie = CategoriaCosto.objects.using('default').all()
+    conteggi = {}
+    for c in CategoriaSpesa.objects.using('default').all():
+        conteggi[c.categoria_costo_codice or ''] = conteggi.get(c.categoria_costo_codice or '', 0) + 1
+    righe = [{'cat': c, 'n_conti': conteggi.get(c.codice, 0)} for c in categorie]
+    return render(request, 'app/lista_categorie_costo.html',
+                  {'righe': righe, 'senza_categoria': conteggi.get('', 0)})
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def nuova_categoria_costo(request):
+    if request.method == 'POST':
+        form = CategoriaCostoForm(request.POST)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.save(using='default')
+            messages.success(request, f'Categoria costo "{obj.nome}" creata.')
+            return redirect('categorie_costo')
+    else:
+        form = CategoriaCostoForm()
+    return render(request, 'app/form_categoria_costo.html', {'form': form, 'titolo': 'Nuova Categoria Costo'})
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def modifica_categoria_costo(request, pk):
+    obj = get_object_or_404(CategoriaCosto.objects.using('default'), pk=pk)
+    if request.method == 'POST':
+        form = CategoriaCostoForm(request.POST, instance=obj)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.save(using='default')
+            messages.success(request, f'Categoria costo "{obj.nome}" aggiornata.')
+            return redirect('categorie_costo')
+    else:
+        form = CategoriaCostoForm(instance=obj)
+    return render(request, 'app/form_categoria_costo.html',
+                  {'form': form, 'oggetto': obj, 'titolo': f'Modifica: {obj.nome}'})
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def elimina_categoria_costo(request, pk):
+    obj = get_object_or_404(CategoriaCosto.objects.using('default'), pk=pk)
+    if request.method == 'POST':
+        nome = obj.nome
+        obj.delete(using='default')
+        messages.success(request, f'Categoria costo "{nome}" eliminata.')
+        return redirect('categorie_costo')
+    return render(request, 'app/elimina_tassonomia.html',
+                  {'oggetto': obj, 'tipo': 'categoria costo', 'annulla_url': 'categorie_costo'})

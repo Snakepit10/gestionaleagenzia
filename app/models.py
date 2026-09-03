@@ -1705,12 +1705,32 @@ class ProdottoRicavo(models.Model):
         return self.nome
 
 
+class CategoriaCosto(models.Model):
+    """Macro-categoria per organizzare i conti di costo (es. sezioni del piano dei conti:
+    personale, servizi, godimento beni di terzi, oneri diversi...). Tassonomia GLOBALE su
+    database 'default'."""
+    codice = models.SlugField(max_length=40, unique=True)
+    nome = models.CharField(max_length=100)
+    ordine = models.PositiveIntegerField(default=0)
+    attivo = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Categoria Costo"
+        verbose_name_plural = "Categorie Costo"
+        ordering = ['ordine', 'nome']
+
+    def __str__(self):
+        return self.nome
+
+
 class CategoriaSpesa(models.Model):
-    """Categoria di costo per il conto economico. Tassonomia GLOBALE condivisa da tutte
-    le agenzie: vive sul database 'default'."""
+    """Conto di costo per il conto economico (voce del piano dei conti). Tassonomia GLOBALE
+    condivisa da tutte le agenzie: vive sul database 'default'."""
     codice = models.SlugField(max_length=40, unique=True,
                               help_text="Codice stabile usato per aggregare tra agenzie")
     nome = models.CharField(max_length=100)
+    categoria_costo_codice = models.SlugField(max_length=40, blank=True, null=True,
+                                              help_text="Macro-categoria costo (raggruppamento)")
     ordine = models.PositiveIntegerField(default=0)
     attivo = models.BooleanField(default=True)
     deducibile = models.BooleanField(default=True, help_text="Concorre alla stima delle imposte")

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Macro-categorie Costo - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h1 class="h3 mb-0"><i class="fas fa-sitemap me-2"></i>Macro-categorie Costo</h1>
+        <small class="text-muted">Raggruppano i conti di costo (categorie di spesa). Lista condivisa da tutte le agenzie.</small>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'categorie_spesa' %}" class="btn btn-outline-secondary me-2"><i class="fas fa-tags me-1"></i>Conti di costo</a>
+        <a href="{% url 'nuova_categoria_costo' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nuova macro-categoria</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead><tr><th>Nome</th><th>Codice</th><th class="text-center">Ordine</th><th class="text-center">Conti</th><th class="text-center">Attiva</th><th class="text-end">Azioni</th></tr></thead>
+                <tbody>
+                    {% for r in righe %}
+                    <tr>
+                        <td>{{ r.cat.nome }}</td>
+                        <td><code>{{ r.cat.codice }}</code></td>
+                        <td class="text-center">{{ r.cat.ordine }}</td>
+                        <td class="text-center">{{ r.n_conti }}</td>
+                        <td class="text-center">{% if r.cat.attivo %}<span class="badge bg-success">Sì</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                        <td class="text-end">
+                            <a href="{% url 'modifica_categoria_costo' r.cat.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+                            <a href="{% url 'elimina_categoria_costo' r.cat.pk %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nessuna macro-categoria. Creane una per raggruppare i conti di costo.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if senza_categoria %}
+    <div class="card-footer text-muted small">{{ senza_categoria }} conti senza macro-categoria (nel gruppo "Senza macro-categoria").</div>
+    {% endif %}
+</div>
+{% endblock %}

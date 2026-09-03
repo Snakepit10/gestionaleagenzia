@@ -68,21 +68,18 @@
                     {% endif %}
                     <tr class="ce-tot"><td>Totale valore della produzione (A)</td><td>{{ tot_ricavi|floatformat:2 }} €</td></tr>
 
-                    <!-- B) COSTI DELLA PRODUZIONE (solo costi classificati) -->
+                    <!-- B) COSTI DELLA PRODUZIONE (per macro-categoria costo) -->
                     <tr class="ce-sez"><td>B) COSTI DELLA PRODUZIONE</td><td></td></tr>
-                    {% for g in costi_gruppi_prospetto %}
+                    {% for g in costi_catgruppi %}
                     <tr class="ce-voce ce-exp" data-target="cg{{ forloop.counter }}" role="button">
-                        <td><i class="fas fa-chevron-right ce-caret me-1"></i>{{ g.nome }} <span class="text-muted small">· {{ g.voci|length }} voci</span></td>
+                        <td><i class="fas fa-chevron-right ce-caret me-1"></i>{{ g.nome }} <span class="text-muted small">· {{ g.costi|length }}</span></td>
                         <td>{{ g.totale|floatformat:2 }} €</td>
                     </tr>
-                    {% for v in g.voci %}
-                    <tr class="ce-sub cg{{ forloop.parentloop.counter }} d-none">
-                        <td>{{ v.descrizione|default:"(senza descrizione)" }}{% if v.data %} · {{ v.data|date:"d/m/Y" }}{% endif %} <span class="badge bg-light text-dark border">{{ v.get_fonte_display }}</span></td>
-                        <td>{{ v.importo|floatformat:2 }} €</td>
-                    </tr>
+                    {% for cc in g.costi %}
+                    <tr class="ce-sub cg{{ forloop.parentloop.counter }} d-none"><td>{{ cc.nome }}</td><td>{{ cc.totale|floatformat:2 }} €</td></tr>
                     {% endfor %}
                     {% endfor %}
-                    {% if not costi_gruppi_prospetto %}
+                    {% if not costi_catgruppi %}
                     <tr class="ce-voce muted"><td>Nessun costo classificato</td><td>0,00 €</td></tr>
                     {% endif %}
                     <tr class="ce-tot"><td>Totale costi della produzione (B)</td><td>{{ tot_costi|floatformat:2 }} €</td></tr>

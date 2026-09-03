@@ -95,16 +95,23 @@
                         {% for v in dati.totA_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
                         <td class="n col-tot">{{ dati.g_ric|floatformat:2 }}</td></tr>
 
-                    <!-- B) COSTI DELLA PRODUZIONE -->
+                    <!-- B) COSTI DELLA PRODUZIONE (per macro-categoria costo) -->
                     <tr class="ce-sez"><td colspan="{{ dati.n_cols }}">B) COSTI DELLA PRODUZIONE</td></tr>
-                    {% for row in dati.cat_rows %}
-                    <tr class="ce-voce">
-                        <td>{{ row.nome }}</td>
-                        {% for v in row.celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
-                        <td class="n col-tot">{{ row.totale|floatformat:2 }}</td>
+                    {% for g in dati.cost_catlist %}
+                    <tr class="ce-voce ce-exp" data-target="cc{{ forloop.counter }}" role="button">
+                        <td><i class="fas fa-chevron-right ce-caret me-1"></i>{{ g.nome }} <span class="text-muted small">· {{ g.costi|length }}</span></td>
+                        {% for v in g.celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ g.totale|floatformat:2 }}</td>
+                    </tr>
+                    {% for cc in g.costi %}
+                    <tr class="ce-sub cc{{ forloop.parentloop.counter }} d-none">
+                        <td>{{ cc.nome }}</td>
+                        {% for v in cc.celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ cc.totale|floatformat:2 }}</td>
                     </tr>
                     {% endfor %}
-                    {% if not dati.cat_rows %}
+                    {% endfor %}
+                    {% if not dati.cost_catlist %}
                     <tr class="ce-voce muted"><td>Nessun costo classificato</td>{% for c in dati.cols %}<td class="n">0,00</td>{% endfor %}<td class="n col-tot">0,00</td></tr>
                     {% endif %}
                     <tr class="ce-tot"><td>Totale costi della produzione (B)</td>

@@ -65,10 +65,16 @@
                     <tr class="ce-tot"><td>Totale valore della produzione (A)</td><td>{{ tot_ricavi|floatformat:2 }} €</td></tr>
 
                     <tr class="ce-sez"><td>B) COSTI DELLA PRODUZIONE</td><td></td></tr>
-                    {% for g in costi_gruppi %}
-                    <tr class="ce-voce"><td>{{ g.nome }}</td><td>{{ g.importo|floatformat:2 }} €</td></tr>
+                    {% for g in costi_catgruppi %}
+                    <tr class="ce-voce ce-exp" data-target="cg{{ forloop.counter }}" role="button">
+                        <td><i class="fas fa-chevron-right ce-caret me-1"></i>{{ g.nome }} <span class="text-muted small">· {{ g.costi|length }}</span></td>
+                        <td>{{ g.totale|floatformat:2 }} €</td>
+                    </tr>
+                    {% for cc in g.costi %}
+                    <tr class="ce-sub cg{{ forloop.parentloop.counter }} d-none"><td>{{ cc.nome }}</td><td>{{ cc.totale|floatformat:2 }} €</td></tr>
                     {% endfor %}
-                    {% if not costi_gruppi %}
+                    {% endfor %}
+                    {% if not costi_catgruppi %}
                     <tr class="ce-voce muted"><td>Nessun costo classificato</td><td>0,00 €</td></tr>
                     {% endif %}
                     <tr class="ce-tot"><td>Totale costi della produzione (B)</td><td>{{ tot_costi|floatformat:2 }} €</td></tr>

@@ -1,7 +1,7 @@
 from django import forms
 from django.utils import timezone
 from .models import (Cliente, Movimento, DistintaCassa, Comunicazione, ContoFinanziario, BilancioPeriodico,
-                     ProdottoRicavo, CategoriaSpesa, CategoriaProdotto, VoceCosto, Agenzia)
+                     ProdottoRicavo, CategoriaSpesa, CategoriaProdotto, CategoriaCosto, VoceCosto, Agenzia)
 
 
 MESI_CHOICES = [
@@ -357,18 +357,42 @@ class ProdottoRicavoForm(forms.ModelForm):
         return codice
 
 
-class CategoriaSpesaForm(forms.ModelForm):
+class CategoriaCostoForm(forms.ModelForm):
     class Meta:
-        model = CategoriaSpesa
-        fields = ['nome', 'codice', 'ordine', 'deducibile', 'attivo']
-        help_texts = {
-            'codice': 'Lascia vuoto per generarlo automaticamente dal nome.',
-            'deducibile': 'Se attivo, concorre alla stima delle imposte.',
-        }
+        model = CategoriaCosto
+        fields = ['nome', 'codice', 'ordine', 'attivo']
+        help_texts = {'codice': 'Lascia vuoto per generarlo automaticamente dal nome.'}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['codice'].required = False
+
+    def clean_codice(self):
+        from django.utils.text import slugify
+        codice = self.cleaned_data.get('codice') or ''
+        if not codice:
+            codice = slugify(self.cleaned_data.get('nome', ''))
+        return codice
+
+
+class CategoriaSpesaForm(forms.ModelForm):
+    class Meta:
+        model = CategoriaSpesa
+        fields = ['nome', 'codice', 'categoria_costo_codice', 'ordine', 'deducibile', 'attivo']
+        help_texts = {
+            'codice': 'Lascia vuoto per generarlo automaticamente dal nome.',
+            'deducibile': 'Se attivo, concorre alla stima delle imposte.',
+        }
+        labels = {'categoria_costo_codice': 'Macro-categoria costo'}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['codice'].required = False
+        cats = CategoriaCosto.objects.using('default').filter(attivo=True).order_by('ordine', 'nome')
+        self.fields['categoria_costo_codice'] = forms.ChoiceField(
+            choices=[('', '— Senza macro-categoria —')] + [(c.codice, c.nome) for c in cats],
+            required=False, label='Macro-categoria costo',
+            initial=(self.instance.categoria_costo_codice if self.instance and self.instance.pk else ''))
 
     def clean_codice(self):
         from django.utils.text import slugify
