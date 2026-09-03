@@ -6,7 +6,7 @@
 <div class="row mb-4 align-items-center">
     <div class="col">
         <h1 class="h3 mb-0"><i class="fas fa-list-check me-2"></i>Classifica estratto conto — {{ mese_nome }} {{ anno }}</h1>
-        <small class="text-muted">{{ n_pending }} righe ancora da classificare.{% if is_super %} Le percentuali ripartiscono ogni costo tra le agenzie (somma consigliata 100%).{% endif %}</small>
+        <small class="text-muted">{{ n_da }} righe da classificare, {{ n_fatte }} già gestite.{% if is_super %} Le percentuali ripartiscono ogni costo tra le agenzie (somma consigliata 100%).{% endif %}</small>
     </div>
     <div class="col-auto">
         <a href="{% url 'carica_estratto' anno mese %}" class="btn btn-outline-primary me-2"><i class="fas fa-upload me-1"></i>Carica altro CSV</a>
@@ -14,55 +14,57 @@
     </div>
 </div>
 
-{% if righe %}
+{% if n_righe %}
 <form method="post">
     {% csrf_token %}
-    <div class="card">
+
+    <!-- DA CLASSIFICARE -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+            <i class="fas fa-hourglass-half me-2"></i>Da classificare <span class="badge bg-dark ms-1">{{ n_da }}</span>
+        </div>
         <div class="card-body p-0">
+            {% if righe_da %}
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Data</th><th>Descrizione</th><th class="text-end">Importo</th><th style="width:190px;">Categoria</th>
-                            {% if is_super %}{% for a in agenzie %}<th class="text-center" style="width:80px;" title="{{ a.nome }}">{{ a.nome|truncatechars:10 }} %</th>{% endfor %}{% endif %}
-                            <th class="text-center" style="width:90px;">Includi</th>
-                        </tr>
-                    </thead>
+                    <thead>{% include 'app/_thead_estratto.html' %}</thead>
                     <tbody>
-                        {% for r in righe %}
-                        <tr class="{% if r.stato == 'ignorato' %}table-secondary{% elif r.stato == 'classificato' %}table-success{% endif %}">
-                            <td>{% if r.data %}{{ r.data|date:"d/m/Y" }}{% else %}—{% endif %}</td>
-                            <td class="small">{{ r.descrizione }}</td>
-                            <td class="text-end text-danger">{{ r.importo|floatformat:2 }} €</td>
-                            <td>
-                                <select name="cat_{{ r.pk }}" class="form-select form-select-sm">
-                                    <option value="">— Da classificare —</option>
-                                    {% for c in categorie %}
-                                    <option value="{{ c.codice }}" {% if c.codice == r.categoria_codice %}selected{% endif %}>{{ c.nome }}</option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-                            {% if is_super %}{% for cell in r.alloc_cells %}
-                            <td><input type="text" inputmode="decimal" name="perc_{{ r.pk }}_{{ cell.db }}" value="{{ cell.perc }}"
-                                       class="form-control form-control-sm text-end perc-input" data-row="{{ r.pk }}" placeholder="0" style="min-width:60px;"></td>
-                            {% endfor %}{% endif %}
-                            <td class="text-center">
-                                <div class="form-check form-switch d-inline-block">
-                                    <input type="hidden" name="stato_{{ r.pk }}" value="ignora">
-                                    <input class="form-check-input" type="checkbox" name="stato_{{ r.pk }}" value="includi"
-                                           {% if r.stato != 'ignorato' %}checked{% endif %}>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
+                        {% for r in righe_da %}{% include 'app/_riga_estratto.html' %}{% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <div class="p-4 text-center text-success"><i class="fas fa-check-circle me-1"></i>Nessuna riga da classificare: tutte gestite.</div>
+            {% endif %}
         </div>
-        <div class="card-footer d-flex justify-content-between align-items-center">
-            <span class="text-muted small">Deseleziona "Includi" per ignorare una riga (non entrerà nei costi).</span>
-            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Salva classificazione</button>
+    </div>
+
+    <!-- GIÀ GESTITE (classificate / ignorate) -->
+    {% if righe_fatte %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center" role="button"
+             data-bs-toggle="collapse" data-bs-target="#giaGestite">
+            <span><i class="fas fa-check me-2"></i>Già gestite <span class="badge bg-secondary ms-1">{{ n_fatte }}</span></span>
+            <i class="fas fa-chevron-down"></i>
         </div>
+        <div class="collapse" id="giaGestite">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>{% include 'app/_thead_estratto.html' %}</thead>
+                        <tbody>
+                            {% for r in righe_fatte %}{% include 'app/_riga_estratto.html' %}{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <span class="text-muted small">Deseleziona "Includi" per ignorare una riga (non entrerà nei costi).</span>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Salva classificazione</button>
     </div>
 </form>
 {% else %}

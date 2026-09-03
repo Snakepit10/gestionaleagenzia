@@ -638,10 +638,14 @@ def classifica_estratto(request, anno, mese):
         elif dbname in perc_map:
             perc_map[dbname] = '100'
         r.alloc_cells = [{'db': a['db'], 'nome': a['nome'], 'perc': perc_map.get(a['db'], '')} for a in agenzie]
+    righe_da = [r for r in righe if r.stato == 'da_classificare']
+    righe_fatte = [r for r in righe if r.stato != 'da_classificare']
     context = {
         'conto': conto, 'anno': anno, 'mese': mese, 'mese_nome': MESI_DICT.get(mese, mese),
-        'righe': righe, 'categorie': _categorie_attive(),
-        'n_pending': sum(1 for r in righe if r.stato == 'da_classificare'),
+        'righe_da': righe_da, 'righe_fatte': righe_fatte,
+        'n_da': len(righe_da), 'n_fatte': len(righe_fatte), 'n_righe': len(righe),
+        'categorie': _categorie_attive(),
+        'n_pending': len(righe_da),
         'agenzie': agenzie, 'is_super': is_super,
     }
     return render(request, 'app/classifica_estratto.html', context)
