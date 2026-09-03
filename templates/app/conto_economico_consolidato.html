@@ -16,6 +16,11 @@
     .ce-mtx .ce-diff td { background: rgba(255,255,255,.06); font-weight: 700; }
     .ce-mtx .ce-ris td { background: rgba(13,110,253,.16); font-weight: 700; }
     .ce-mtx .muted td:first-child { color: #9aa4ad; font-style: italic; }
+    /* checkbox multipli in linea (mesi / agenzie) */
+    .inline-check div, .inline-check li { display: inline-block; margin: 0 1rem .2rem 0; }
+    .inline-check ul { list-style: none; padding-left: 0; margin-bottom: 0; }
+    .inline-check label { white-space: nowrap; font-weight: 400; }
+    .inline-check input { margin-right: .3rem; }
 </style>
 
 <div class="row mb-4 align-items-center">
@@ -28,10 +33,13 @@
     <div class="card-body">
         <form method="get" class="row g-3 align-items-start">
             <div class="col-auto">{{ form.anno|as_crispy_field }}</div>
-            <div class="col-auto">{{ form.mese|as_crispy_field }}</div>
-            <div class="col">
+            <div class="col-12 col-lg">
+                <label class="form-label">Mesi</label>
+                <div class="inline-check">{{ form.mesi }}</div>
+            </div>
+            <div class="col-12">
                 <label class="form-label">{{ form.agenzie.label }}</label>
-                <div>{{ form.agenzie }}</div>
+                <div class="inline-check">{{ form.agenzie }}</div>
             </div>
             <div class="col-12">
                 <button type="submit" class="btn btn-primary"><i class="fas fa-table me-1"></i>Genera consolidato</button>
@@ -42,7 +50,7 @@
 
 {% if dati %}
 <div class="card mb-4">
-    <div class="card-header bg-dark text-white text-center"><strong>CONTO ECONOMICO CONSOLIDATO</strong> — {{ dati.mese_nome }} {{ dati.anno }}</div>
+    <div class="card-header bg-dark text-white text-center"><strong>CONTO ECONOMICO CONSOLIDATO</strong> — {{ dati.periodo }} {{ dati.anno }}</div>
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="ce-mtx">

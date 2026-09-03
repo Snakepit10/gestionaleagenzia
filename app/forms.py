@@ -394,11 +394,11 @@ class UploadEstrattoForm(forms.Form):
 
 
 class ConsolidatoForm(forms.Form):
-    """Selezione mese + agenzie per la vista consolidata (super-admin)."""
+    """Selezione anno + mesi + agenzie per la vista consolidata (super-admin)."""
     anno = forms.IntegerField(min_value=2000, max_value=2100,
                               widget=forms.NumberInput(attrs={'class': 'form-control'}))
-    mese = forms.ChoiceField(choices=MESI_CHOICES,
-                             widget=forms.Select(attrs={'class': 'form-select'}))
+    mesi = forms.MultipleChoiceField(
+        choices=MESI_CHOICES, widget=forms.CheckboxSelectMultiple, label='Mesi')
     agenzie = forms.ModelMultipleChoiceField(
         queryset=Agenzia.objects.using('default').filter(attiva=True).order_by('nome'),
         widget=forms.CheckboxSelectMultiple,

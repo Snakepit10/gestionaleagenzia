@@ -771,12 +771,12 @@ def classifica_estratto(request, anno, mese):
 @user_passes_test(is_superadmin)
 def conto_economico_consolidato(request):
     oggi = timezone.localdate()
-    form = ConsolidatoForm(request.GET or None, initial={'anno': oggi.year, 'mese': oggi.month})
+    form = ConsolidatoForm(request.GET or None, initial={'anno': oggi.year, 'mesi': [oggi.month]})
     dati = None
 
     if request.GET.get('anno') and form.is_valid():
         anno = form.cleaned_data['anno']
-        mese = int(form.cleaned_data['mese'])
+        mesi = sorted(int(m) for m in form.cleaned_data['mesi'])
         agenzie_sel = form.cleaned_data['agenzie']
         map_prod = _mappa_prodotti()
         map_cat = _mappa_categorie()
@@ -793,9 +793,10 @@ def conto_economico_consolidato(request):
             if not dbn:
                 continue
             cols.append({'db': dbn, 'nome': ag.nome})
-            conto = ContoEconomico.objects.using(dbn).filter(anno=anno, mese=mese).first()
             tr = tc = ded = man = Decimal('0')
-            if conto:
+            # somma su tutti i mesi selezionati
+            conti = ContoEconomico.objects.using(dbn).filter(anno=anno, mese__in=mesi)
+            for conto in conti:
                 for r in VoceRicavo.objects.using(dbn).filter(conto_economico=conto):
                     tr += r.importo
                     if r.prodotto_codice:
@@ -836,8 +837,15 @@ def conto_economico_consolidato(request):
         g_man = sum(manuali.values(), Decimal('0'))
         g_imposte = sum(imposte_col.values(), Decimal('0'))
 
+        if len(mesi) == 12:
+            periodo = 'Anno intero'
+        elif len(mesi) == 1:
+            periodo = MESI_DICT.get(mesi[0], mesi[0])
+        else:
+            periodo = ', '.join(MESI_DICT.get(m, str(m)) for m in mesi)
+
         dati = {
-            'anno': anno, 'mese': mese, 'mese_nome': MESI_DICT.get(mese, mese),
+            'anno': anno, 'periodo': periodo,
             'cols': cols,
             'prod_rows': prod_list, 'cat_rows': cat_list,
             'manuali_celle': celle(manuali), 'g_man': g_man, 'ha_manuali': g_man != 0,
