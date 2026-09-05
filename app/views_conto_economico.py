@@ -22,7 +22,7 @@ from .forms import (
     VoceRicavoManualeForm, UploadEstrattoForm, ConsolidatoForm, MESI_CHOICES,
 )
 from . import estratto_conto
-from .views import is_manager_or_admin
+from .views import is_manager_or_admin  # noqa: F401 (mantenuto per compat)
 
 
 MESI_DICT = dict(MESI_CHOICES)
@@ -280,7 +280,7 @@ def _rigenera_voci_da_riga(src_db, mb, anno, mese, allocazioni, user):
 # ---------------------------------------------------------------------------
 
 @login_required
-@user_passes_test(is_manager_or_admin)
+@user_passes_test(is_superadmin)
 def conto_economico(request):
     db = DatabaseManager(request.user)
     conti = ContoEconomico.objects.using(db.user_db).all()
@@ -310,7 +310,7 @@ def conto_economico(request):
 
 
 @login_required
-@user_passes_test(is_manager_or_admin)
+@user_passes_test(is_superadmin)
 def apri_mese(request):
     """Redirect verso il mese scelto nel form della lista (crea il contenitore)."""
     try:
@@ -328,7 +328,7 @@ def apri_mese(request):
 
 
 @login_required
-@user_passes_test(is_manager_or_admin)
+@user_passes_test(is_superadmin)
 def riepilogo_annuale(request, anno):
     """Conto economico dell'intero anno (somma dei mesi) per l'agenzia."""
     db = DatabaseManager(request.user)
@@ -390,7 +390,7 @@ def riepilogo_annuale(request, anno):
 # ---------------------------------------------------------------------------
 
 @login_required
-@user_passes_test(is_manager_or_admin)
+@user_passes_test(is_superadmin)
 def conto_economico_mese(request, anno, mese):
     db = DatabaseManager(request.user)
     dbname = db.user_db
@@ -494,7 +494,7 @@ def conto_economico_mese(request, anno, mese):
 # ---------------------------------------------------------------------------
 
 @login_required
-@user_passes_test(is_manager_or_admin)
+@user_passes_test(is_superadmin)
 def conto_economico_ricavi(request, anno, mese):
     db = DatabaseManager(request.user)
     dbname = db.user_db
@@ -546,7 +546,7 @@ def conto_economico_ricavi(request, anno, mese):
 
 
 @login_required
-@user_passes_test(is_manager_or_admin)
+@user_passes_test(is_superadmin)
 def nuova_voce_ricavo(request, anno, mese):
     db = DatabaseManager(request.user)
     dbname = db.user_db
@@ -563,7 +563,7 @@ def nuova_voce_ricavo(request, anno, mese):
 
 
 @login_required
-@user_passes_test(is_manager_or_admin)
+@user_passes_test(is_superadmin)
 def elimina_voce_ricavo(request, anno, mese, pk):
     db = DatabaseManager(request.user)
     dbname = db.user_db
@@ -579,7 +579,7 @@ def elimina_voce_ricavo(request, anno, mese, pk):
 # ---------------------------------------------------------------------------
 
 @login_required
-@user_passes_test(is_manager_or_admin)
+@user_passes_test(is_superadmin)
 def nuova_voce_costo(request, anno, mese):
     db = DatabaseManager(request.user)
     dbname = db.user_db
@@ -601,7 +601,7 @@ def nuova_voce_costo(request, anno, mese):
 
 
 @login_required
-@user_passes_test(is_manager_or_admin)
+@user_passes_test(is_superadmin)
 def elimina_voce_costo(request, anno, mese, pk):
     db = DatabaseManager(request.user)
     dbname = db.user_db
@@ -623,7 +623,7 @@ def elimina_voce_costo(request, anno, mese, pk):
 # ---------------------------------------------------------------------------
 
 @login_required
-@user_passes_test(is_manager_or_admin)
+@user_passes_test(is_superadmin)
 def importa_conto_spese(request, anno, mese):
     db = DatabaseManager(request.user)
     dbname = db.user_db
@@ -674,7 +674,7 @@ def importa_conto_spese(request, anno, mese):
 # ---------------------------------------------------------------------------
 
 @login_required
-@user_passes_test(is_manager_or_admin)
+@user_passes_test(is_superadmin)
 def carica_estratto(request, anno, mese):
     db = DatabaseManager(request.user)
     dbname = db.user_db
@@ -752,7 +752,7 @@ def carica_estratto(request, anno, mese):
 
 
 @login_required
-@user_passes_test(is_manager_or_admin)
+@user_passes_test(is_superadmin)
 def classifica_estratto(request, anno, mese):
     db = DatabaseManager(request.user)
     dbname = db.user_db
