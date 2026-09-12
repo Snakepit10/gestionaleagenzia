@@ -115,6 +115,10 @@ class Cliente(MultiDatabaseMixin, models.Model):
         default=False,
         help_text="Conto di servizio (POS, spese, aggiustamenti cassa): escluso dai totali crediti clienti"
     )
+    nascosto = models.BooleanField(
+        default=False,
+        help_text="Nascondi dalla lista clienti: gli operatori non lo vedono più (gestibile da Django admin)"
+    )
     note = models.TextField(blank=True, null=True)
     data_creazione = models.DateTimeField(auto_now_add=True)
     data_modifica = models.DateTimeField(auto_now=True)

@@ -456,6 +456,12 @@ def lista_clienti(request):
     # nessun ricalcolo per-richiesta (causava query O(N) su DB remoto).
     clienti = db.get_queryset(Cliente)
 
+    # I clienti contrassegnati come "nascosti" (da Django admin) non sono visibili
+    # agli operatori; manager/amministratori continuano a vederli (con indicazione).
+    is_manager = is_manager_or_admin(request.user)
+    if not is_manager:
+        clienti = clienti.filter(nascosto=False)
+
     # Filtraggio clienti
     filtro_nome = request.GET.get('nome', '')
     if filtro_nome:
@@ -478,8 +484,9 @@ def lista_clienti(request):
         'filtro_nome': filtro_nome,
         'filtro_rating': filtro_rating,
         'rating_choices': Cliente.RATING_CHOICES,
+        'is_manager': is_manager,
     }
-    
+
     return render(request, 'app/lista_clienti.html', context)
 
 @login_required

@@ -51,16 +51,18 @@ class DatabaseSelectorMixin:
 
 @admin.register(Cliente)
 class ClienteAdmin(DatabaseSelectorMixin, admin.ModelAdmin):
-    list_display = ('cognome', 'nome', 'saldo', 'fido_massimo', 'rating', 'telefono', 'notifica_movimenti', 'conto_servizio')
-    list_filter = ('rating', 'notifica_movimenti', 'conto_servizio')
+    list_display = ('cognome', 'nome', 'saldo', 'fido_massimo', 'rating', 'telefono', 'notifica_movimenti', 'conto_servizio', 'nascosto')
+    list_filter = ('rating', 'notifica_movimenti', 'conto_servizio', 'nascosto')
+    list_editable = ('nascosto',)
     search_fields = ('cognome', 'nome', 'email', 'telefono')
     fieldsets = (
         ('Informazioni Personali', {
             'fields': ('nome', 'cognome', 'email', 'telefono')
         }),
         ('Dati Contabili', {
-            'fields': ('saldo', 'fido_massimo', 'rating', 'conto_servizio'),
-            'description': 'Conto di servizio: POS, spese, aggiustamenti cassa. Escluso dai totali crediti clienti.'
+            'fields': ('saldo', 'fido_massimo', 'rating', 'conto_servizio', 'nascosto'),
+            'description': 'Conto di servizio: POS, spese, aggiustamenti cassa. Escluso dai totali crediti clienti. '
+                           'Nascosto: il cliente non compare più nella lista clienti agli operatori.'
         }),
         ('Notifiche', {
             'fields': ('notifica_movimenti',),
