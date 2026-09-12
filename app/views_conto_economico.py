@@ -37,8 +37,13 @@ CAUSALI_AUTO_ESCLUSE = [
 ]
 
 
+# Nome del gruppo che abilita l'accesso al Conto Economico (oltre ai super-user).
+CONTO_ECONOMICO_GROUP = 'Conto Economico'
+
+
 def is_superadmin(user):
-    return user.is_superuser
+    # Accesso al Conto Economico: super-user OPPURE membri del gruppo "Conto Economico".
+    return bool(user.is_superuser or user.groups.filter(name=CONTO_ECONOMICO_GROUP).exists())
 
 
 # ---------------------------------------------------------------------------
@@ -304,7 +309,7 @@ def conto_economico(request):
         'anno_corrente': oggi.year,
         'mese_corrente': oggi.month,
         'anni': list(range(oggi.year, oggi.year - 6, -1)),
-        'is_superadmin': request.user.is_superuser,
+        'is_superadmin': is_superadmin(request.user),
     }
     return render(request, 'app/conto_economico_lista.html', context)
 

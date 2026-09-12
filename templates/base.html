@@ -161,7 +161,7 @@
                         </a>
                     </li>
                     {% endif %}
-                    {% if user.is_superuser %}
+                    {% if user.is_superuser or 'Conto Economico' in user.groups.all|join:"|" %}
                     <li class="nav-item">
                         <a class="nav-link {% if '/conto-economico/' in request.path %}active{% endif %}" href="{% url 'conto_economico' %}">
                             <i class="fas fa-file-invoice-dollar me-1"></i>Conto Economico
