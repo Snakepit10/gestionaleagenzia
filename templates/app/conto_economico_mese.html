@@ -22,6 +22,8 @@
     .ce-table .ce-exp.open .ce-caret { transform: rotate(90deg); }
     .ce-table .ce-sub td { background: rgba(255,255,255,.02); }
     .ce-table .ce-sub td:first-child { padding-left: 2.8rem; color: #aeb6bd; font-size: .9em; font-weight: 400; }
+    .ce-table .ce-sub2 td { background: rgba(255,255,255,.012); }
+    .ce-table .ce-sub2 td:first-child { padding-left: 4rem; color: #9aa4ad; font-size: .85em; font-weight: 400; }
 </style>
 
 <div class="row mb-3 align-items-center">
@@ -77,7 +79,16 @@
                         <td>{{ g.totale|floatformat:2 }} €</td>
                     </tr>
                     {% for cc in g.costi %}
-                    <tr class="ce-sub cg{{ forloop.parentloop.counter }} d-none"><td>{{ cc.nome }}</td><td>{{ cc.totale|floatformat:2 }} €</td></tr>
+                    <tr class="ce-sub cg{{ forloop.parentloop.counter }} ce-exp d-none" data-target="cv{{ forloop.parentloop.counter }}_{{ forloop.counter }}" role="button">
+                        <td><i class="fas fa-chevron-right ce-caret me-1"></i>{{ cc.nome }} <span class="text-muted small">· {{ cc.voci|length }} mov.</span></td>
+                        <td>{{ cc.totale|floatformat:2 }} €</td>
+                    </tr>
+                    {% for v in cc.voci %}
+                    <tr class="ce-sub2 cv{{ forloop.parentloop.parentloop.counter }}_{{ forloop.parentloop.counter }} d-none">
+                        <td>{{ v.descrizione|default:"(senza descrizione)" }}{% if v.data %} · {{ v.data|date:"d/m/Y" }}{% endif %} <span class="badge bg-light text-dark border">{{ v.get_fonte_display }}</span></td>
+                        <td>{{ v.importo|floatformat:2 }} €</td>
+                    </tr>
+                    {% endfor %}
                     {% endfor %}
                     {% endfor %}
                     {% if not costi_catgruppi %}
@@ -209,12 +220,27 @@
 
 {% block extra_js %}
 <script>
-    // Espandi/comprimi le righe di categoria del prospetto per mostrare le singole voci.
+    // Espandi/comprimi (fino a 3 livelli: categoria -> conto -> movimento).
+    // Alla chiusura di un livello si richiudono anche i sotto-livelli aperti.
+    function collassaDiscendenti(row) {
+        var t = row.dataset.target;
+        if (!t) return;
+        row.classList.remove('open');
+        document.querySelectorAll('tr.' + t).forEach(function (sr) {
+            sr.classList.add('d-none');
+            if (sr.classList.contains('ce-exp')) collassaDiscendenti(sr);
+        });
+    }
     document.querySelectorAll('.ce-exp').forEach(function (row) {
         row.addEventListener('click', function () {
             var open = row.classList.toggle('open');
             document.querySelectorAll('tr.' + row.dataset.target).forEach(function (sr) {
-                sr.classList.toggle('d-none', !open);
+                if (open) {
+                    sr.classList.remove('d-none');
+                } else {
+                    sr.classList.add('d-none');
+                    if (sr.classList.contains('ce-exp')) collassaDiscendenti(sr);
+                }
             });
         });
     });

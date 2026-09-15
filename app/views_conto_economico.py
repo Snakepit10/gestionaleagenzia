@@ -4,6 +4,7 @@ Conto Economico: report mensili ricavi/spese, per singola agenzia + vista consol
 Tassonomia (ProdottoRicavo / CategoriaSpesa) globale sul DB 'default'.
 Dati finanziari (ContoEconomico / VoceRicavo / VoceCosto / MovimentoBancario) per-agenzia.
 """
+from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -344,6 +345,7 @@ def riepilogo_annuale(request, anno):
 
     conti = list(ContoEconomico.objects.using(dbname).filter(anno=anno))
     ricavi_prod, costi_cat = {}, {}
+    costi_voci = {}   # codice conto -> lista movimenti (VoceCosto) dell'anno
     ricavi_manuali_tot = Decimal('0')
     tot_ricavi = tot_costi = costi_deducibili = Decimal('0')
     per_mese = []
@@ -360,6 +362,7 @@ def riepilogo_annuale(request, anno):
                 continue
             c_m += v.importo
             costi_cat[v.categoria_codice] = costi_cat.get(v.categoria_codice, Decimal('0')) + v.importo
+            costi_voci.setdefault(v.categoria_codice, []).append(v)
             if v.categoria_codice in cat_deducibili:
                 costi_deducibili += v.importo
         tot_ricavi += r_m
@@ -370,7 +373,9 @@ def riepilogo_annuale(request, anno):
     ricavi_catgruppi = _raggruppa_prodotti_per_categoria(
         [{'codice': k, 'nome': map_prod.get(k, k), 'totale': v} for k, v in ricavi_prod.items()])
     costi_catgruppi = _raggruppa_costi_per_categoria(
-        [{'codice': k, 'nome': map_cat.get(k, k), 'totale': v} for k, v in costi_cat.items()])
+        [{'codice': k, 'nome': map_cat.get(k, k), 'totale': v,
+          'voci': sorted(costi_voci.get(k, []), key=lambda x: (x.data or date.min))}
+         for k, v in costi_cat.items()])
     costi_nondeducibili = tot_costi - costi_deducibili
     utile = tot_ricavi - tot_costi
     imponibile = tot_ricavi - costi_deducibili
@@ -460,7 +465,8 @@ def conto_economico_mese(request, anno, mese):
     # Solo i gruppi classificati entrano nel prospetto, raggruppati per macro-categoria costo
     costi_gruppi_prospetto = [g for g in costi_gruppi if g['codice']]
     costi_catgruppi = _raggruppa_costi_per_categoria(
-        [{'codice': g['codice'], 'nome': g['nome'], 'totale': g['totale']} for g in costi_gruppi_prospetto])
+        [{'codice': g['codice'], 'nome': g['nome'], 'totale': g['totale'], 'voci': g['voci']}
+         for g in costi_gruppi_prospetto])
 
     # Stima imposte: la base imponibile esclude i costi NON deducibili (che quindi
     # riducono l'utile reale ma non la stima delle imposte).
