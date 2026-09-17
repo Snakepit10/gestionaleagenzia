@@ -119,6 +119,16 @@ class Cliente(MultiDatabaseMixin, models.Model):
         default=False,
         help_text="Nascondi dalla lista clienti: gli operatori non lo vedono più (gestibile da Django admin)"
     )
+    conto_giroconto = models.BooleanField(
+        default=False,
+        help_text="Conto di giroconto inter-agenzia: un movimento su questo conto genera una richiesta da accettare presso l'agenzia partner (gestibile da Django admin)"
+    )
+    giroconto_agenzia = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Nome dell'agenzia partner per il giroconto (es. 'Better'). Il movimento verrà registrato anche in quell'agenzia con segno opposto dopo l'accettazione."
+    )
     note = models.TextField(blank=True, null=True)
     data_creazione = models.DateTimeField(auto_now_add=True)
     data_modifica = models.DateTimeField(auto_now=True)
@@ -1869,5 +1879,60 @@ class MovimentoBancario(MultiDatabaseMixin, models.Model):
 
     def __str__(self):
         return f"{self.data} {self.descrizione[:30]} {self.importo} €"
+
+
+class RichiestaGiroconto(models.Model):
+    """
+    Richiesta di giroconto inter-agenzia. Vive sul DB condiviso `default` (come SaldoEsterno),
+    perché coinvolge due agenzie i cui dati stanno su database separati.
+
+    L'agenzia d'origine registra un movimento su un conto giroconto: parte una richiesta
+    'in_attesa'. Solo all'accettazione da parte dell'agenzia di destinazione vengono creati
+    contemporaneamente il movimento nell'agenzia d'origine e il contro-movimento (segno opposto)
+    in quella di destinazione.
+    """
+    STATO_CHOICES = [
+        ('in_attesa', 'In attesa'),
+        ('accettato', 'Accettato'),
+        ('rifiutato', 'Rifiutato'),
+        ('annullato', 'Annullato'),
+    ]
+
+    agenzia_origine = models.ForeignKey(
+        Agenzia, on_delete=models.CASCADE, related_name='giroconti_inviati')
+    agenzia_destinazione = models.ForeignKey(
+        Agenzia, on_delete=models.CASCADE, related_name='giroconti_ricevuti')
+    operatore_origine = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name='giroconti_creati')
+
+    # Riferimenti nel DB dell'agenzia d'origine (no FK cross-DB)
+    conto_origine_id = models.IntegerField(help_text="pk del Cliente (conto giroconto) nel DB origine")
+    conto_origine_nome = models.CharField(max_length=200, blank=True, default='')
+    distinta_origine_id = models.IntegerField(help_text="pk della DistintaCassa aperta d'origine, catturata alla creazione")
+
+    tipo = models.CharField(max_length=20, choices=Movimento.TIPO_CHOICES)
+    importo = models.DecimalField(max_digits=10, decimal_places=2)
+    note = models.TextField(blank=True, default='')
+
+    stato = models.CharField(max_length=12, choices=STATO_CHOICES, default='in_attesa')
+    data_creazione = models.DateTimeField(auto_now_add=True)
+
+    operatore_risposta = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='giroconti_risposti')
+    data_risposta = models.DateTimeField(null=True, blank=True)
+    note_risposta = models.TextField(blank=True, default='')
+
+    # Popolati all'accettazione (riferimenti nei rispettivi DB agenzia, no FK cross-DB)
+    movimento_origine_id = models.IntegerField(null=True, blank=True)
+    movimento_dest_id = models.IntegerField(null=True, blank=True)
+    conto_dest_id = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Richiesta di Giroconto"
+        verbose_name_plural = "Richieste di Giroconto"
+        ordering = ['-data_creazione']
+
+    def __str__(self):
+        return f"Giroconto {self.agenzia_origine} → {self.agenzia_destinazione}: {self.importo} € ({self.get_stato_display()})"
 
         return riepiloghi_creati

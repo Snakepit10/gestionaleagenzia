@@ -46,6 +46,12 @@ urlpatterns = [
     path('riepilogo-crediti/', views.riepilogo_crediti, name='riepilogo_crediti'),
     path('saldi-esterni/', views.estrazione_saldi, name='estrazione_saldi'),
     path('conti-servizio/azzeramento/', views.azzeramento_conti_servizio, name='azzeramento_conti_servizio'),
+
+    # Giroconti inter-agenzia
+    path('giroconto/richieste/', views.richieste_giroconto, name='richieste_giroconto'),
+    path('giroconto/<int:pk>/accetta/', views.accetta_giroconto, name='accetta_giroconto'),
+    path('giroconto/<int:pk>/rifiuta/', views.rifiuta_giroconto, name='rifiuta_giroconto'),
+    path('giroconto/<int:pk>/annulla/', views.annulla_giroconto, name='annulla_giroconto'),
     path('api/cast/giorni/', views.api_giorni_mancanti, name='api_giorni_mancanti'),
     path('api/cast/saldi/', views.api_ricevi_saldi, name='api_ricevi_saldi'),
     path('api/saldo-esterno/salva/', views.salva_valore_esterno, name='salva_valore_esterno'),

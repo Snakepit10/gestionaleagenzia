@@ -88,3 +88,22 @@ def branding(request):
                 brand['logo_html'] = _wm('<span class="wm">%s</span>' % agenzia.nome)
     brand['accento_rgb'] = _hex_rgb(brand.get('accento'))
     return {'brand': brand}
+
+
+def giroconto(request):
+    """Espone il numero di richieste di giroconto in attesa per l'agenzia dell'utente,
+    per mostrare un banner di notifica in cima a tutte le pagine."""
+    count = 0
+    user = getattr(request, 'user', None)
+    if user is not None and user.is_authenticated:
+        try:
+            from .models import Agenzia, RichiestaGiroconto
+            from .database_utils import get_user_database
+            agenzia = Agenzia.objects.using('default').filter(
+                database_name=get_user_database(user)).first()
+            if agenzia:
+                count = RichiestaGiroconto.objects.using('default').filter(
+                    agenzia_destinazione=agenzia, stato='in_attesa').count()
+        except Exception:
+            count = 0
+    return {'giroconto_pending_count': count}

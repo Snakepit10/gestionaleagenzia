@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.html import format_html
-from .models import Cliente, Movimento, DistintaCassa, Comunicazione, Agenzia, ProfiloUtente, SaldoEsterno, AzzeramentoProgrammato
+from .models import Cliente, Movimento, DistintaCassa, Comunicazione, Agenzia, ProfiloUtente, SaldoEsterno, AzzeramentoProgrammato, RichiestaGiroconto
 from .database_utils import AGENZIA_DATABASE_MAP
 
 
@@ -51,8 +51,8 @@ class DatabaseSelectorMixin:
 
 @admin.register(Cliente)
 class ClienteAdmin(DatabaseSelectorMixin, admin.ModelAdmin):
-    list_display = ('cognome', 'nome', 'saldo', 'fido_massimo', 'rating', 'telefono', 'notifica_movimenti', 'conto_servizio', 'nascosto')
-    list_filter = ('rating', 'notifica_movimenti', 'conto_servizio', 'nascosto')
+    list_display = ('cognome', 'nome', 'saldo', 'fido_massimo', 'rating', 'telefono', 'notifica_movimenti', 'conto_servizio', 'nascosto', 'conto_giroconto', 'giroconto_agenzia')
+    list_filter = ('rating', 'notifica_movimenti', 'conto_servizio', 'nascosto', 'conto_giroconto')
     list_editable = ('nascosto',)
     search_fields = ('cognome', 'nome', 'email', 'telefono')
     fieldsets = (
@@ -60,9 +60,12 @@ class ClienteAdmin(DatabaseSelectorMixin, admin.ModelAdmin):
             'fields': ('nome', 'cognome', 'email', 'telefono')
         }),
         ('Dati Contabili', {
-            'fields': ('saldo', 'fido_massimo', 'rating', 'conto_servizio', 'nascosto'),
+            'fields': ('saldo', 'fido_massimo', 'rating', 'conto_servizio', 'nascosto',
+                       'conto_giroconto', 'giroconto_agenzia'),
             'description': 'Conto di servizio: POS, spese, aggiustamenti cassa. Escluso dai totali crediti clienti. '
-                           'Nascosto: il cliente non compare più nella lista clienti agli operatori.'
+                           'Nascosto: il cliente non compare più nella lista clienti agli operatori. '
+                           'Conto di giroconto: un movimento su questo conto genera una richiesta da '
+                           'accettare presso l\'agenzia partner indicata in "Giroconto agenzia".'
         }),
         ('Notifiche', {
             'fields': ('notifica_movimenti',),
@@ -200,6 +203,19 @@ class SaldoEsternoAdmin(admin.ModelAdmin):
     list_filter = ('agenzia', 'tipo')
     date_hierarchy = 'data'
     ordering = ('-data',)
+
+
+@admin.register(RichiestaGiroconto)
+class RichiestaGirocontoAdmin(admin.ModelAdmin):
+    """Richieste di giroconto inter-agenzia (dati sul DB 'default')."""
+    list_display = ('id', 'agenzia_origine', 'agenzia_destinazione', 'conto_origine_nome',
+                    'tipo', 'importo', 'stato', 'data_creazione', 'data_risposta')
+    list_filter = ('stato', 'agenzia_origine', 'agenzia_destinazione', 'tipo')
+    search_fields = ('conto_origine_nome', 'note', 'note_risposta')
+    date_hierarchy = 'data_creazione'
+    ordering = ('-data_creazione',)
+    readonly_fields = ('data_creazione', 'data_risposta', 'movimento_origine_id',
+                       'movimento_dest_id', 'conto_dest_id')
 
 
 @admin.register(ProfiloUtente)

@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}Richieste di Giroconto - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0"><i class="fas fa-random me-2"></i>Richieste di Giroconto</h1>
+        <small class="text-muted">Movimenti inter-agenzia da accettare e richieste inviate.</small>
+    </div>
+</div>
+
+{% if messages %}{% endif %}
+
+<!-- Da accettare -->
+<div class="card mb-4">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0"><i class="fas fa-inbox me-2"></i>Da accettare
+            {% if ricevute_attesa %}<span class="badge bg-danger ms-2">{{ ricevute_attesa|length }}</span>{% endif %}
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        {% if ricevute_attesa %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Da agenzia</th>
+                        <th>Conto (origine)</th>
+                        <th>Tipo</th>
+                        <th class="text-end">Importo</th>
+                        <th>Data</th>
+                        <th>Operatore</th>
+                        <th>Note</th>
+                        <th class="text-end">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in ricevute_attesa %}
+                    <tr>
+                        <td>{{ r.id }}</td>
+                        <td><span class="badge bg-secondary">{{ r.agenzia_origine.nome }}</span></td>
+                        <td>{{ r.conto_origine_nome }}</td>
+                        <td>{{ r.get_tipo_display }}</td>
+                        <td class="text-end fw-bold">{{ r.importo|floatformat:2 }} €</td>
+                        <td>{{ r.data_creazione|date:"d/m/Y H:i" }}</td>
+                        <td>{{ r.operatore_origine.username|default:"-" }}</td>
+                        <td>{% if r.note %}<span title="{{ r.note }}">{{ r.note|truncatechars:30 }}</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                        <td class="text-end text-nowrap">
+                            <form method="post" action="{% url 'accetta_giroconto' r.id %}" class="d-inline"
+                                  onsubmit="return confirm('Accettare il giroconto di {{ r.importo|floatformat:2 }} € da {{ r.agenzia_origine.nome }}? Verrà registrato nella tua distinta aperta.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check me-1"></i>Accetta</button>
+                            </form>
+                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rifiuta{{ r.id }}">
+                                <i class="fas fa-times me-1"></i>Rifiuta
+                            </button>
+                            <!-- Modale rifiuto -->
+                            <div class="modal fade" id="rifiuta{{ r.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form method="post" action="{% url 'rifiuta_giroconto' r.id %}">
+                                            {% csrf_token %}
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Rifiuta giroconto #{{ r.id }}</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body text-start">
+                                                <p>Stai rifiutando il giroconto di <strong>{{ r.importo|floatformat:2 }} €</strong> da <strong>{{ r.agenzia_origine.nome }}</strong>. Nessun movimento verrà registrato.</p>
+                                                <label class="form-label">Motivo (opzionale)</label>
+                                                <textarea name="note_risposta" class="form-control" rows="2"></textarea>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                                                <button type="submit" class="btn btn-danger">Rifiuta</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-4"><i class="fas fa-check-circle me-2"></i>Nessuna richiesta da accettare.</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Inviate -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-paper-plane me-2"></i>Richieste inviate</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if inviate %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>A agenzia</th>
+                        <th>Conto</th>
+                        <th>Tipo</th>
+                        <th class="text-end">Importo</th>
+                        <th>Data</th>
+                        <th>Stato</th>
+                        <th>Risposta</th>
+                        <th class="text-end">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in inviate %}
+                    <tr>
+                        <td>{{ r.id }}</td>
+                        <td><span class="badge bg-secondary">{{ r.agenzia_destinazione.nome }}</span></td>
+                        <td>{{ r.conto_origine_nome }}</td>
+                        <td>{{ r.get_tipo_display }}</td>
+                        <td class="text-end fw-bold">{{ r.importo|floatformat:2 }} €</td>
+                        <td>{{ r.data_creazione|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            {% if r.stato == 'in_attesa' %}<span class="badge bg-warning text-dark">In attesa</span>
+                            {% elif r.stato == 'accettato' %}<span class="badge bg-success">Accettato</span>
+                            {% elif r.stato == 'rifiutato' %}<span class="badge bg-danger">Rifiutato</span>
+                            {% else %}<span class="badge bg-secondary">Annullato</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if r.data_risposta %}
+                                {{ r.data_risposta|date:"d/m/Y H:i" }}{% if r.operatore_risposta %} · {{ r.operatore_risposta.username }}{% endif %}
+                                {% if r.note_risposta %}<br><span class="text-muted small" title="{{ r.note_risposta }}">{{ r.note_risposta|truncatechars:30 }}</span>{% endif %}
+                            {% else %}<span class="text-muted">-</span>{% endif %}
+                        </td>
+                        <td class="text-end text-nowrap">
+                            {% if r.stato == 'in_attesa' %}
+                            <form method="post" action="{% url 'annulla_giroconto' r.id %}" class="d-inline"
+                                  onsubmit="return confirm('Annullare la richiesta di giroconto #{{ r.id }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-ban me-1"></i>Annulla</button>
+                            </form>
+                            {% else %}<span class="text-muted">-</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-4">Nessuna richiesta inviata.</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Storico ricevute -->
+{% if ricevute_storico %}
+<div class="card mb-4">
+    <div class="card-header"><i class="fas fa-history me-2"></i>Storico richieste ricevute</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+                <thead>
+                    <tr><th>#</th><th>Da agenzia</th><th>Conto</th><th>Tipo</th><th class="text-end">Importo</th><th>Data</th><th>Stato</th></tr>
+                </thead>
+                <tbody>
+                    {% for r in ricevute_storico %}
+                    <tr>
+                        <td>{{ r.id }}</td>
+                        <td>{{ r.agenzia_origine.nome }}</td>
+                        <td>{{ r.conto_origine_nome }}</td>
+                        <td>{{ r.get_tipo_display }}</td>
+                        <td class="text-end">{{ r.importo|floatformat:2 }} €</td>
+                        <td>{{ r.data_creazione|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            {% if r.stato == 'accettato' %}<span class="badge bg-success">Accettato</span>
+                            {% elif r.stato == 'rifiutato' %}<span class="badge bg-danger">Rifiutato</span>
+                            {% else %}<span class="badge bg-secondary">{{ r.get_stato_display }}</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

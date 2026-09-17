@@ -154,6 +154,12 @@
                             <i class="fas fa-cash-register me-1"></i>Distinte
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/giroconto/' in request.path %}active{% endif %}" href="{% url 'richieste_giroconto' %}">
+                            <i class="fas fa-random me-1"></i>Giroconti
+                            {% if giroconto_pending_count %}<span class="badge bg-danger ms-1">{{ giroconto_pending_count }}</span>{% endif %}
+                        </a>
+                    </li>
                     {% if user.is_superuser or 'Manager' in user.groups.all|join:"|" or 'Amministratore' in user.groups.all|join:"|" %}
                     <li class="nav-item">
                         <a class="nav-link {% if '/riepilogo-crediti/' in request.path %}active{% endif %}" href="{% url 'riepilogo_crediti' %}">
@@ -213,7 +219,20 @@
             {% endif %}
         </div>
     </nav>
-    
+
+    <!-- Banner richieste di giroconto in attesa -->
+    {% if giroconto_pending_count %}
+    <a href="{% url 'richieste_giroconto' %}" class="text-decoration-none"
+       style="position:sticky; top:0; z-index:1050; display:block;">
+        <div class="text-center fw-bold py-2 px-3"
+             style="background:#ffc107; color:#212529; border-bottom:2px solid #d39e00;">
+            <i class="fas fa-exchange-alt me-2"></i>
+            Hai {{ giroconto_pending_count }} richiest{{ giroconto_pending_count|pluralize:"a,e" }} di giroconto in attesa di accettazione — clicca per gestirl{{ giroconto_pending_count|pluralize:"a,e" }}
+            <span class="badge bg-danger ms-2">{{ giroconto_pending_count }}</span>
+        </div>
+    </a>
+    {% endif %}
+
     <!-- Content -->
     <div class="container my-4">
         <!-- Messages -->

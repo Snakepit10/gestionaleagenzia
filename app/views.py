@@ -686,6 +686,62 @@ def nuovo_movimento(request):
             if request.POST.get('note'):
                 movimento.note = request.POST.get('note')
 
+            # --- Giroconto inter-agenzia -------------------------------------
+            # Se il cliente è un conto di giroconto, NON registriamo subito il
+            # movimento: creiamo una richiesta che l'agenzia partner dovrà
+            # accettare. Solo all'accettazione verranno creati i due movimenti
+            # (origine + contro-movimento opposto) nelle rispettive distinte.
+            if movimento.cliente.conto_giroconto:
+                from .models import Agenzia, RichiestaGiroconto
+                from .database_utils import AGENZIA_DATABASE_MAP
+                nome_partner = (movimento.cliente.giroconto_agenzia or '').strip()
+                partner_db = AGENZIA_DATABASE_MAP.get(nome_partner.lower())
+                agenzia_dest = None
+                if partner_db:
+                    agenzia_dest = Agenzia.objects.using('default').filter(database_name=partner_db).first()
+                agenzia_orig = Agenzia.objects.using('default').filter(database_name=user_db).first()
+                if not agenzia_dest or not agenzia_orig:
+                    msg_err = (f"Conto di giroconto non configurato correttamente: agenzia partner "
+                               f"'{nome_partner}' non valida. Contatta l'amministratore.")
+                    if is_ajax:
+                        return JsonResponse({'success': False, 'message': msg_err}, status=400)
+                    messages.error(request, msg_err)
+                    return redirect('dettaglio_distinta', pk=distinta.pk)
+
+                richiesta = RichiestaGiroconto(
+                    agenzia_origine=agenzia_orig,
+                    agenzia_destinazione=agenzia_dest,
+                    operatore_origine_id=request.user.id,
+                    conto_origine_id=movimento.cliente.id,
+                    conto_origine_nome=str(movimento.cliente),
+                    distinta_origine_id=distinta.pk,
+                    tipo=movimento.tipo,
+                    importo=abs(movimento.importo),
+                    note=movimento.note or '',
+                )
+                richiesta.save(using='default')
+
+                ActivityLog.log_action(
+                    user=request.user,
+                    obj=distinta,
+                    action='create',
+                    description=(f"Richiesta di giroconto {movimento.get_tipo_display()} di "
+                                 f"{abs(movimento.importo)} € verso {agenzia_dest.nome} "
+                                 f"(conto {movimento.cliente})"),
+                )
+
+                msg_ok = (f"Richiesta di giroconto di {abs(movimento.importo)} € inviata a "
+                          f"{agenzia_dest.nome}: in attesa di accettazione.")
+                if is_ajax:
+                    return JsonResponse({'success': True, 'message': msg_ok, 'giroconto': True})
+                messages.success(request, msg_ok)
+                redirect_to = request.POST.get('redirect_to')
+                if redirect_to:
+                    return redirect(redirect_to)
+                from django.urls import reverse
+                return redirect(reverse('dettaglio_distinta', args=[distinta.pk]) + '?apri_form=1')
+            # -----------------------------------------------------------------
+
             # Anti doppio invio: se un movimento identico (stesso cliente, tipo, importo,
             # distinta e operatore) è stato creato negli ultimi 10 secondi, è quasi
             # certamente un doppio click con server lento: non salvare il duplicato.
@@ -1415,6 +1471,26 @@ def chiudi_distinta(request, pk):
     if distinta.stato != 'aperta':
         messages.error(request, 'Questa distinta è già stata chiusa.')
         return redirect('dettaglio_distinta', pk=distinta.pk)
+
+    # Blocco giroconti: non chiudere finché ci sono richieste di giroconto in attesa
+    # partite da questa distinta (la distinta d'origine deve restare aperta finché la
+    # richiesta non viene accettata/rifiutata/annullata, così il movimento potrà essere
+    # registrato in una distinta ancora aperta).
+    from .models import Agenzia, RichiestaGiroconto
+    agenzia_utente = Agenzia.objects.using('default').filter(database_name=db.user_db).first()
+    if agenzia_utente:
+        pending_giroconti = RichiestaGiroconto.objects.using('default').filter(
+            agenzia_origine=agenzia_utente,
+            distinta_origine_id=distinta.pk,
+            stato='in_attesa',
+        ).count()
+        if pending_giroconti:
+            messages.error(
+                request,
+                f'Ci sono {pending_giroconti} richieste di giroconto in attesa partite da questa '
+                f'distinta: falle accettare/rifiutare dall\'agenzia partner o annullale prima di chiudere.'
+            )
+            return redirect('dettaglio_distinta', pk=distinta.pk)
 
     # Ottieni il conto cassa
     try:
@@ -2827,3 +2903,188 @@ def azzeramento_conti_servizio(request):
         'distinte_aperte': distinte_aperte,
     }
     return render(request, 'app/azzeramento_conti_servizio.html', context)
+
+
+# ============================================================================
+# Giroconti inter-agenzia
+# ============================================================================
+
+def _tipo_opposto(tipo):
+    """
+    Restituisce il tipo di movimento di segno opposto, per registrare il
+    contro-movimento di compensazione nell'agenzia di destinazione.
+
+    Segno negativo (uscite di cassa): schedina, ricarica, pagamento_debito
+    Segno positivo (entrate di cassa): prelievo, incasso_credito
+    """
+    negativi = {'schedina', 'ricarica', 'pagamento_debito'}
+    if tipo in negativi:
+        # movimento origine sottrae cassa → destinazione incassa (positivo)
+        return 'incasso_credito'
+    # movimento origine aggiunge cassa (prelievo/incasso_credito) → destinazione paga (negativo)
+    return 'pagamento_debito'
+
+
+@login_required
+def richieste_giroconto(request):
+    """Pagina delle richieste di giroconto per l'agenzia dell'utente: ricevute e inviate."""
+    from .models import Agenzia, RichiestaGiroconto
+    agenzia = Agenzia.objects.using('default').filter(database_name=get_user_database(request.user)).first()
+    ricevute = []
+    inviate = []
+    if agenzia:
+        ricevute = list(RichiestaGiroconto.objects.using('default').filter(
+            agenzia_destinazione=agenzia).select_related(
+            'agenzia_origine', 'agenzia_destinazione', 'operatore_origine', 'operatore_risposta'))
+        inviate = list(RichiestaGiroconto.objects.using('default').filter(
+            agenzia_origine=agenzia).select_related(
+            'agenzia_origine', 'agenzia_destinazione', 'operatore_origine', 'operatore_risposta'))
+    context = {
+        'titolo': 'Richieste di Giroconto',
+        'ricevute_attesa': [r for r in ricevute if r.stato == 'in_attesa'],
+        'ricevute_storico': [r for r in ricevute if r.stato != 'in_attesa'],
+        'inviate': inviate,
+    }
+    return render(request, 'app/richieste_giroconto.html', context)
+
+
+@login_required
+def accetta_giroconto(request, pk):
+    """Accetta una richiesta di giroconto: crea il contro-movimento nell'agenzia dell'utente
+    e il movimento nell'agenzia d'origine, entrambi nelle rispettive distinte aperte."""
+    from .models import Agenzia, RichiestaGiroconto
+    from .database_utils import AGENZIA_DATABASE_MAP
+
+    if request.method != 'POST':
+        return redirect('richieste_giroconto')
+
+    db = DatabaseManager(request.user)
+    b_db = db.user_db
+    agenzia_utente = Agenzia.objects.using('default').filter(database_name=b_db).first()
+
+    richiesta = get_object_or_404(
+        RichiestaGiroconto.objects.using('default'),
+        pk=pk, stato='in_attesa'
+    )
+    if not agenzia_utente or richiesta.agenzia_destinazione_id != agenzia_utente.id:
+        messages.error(request, 'Non sei autorizzato ad accettare questa richiesta.')
+        return redirect('richieste_giroconto')
+
+    # 1) Distinta aperta di chi accetta (B)
+    try:
+        distinta_b = db.get_queryset(DistintaCassa).filter(
+            operatore=request.user, stato='aperta').latest('data', 'ora_inizio')
+    except DistintaCassa.DoesNotExist:
+        messages.error(request, 'Apri una distinta prima di accettare la richiesta di giroconto.')
+        return redirect('richieste_giroconto')
+
+    # 2) Conto giroconto in B verso l'agenzia d'origine
+    agenzia_orig = richiesta.agenzia_origine
+    conto_b = Cliente.objects.using(b_db).filter(
+        conto_giroconto=True, giroconto_agenzia__iexact=agenzia_orig.nome).first()
+    if not conto_b:
+        messages.error(
+            request,
+            f'Configura un conto di giroconto verso "{agenzia_orig.nome}" (Django admin) prima di accettare.')
+        return redirect('richieste_giroconto')
+
+    # 3) Riferimenti nell'agenzia d'origine (A)
+    a_db = AGENZIA_DATABASE_MAP.get(agenzia_orig.nome.lower())
+    if not a_db:
+        messages.error(request, f'Agenzia d\'origine "{agenzia_orig.nome}" non valida.')
+        return redirect('richieste_giroconto')
+    conto_a = Cliente.objects.using(a_db).filter(pk=richiesta.conto_origine_id).first()
+    distinta_a = DistintaCassa.objects.using(a_db).filter(pk=richiesta.distinta_origine_id).first()
+    if not conto_a or not distinta_a:
+        messages.error(request, 'Il conto o la distinta d\'origine non esistono più: impossibile accettare.')
+        return redirect('richieste_giroconto')
+    if distinta_a.stato != 'aperta':
+        messages.error(
+            request,
+            'La distinta d\'origine è stata chiusa: il giroconto non può più essere registrato lì. '
+            'Chiedi all\'agenzia d\'origine di ripetere la richiesta.')
+        return redirect('richieste_giroconto')
+
+    importo = abs(richiesta.importo)
+    tipo_a = richiesta.tipo
+    tipo_b = _tipo_opposto(tipo_a)
+
+    try:
+        # 3a) Contro-movimento in B (agenzia di chi accetta, utente presente in b_db)
+        mov_b = Movimento(
+            cliente=conto_b, tipo=tipo_b, importo=importo, distinta=distinta_b,
+            creato_da_id=request.user.id,
+            note=f'Giroconto da {agenzia_orig.nome} (richiesta #{richiesta.pk})',
+        )
+        mov_b._state.db = b_db
+        mov_b.save(using=b_db)
+        conto_b.aggiorna_saldo(user=request.user)
+
+        # 3b) Movimento in A (agenzia d'origine); operatore d'origine già replicato in a_db
+        mov_a = Movimento(
+            cliente=conto_a, tipo=tipo_a, importo=importo, distinta=distinta_a,
+            creato_da_id=richiesta.operatore_origine_id,
+            note=f'Giroconto verso {agenzia_utente.nome} (richiesta #{richiesta.pk})',
+        )
+        mov_a._state.db = a_db
+        mov_a.save(using=a_db)
+        conto_a.aggiorna_saldo()
+    except Exception as e:
+        messages.error(request, f'Errore nella registrazione del giroconto: {e}')
+        return redirect('richieste_giroconto')
+
+    richiesta.stato = 'accettato'
+    richiesta.operatore_risposta_id = request.user.id
+    richiesta.data_risposta = timezone.now()
+    richiesta.movimento_origine_id = mov_a.pk
+    richiesta.movimento_dest_id = mov_b.pk
+    richiesta.conto_dest_id = conto_b.pk
+    richiesta.save(using='default')
+
+    messages.success(
+        request,
+        f'Giroconto di {importo} € da {agenzia_orig.nome} accettato e registrato nella tua distinta.')
+    return redirect('richieste_giroconto')
+
+
+@login_required
+def rifiuta_giroconto(request, pk):
+    """Rifiuta una richiesta di giroconto ricevuta: nessun movimento viene creato."""
+    from .models import Agenzia, RichiestaGiroconto
+    if request.method != 'POST':
+        return redirect('richieste_giroconto')
+    agenzia_utente = Agenzia.objects.using('default').filter(
+        database_name=get_user_database(request.user)).first()
+    richiesta = get_object_or_404(
+        RichiestaGiroconto.objects.using('default'), pk=pk, stato='in_attesa')
+    if not agenzia_utente or richiesta.agenzia_destinazione_id != agenzia_utente.id:
+        messages.error(request, 'Non sei autorizzato a rifiutare questa richiesta.')
+        return redirect('richieste_giroconto')
+    richiesta.stato = 'rifiutato'
+    richiesta.operatore_risposta_id = request.user.id
+    richiesta.data_risposta = timezone.now()
+    richiesta.note_risposta = request.POST.get('note_risposta', '')
+    richiesta.save(using='default')
+    messages.info(request, 'Richiesta di giroconto rifiutata: nessun movimento registrato.')
+    return redirect('richieste_giroconto')
+
+
+@login_required
+def annulla_giroconto(request, pk):
+    """L'agenzia d'origine annulla una propria richiesta di giroconto ancora in attesa."""
+    from .models import Agenzia, RichiestaGiroconto
+    if request.method != 'POST':
+        return redirect('richieste_giroconto')
+    agenzia_utente = Agenzia.objects.using('default').filter(
+        database_name=get_user_database(request.user)).first()
+    richiesta = get_object_or_404(
+        RichiestaGiroconto.objects.using('default'), pk=pk, stato='in_attesa')
+    if not agenzia_utente or richiesta.agenzia_origine_id != agenzia_utente.id:
+        messages.error(request, 'Non sei autorizzato ad annullare questa richiesta.')
+        return redirect('richieste_giroconto')
+    richiesta.stato = 'annullato'
+    richiesta.operatore_risposta_id = request.user.id
+    richiesta.data_risposta = timezone.now()
+    richiesta.save(using='default')
+    messages.info(request, 'Richiesta di giroconto annullata.')
+    return redirect('richieste_giroconto')
