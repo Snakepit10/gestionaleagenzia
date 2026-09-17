@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Categorie Task - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h1 class="h3 mb-0"><i class="fas fa-tags me-2"></i>Categorie Task</h1>
+        <small class="text-muted">Organizza le task per categoria (manutenzione, acquisti, segnalazioni, ...).</small>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'lista_task' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Task</a>
+        <a href="{% url 'nuova_categoria_task' %}" class="btn btn-primary"><i class="fas fa-plus-circle me-1"></i>Nuova categoria</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        {% if categorie %}
+        <table class="table table-striped table-hover mb-0 align-middle">
+            <thead>
+                <tr><th>Nome</th><th>Ordine</th><th>Attiva</th><th class="text-end">Azioni</th></tr>
+            </thead>
+            <tbody>
+                {% for c in categorie %}
+                <tr>
+                    <td>{{ c.nome }}</td>
+                    <td>{{ c.ordine }}</td>
+                    <td>{% if c.attivo %}<span class="badge bg-success">Sì</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                    <td class="text-end text-nowrap">
+                        <a href="{% url 'modifica_categoria_task' c.id %}" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></a>
+                        <a href="{% url 'elimina_categoria_task' c.id %}" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-tags text-muted fa-3x mb-3"></i>
+            <p class="text-muted">Nessuna categoria. Creane una per organizzare le task.</p>
+            <a href="{% url 'nuova_categoria_task' %}" class="btn btn-primary"><i class="fas fa-plus-circle me-1"></i>Nuova categoria</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

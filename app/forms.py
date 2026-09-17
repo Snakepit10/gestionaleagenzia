@@ -1,7 +1,9 @@
 from django import forms
 from django.utils import timezone
+from django.contrib.auth.models import User
 from .models import (Cliente, Movimento, DistintaCassa, Comunicazione, ContoFinanziario, BilancioPeriodico,
-                     ProdottoRicavo, CategoriaSpesa, CategoriaProdotto, CategoriaCosto, VoceCosto, Agenzia)
+                     ProdottoRicavo, CategoriaSpesa, CategoriaProdotto, CategoriaCosto, VoceCosto, Agenzia,
+                     TaskAgenzia, CategoriaTask)
 
 
 MESI_CHOICES = [
@@ -452,3 +454,60 @@ class ConsolidatoForm(forms.Form):
         widget=forms.CheckboxSelectMultiple,
         label='Agenzie da includere',
     )
+
+
+class TaskAgenziaForm(forms.ModelForm):
+    class Meta:
+        model = TaskAgenzia
+        fields = ['titolo', 'descrizione', 'categoria', 'priorita', 'stato',
+                  'assegnato_a', 'scadenza', 'note']
+        widgets = {
+            'descrizione': forms.Textarea(attrs={'rows': 3}),
+            'note': forms.Textarea(attrs={'rows': 3}),
+            'scadenza': forms.DateInput(attrs={'type': 'date'}),
+        }
+        labels = {
+            'assegnato_a': 'Assegnata a',
+            'note': 'Note / aggiornamenti',
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        self.fields['categoria'].required = False
+        self.fields['assegnato_a'].required = False
+        if user:
+            from .database_utils import DatabaseManager
+            db = DatabaseManager(user)
+            self.fields['categoria'].queryset = db.get_queryset(CategoriaTask).filter(attivo=True)
+            self.fields['assegnato_a'].queryset = User.objects.using(db.user_db).order_by('username')
+
+
+class FiltroTaskForm(forms.Form):
+    stato = forms.ChoiceField(
+        choices=[('', 'Tutti'), ('aperte', 'Solo aperte')] + list(TaskAgenzia.STATO_CHOICES),
+        required=False
+    )
+    categoria = forms.ModelChoiceField(queryset=CategoriaTask.objects.none(), required=False,
+                                       empty_label='Tutte')
+    priorita = forms.ChoiceField(
+        choices=[('', 'Tutte')] + list(TaskAgenzia.PRIORITA_CHOICES),
+        required=False
+    )
+    assegnato_a = forms.ModelChoiceField(queryset=User.objects.none(), required=False,
+                                         empty_label='Tutti')
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            from .database_utils import DatabaseManager
+            db = DatabaseManager(user)
+            self.fields['categoria'].queryset = db.get_queryset(CategoriaTask)
+            self.fields['assegnato_a'].queryset = User.objects.using(db.user_db).order_by('username')
+
+
+class CategoriaTaskForm(forms.ModelForm):
+    class Meta:
+        model = CategoriaTask
+        fields = ['nome', 'ordine', 'attivo']

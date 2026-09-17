@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.html import format_html
-from .models import Cliente, Movimento, DistintaCassa, Comunicazione, Agenzia, ProfiloUtente, SaldoEsterno, AzzeramentoProgrammato, RichiestaGiroconto
+from .models import Cliente, Movimento, DistintaCassa, Comunicazione, Agenzia, ProfiloUtente, SaldoEsterno, AzzeramentoProgrammato, RichiestaGiroconto, TaskAgenzia, CategoriaTask
 from .database_utils import AGENZIA_DATABASE_MAP
 
 
@@ -216,6 +216,31 @@ class RichiestaGirocontoAdmin(admin.ModelAdmin):
     ordering = ('-data_creazione',)
     readonly_fields = ('data_creazione', 'data_risposta', 'movimento_origine_id',
                        'movimento_dest_id', 'conto_dest_id')
+
+
+@admin.register(CategoriaTask)
+class CategoriaTaskAdmin(DatabaseSelectorMixin, admin.ModelAdmin):
+    list_display = ('nome', 'ordine', 'attivo')
+    list_filter = ('attivo',)
+    list_editable = ('ordine', 'attivo')
+    search_fields = ('nome',)
+    ordering = ('ordine', 'nome')
+
+
+@admin.register(TaskAgenzia)
+class TaskAgenziaAdmin(DatabaseSelectorMixin, admin.ModelAdmin):
+    list_display = ('titolo', 'categoria', 'priorita', 'stato', 'assegnato_a', 'scadenza', 'data_creazione')
+    list_filter = ('stato', 'priorita', 'categoria')
+    search_fields = ('titolo', 'descrizione', 'note')
+    date_hierarchy = 'data_creazione'
+    ordering = ('-data_creazione',)
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.creato_da = request.user
+        else:
+            obj.modificato_da = request.user
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(ProfiloUtente)

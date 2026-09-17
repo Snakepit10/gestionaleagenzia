@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Elimina Task - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col"><h1 class="h3 mb-0"><i class="fas fa-trash me-2"></i>Elimina Task</h1></div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Conferma Eliminazione</h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Attenzione!</strong> Stai per eliminare definitivamente questa task. L'azione non può essere annullata.
+        </div>
+        <p><strong>Titolo:</strong> {{ task.titolo }}</p>
+        {% if task.categoria %}<p><strong>Categoria:</strong> {{ task.categoria.nome }}</p>{% endif %}
+        <p><strong>Stato:</strong> {{ task.get_stato_display }} · <strong>Priorità:</strong> {{ task.get_priorita_display }}</p>
+        {% if task.descrizione %}<p><strong>Descrizione:</strong> {{ task.descrizione }}</p>{% endif %}
+
+        <form method="post" class="text-center mt-4">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger"><i class="fas fa-trash me-1"></i>Conferma Eliminazione</button>
+            <a href="{% url 'lista_task' %}" class="btn btn-outline-secondary"><i class="fas fa-times me-1"></i>Annulla</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

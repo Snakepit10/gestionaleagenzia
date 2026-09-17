@@ -69,6 +69,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'app.context_processors.branding',
                 'app.context_processors.giroconto',
+                'app.context_processors.task_badge',
             ],
         },
     },

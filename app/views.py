@@ -3095,3 +3095,200 @@ def annulla_giroconto(request, pk):
     richiesta.save(using='default')
     messages.info(request, 'Richiesta di giroconto annullata.')
     return redirect('richieste_giroconto')
+
+
+# ============================================================================
+# Task / Attività di agenzia
+# ============================================================================
+
+@login_required
+def lista_task(request):
+    from .models import TaskAgenzia, CategoriaTask
+    from .forms import FiltroTaskForm
+    db = DatabaseManager(request.user)
+
+    tasks = db.get_queryset(TaskAgenzia, select_related=['categoria', 'assegnato_a', 'creato_da'])
+
+    form_filtro = FiltroTaskForm(request.GET or None, user=request.user)
+    stato_sel = ''
+    if form_filtro.is_valid():
+        stato_sel = form_filtro.cleaned_data.get('stato') or ''
+        if stato_sel == 'aperte':
+            tasks = tasks.filter(stato__in=['da_fare', 'in_corso'])
+        elif stato_sel:
+            tasks = tasks.filter(stato=stato_sel)
+        if form_filtro.cleaned_data.get('categoria'):
+            tasks = tasks.filter(categoria=form_filtro.cleaned_data['categoria'])
+        if form_filtro.cleaned_data.get('priorita'):
+            tasks = tasks.filter(priorita=form_filtro.cleaned_data['priorita'])
+        if form_filtro.cleaned_data.get('assegnato_a'):
+            tasks = tasks.filter(assegnato_a=form_filtro.cleaned_data['assegnato_a'])
+
+    # Default: se nessun filtro di stato, mostra solo le task aperte (nascondi
+    # completate/annullate) per non allungare la lista.
+    if not stato_sel:
+        tasks = tasks.filter(stato__in=['da_fare', 'in_corso'])
+
+    # Ordinamento: prima le scadenze imminenti (scadenza valorizzata), poi per priorità, poi recenti.
+    from django.db.models import Case, When, Value, IntegerField
+    tasks = tasks.annotate(
+        _prio=Case(
+            When(priorita='alta', then=Value(3)),
+            When(priorita='media', then=Value(2)),
+            When(priorita='bassa', then=Value(1)),
+            default=Value(0), output_field=IntegerField(),
+        ),
+        _senza_scadenza=Case(
+            When(scadenza__isnull=True, then=Value(1)), default=Value(0), output_field=IntegerField(),
+        ),
+    ).order_by('_senza_scadenza', 'scadenza', '-_prio', '-data_creazione')
+
+    # Conteggi per stato (sull'intero set dell'agenzia, senza filtri)
+    base = db.get_queryset(TaskAgenzia)
+    conteggi = {
+        'da_fare': base.filter(stato='da_fare').count(),
+        'in_corso': base.filter(stato='in_corso').count(),
+        'completata': base.filter(stato='completata').count(),
+    }
+
+    paginator = Paginator(tasks, 30)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'app/lista_task.html', {
+        'page_obj': page_obj,
+        'form_filtro': form_filtro,
+        'conteggi': conteggi,
+        'oggi': timezone.localdate(),
+    })
+
+
+@login_required
+def nuova_task(request):
+    from .models import TaskAgenzia
+    from .forms import TaskAgenziaForm
+    db = DatabaseManager(request.user)
+    if request.method == 'POST':
+        form = TaskAgenziaForm(request.POST, user=request.user)
+        if form.is_valid():
+            task = form.save(commit=False)
+            task.creato_da_id = request.user.id
+            if task.stato == 'completata':
+                task.data_completamento = timezone.now()
+            db.save_object(task)
+            messages.success(request, f'Task "{task.titolo}" creata.')
+            return redirect('lista_task')
+    else:
+        form = TaskAgenziaForm(user=request.user)
+    return render(request, 'app/form_task.html', {'form': form, 'titolo': 'Nuova Task'})
+
+
+@login_required
+def modifica_task(request, pk):
+    from .models import TaskAgenzia
+    from .forms import TaskAgenziaForm
+    db = DatabaseManager(request.user)
+    task = db.get_object_or_404(TaskAgenzia, pk=pk)
+    stato_prec = task.stato
+    if request.method == 'POST':
+        form = TaskAgenziaForm(request.POST, instance=task, user=request.user)
+        if form.is_valid():
+            task = form.save(commit=False)
+            task.modificato_da_id = request.user.id
+            if task.stato == 'completata' and stato_prec != 'completata':
+                task.data_completamento = timezone.now()
+            elif task.stato != 'completata':
+                task.data_completamento = None
+            db.save_object(task)
+            messages.success(request, f'Task "{task.titolo}" aggiornata.')
+            return redirect('lista_task')
+    else:
+        form = TaskAgenziaForm(instance=task, user=request.user)
+    return render(request, 'app/form_task.html', {'form': form, 'titolo': 'Modifica Task', 'task': task})
+
+
+@login_required
+def cambia_stato_task(request, pk, nuovo_stato):
+    from .models import TaskAgenzia
+    if request.method != 'POST':
+        return redirect('lista_task')
+    validi = dict(TaskAgenzia.STATO_CHOICES)
+    if nuovo_stato not in validi:
+        messages.error(request, 'Stato non valido.')
+        return redirect('lista_task')
+    db = DatabaseManager(request.user)
+    task = db.get_object_or_404(TaskAgenzia, pk=pk)
+    task.stato = nuovo_stato
+    task.modificato_da_id = request.user.id
+    task.data_completamento = timezone.now() if nuovo_stato == 'completata' else None
+    db.save_object(task)
+    messages.success(request, f'Task "{task.titolo}" → {validi[nuovo_stato]}.')
+    redirect_to = request.POST.get('redirect_to')
+    return redirect(redirect_to) if redirect_to else redirect('lista_task')
+
+
+@login_required
+def elimina_task(request, pk):
+    from .models import TaskAgenzia
+    db = DatabaseManager(request.user)
+    task = db.get_object_or_404(TaskAgenzia, pk=pk)
+    if request.method == 'POST':
+        titolo = task.titolo
+        db.delete_object(task)
+        messages.success(request, f'Task "{titolo}" eliminata.')
+        return redirect('lista_task')
+    return render(request, 'app/conferma_elimina_task.html', {'task': task})
+
+
+# --- CRUD categorie task ---
+
+@login_required
+def lista_categorie_task(request):
+    from .models import CategoriaTask
+    db = DatabaseManager(request.user)
+    categorie = db.get_queryset(CategoriaTask)
+    return render(request, 'app/lista_categorie_task.html', {'categorie': categorie})
+
+
+@login_required
+def nuova_categoria_task(request):
+    from .forms import CategoriaTaskForm
+    db = DatabaseManager(request.user)
+    if request.method == 'POST':
+        form = CategoriaTaskForm(request.POST)
+        if form.is_valid():
+            db.save_object(form.save(commit=False))
+            messages.success(request, 'Categoria creata.')
+            return redirect('lista_categorie_task')
+    else:
+        form = CategoriaTaskForm()
+    return render(request, 'app/form_categoria_task.html', {'form': form, 'titolo': 'Nuova Categoria'})
+
+
+@login_required
+def modifica_categoria_task(request, pk):
+    from .models import CategoriaTask
+    from .forms import CategoriaTaskForm
+    db = DatabaseManager(request.user)
+    categoria = db.get_object_or_404(CategoriaTask, pk=pk)
+    if request.method == 'POST':
+        form = CategoriaTaskForm(request.POST, instance=categoria)
+        if form.is_valid():
+            db.save_object(form.save(commit=False))
+            messages.success(request, 'Categoria aggiornata.')
+            return redirect('lista_categorie_task')
+    else:
+        form = CategoriaTaskForm(instance=categoria)
+    return render(request, 'app/form_categoria_task.html', {'form': form, 'titolo': 'Modifica Categoria'})
+
+
+@login_required
+def elimina_categoria_task(request, pk):
+    from .models import CategoriaTask
+    db = DatabaseManager(request.user)
+    categoria = db.get_object_or_404(CategoriaTask, pk=pk)
+    if request.method == 'POST':
+        nome = categoria.nome
+        db.delete_object(categoria)
+        messages.success(request, f'Categoria "{nome}" eliminata. Le task collegate restano senza categoria.')
+        return redirect('lista_categorie_task')
+    return render(request, 'app/conferma_elimina_categoria_task.html', {'categoria': categoria})

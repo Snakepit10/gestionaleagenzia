@@ -52,6 +52,17 @@ urlpatterns = [
     path('giroconto/<int:pk>/accetta/', views.accetta_giroconto, name='accetta_giroconto'),
     path('giroconto/<int:pk>/rifiuta/', views.rifiuta_giroconto, name='rifiuta_giroconto'),
     path('giroconto/<int:pk>/annulla/', views.annulla_giroconto, name='annulla_giroconto'),
+
+    # Task / Attività di agenzia
+    path('task/', views.lista_task, name='lista_task'),
+    path('task/nuova/', views.nuova_task, name='nuova_task'),
+    path('task/<int:pk>/modifica/', views.modifica_task, name='modifica_task'),
+    path('task/<int:pk>/stato/<slug:nuovo_stato>/', views.cambia_stato_task, name='cambia_stato_task'),
+    path('task/<int:pk>/elimina/', views.elimina_task, name='elimina_task'),
+    path('task/categorie/', views.lista_categorie_task, name='lista_categorie_task'),
+    path('task/categorie/nuova/', views.nuova_categoria_task, name='nuova_categoria_task'),
+    path('task/categorie/<int:pk>/modifica/', views.modifica_categoria_task, name='modifica_categoria_task'),
+    path('task/categorie/<int:pk>/elimina/', views.elimina_categoria_task, name='elimina_categoria_task'),
     path('api/cast/giorni/', views.api_giorni_mancanti, name='api_giorni_mancanti'),
     path('api/cast/saldi/', views.api_ricevi_saldi, name='api_ricevi_saldi'),
     path('api/saldo-esterno/salva/', views.salva_valore_esterno, name='salva_valore_esterno'),

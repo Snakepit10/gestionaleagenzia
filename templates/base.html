@@ -160,6 +160,12 @@
                             {% if giroconto_pending_count %}<span class="badge bg-danger ms-1">{{ giroconto_pending_count }}</span>{% endif %}
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/task/' in request.path %}active{% endif %}" href="{% url 'lista_task' %}">
+                            <i class="fas fa-tasks me-1"></i>Task
+                            {% if task_pending_count %}<span class="badge bg-danger ms-1">{{ task_pending_count }}</span>{% endif %}
+                        </a>
+                    </li>
                     {% if user.is_superuser or 'Manager' in user.groups.all|join:"|" or 'Amministratore' in user.groups.all|join:"|" %}
                     <li class="nav-item">
                         <a class="nav-link {% if '/riepilogo-crediti/' in request.path %}active{% endif %}" href="{% url 'riepilogo_crediti' %}">

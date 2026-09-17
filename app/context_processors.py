@@ -107,3 +107,18 @@ def giroconto(request):
         except Exception:
             count = 0
     return {'giroconto_pending_count': count}
+
+
+def task_badge(request):
+    """Numero di task ancora aperte assegnate all'utente, per il badge in navbar."""
+    count = 0
+    user = getattr(request, 'user', None)
+    if user is not None and user.is_authenticated:
+        try:
+            from .models import TaskAgenzia
+            from .database_utils import get_user_database
+            count = TaskAgenzia.objects.using(get_user_database(user)).filter(
+                assegnato_a=user, stato__in=['da_fare', 'in_corso']).count()
+        except Exception:
+            count = 0
+    return {'task_pending_count': count}

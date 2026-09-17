@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ titolo }} - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col"><h1 class="h3 mb-0"><i class="fas fa-tags me-2"></i>{{ titolo }}</h1></div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-6">{{ form.nome|as_crispy_field }}</div>
+                <div class="col-md-3">{{ form.ordine|as_crispy_field }}</div>
+                <div class="col-md-3 d-flex align-items-center">{{ form.attivo|as_crispy_field }}</div>
+            </div>
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Salva</button>
+                <a href="{% url 'lista_categorie_task' %}" class="btn btn-outline-secondary"><i class="fas fa-times me-1"></i>Annulla</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1936,3 +1936,68 @@ class RichiestaGiroconto(models.Model):
         return f"Giroconto {self.agenzia_origine} → {self.agenzia_destinazione}: {self.importo} € ({self.get_stato_display()})"
 
         return riepiloghi_creati
+
+
+class CategoriaTask(MultiDatabaseMixin, models.Model):
+    """Categoria delle task di agenzia (per-agenzia, gestibile dagli operatori)."""
+    nome = models.CharField(max_length=80)
+    ordine = models.IntegerField(default=0)
+    attivo = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Categoria Task"
+        verbose_name_plural = "Categorie Task"
+        ordering = ['ordine', 'nome']
+
+    def __str__(self):
+        return self.nome
+
+
+class TaskAgenzia(MultiDatabaseMixin, models.Model):
+    """Task/attività operativa di agenzia (manutenzione, acquisti, segnalazioni, ecc.)."""
+    PRIORITA_CHOICES = [
+        ('bassa', 'Bassa'),
+        ('media', 'Media'),
+        ('alta', 'Alta'),
+    ]
+    STATO_CHOICES = [
+        ('da_fare', 'Da fare'),
+        ('in_corso', 'In corso'),
+        ('completata', 'Completata'),
+        ('annullata', 'Annullata'),
+    ]
+    # Ordine per priorità (per ordinamento discendente: alta prima)
+    _PRIORITA_ORD = {'bassa': 1, 'media': 2, 'alta': 3}
+
+    titolo = models.CharField(max_length=200)
+    descrizione = models.TextField(blank=True, default='')
+    categoria = models.ForeignKey(CategoriaTask, on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name='task')
+    priorita = models.CharField(max_length=6, choices=PRIORITA_CHOICES, default='media')
+    stato = models.CharField(max_length=12, choices=STATO_CHOICES, default='da_fare')
+    assegnato_a = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name='task_assegnate')
+    scadenza = models.DateField(null=True, blank=True)
+    note = models.TextField(blank=True, default='', help_text="Aggiornamenti (es. stato della segnalazione all'assistenza)")
+
+    creato_da = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='task_create')
+    modificato_da = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='task_modificate')
+    data_creazione = models.DateTimeField(auto_now_add=True)
+    data_modifica = models.DateTimeField(auto_now=True)
+    data_completamento = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Task di Agenzia"
+        verbose_name_plural = "Task di Agenzia"
+        ordering = ['data_creazione']
+
+    def __str__(self):
+        return self.titolo
+
+    @property
+    def is_aperta(self):
+        return self.stato in ('da_fare', 'in_corso')
+
+    @property
+    def is_scaduta(self):
+        return bool(self.scadenza) and self.is_aperta and self.scadenza < timezone.localdate()
