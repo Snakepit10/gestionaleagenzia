@@ -69,6 +69,7 @@
                         <th style="min-width: 90px;">Entr-Usc</th>
                         <th style="min-width: 90px;">Cassa 2</th>
                         <th style="min-width: 80px;">Diff.</th>
+                        <th style="min-width: 110px;" title="Confronto tra differenza distinta e differenza reale dei Saldi Finanziari">Verifica saldi</th>
                         <th style="min-width: 100px;">Note Dist.</th>
                         <th style="min-width: 100px;">Note Ver.</th>
                         <th style="min-width: 80px;">Stato</th>
@@ -122,6 +123,15 @@
                             {{ distinta.differenza_cassa|floatformat:2 }}
                             {% else %}
                             <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if distinta.verifica_saldi %}
+                                {% if distinta.verifica_saldi.ok %}
+                                <span class="badge bg-success"><i class="fas fa-check me-1"></i>OK</span>
+                                {% else %}
+                                <span class="badge bg-danger" title="Differenza reale dei Saldi Finanziari">{{ distinta.verifica_saldi.valore|floatformat:2 }} €</span>
+                                {% endif %}
                             {% endif %}
                         </td>
                         <td>

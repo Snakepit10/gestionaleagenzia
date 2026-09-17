@@ -1134,7 +1134,26 @@ def lista_distinte(request):
     from django.db.models import Q
     from datetime import datetime, time
 
+    # Verifica saldi finanziari: mappa per-giorno del riepilogo (differenza reale/distinta,
+    # saldo cast estratto). Usata per confrontare la differenza distinta con la
+    # differenza reale dei Saldi Finanziari.
+    saldi_map = {r['data']: r for r in calcola_righe_riepilogo(db)}
+    oggi = timezone.localdate()
+
     for distinta in page_obj:
+        # Verifica saldi: nulla per le distinte di oggi o se i saldi del giorno non sono
+        # ancora stati estratti / non calcolabili.
+        distinta.verifica_saldi = None
+        if distinta.data != oggi:
+            rs = saldi_map.get(distinta.data)
+            if rs and rs.get('saldo_cast') is not None and rs.get('differenza_reale') is not None:
+                reale = rs['differenza_reale']
+                diff_dist = rs.get('differenza_distinta') or Decimal('0')
+                if abs(reale - diff_dist) < Decimal('0.01'):
+                    distinta.verifica_saldi = {'ok': True}
+                else:
+                    distinta.verifica_saldi = {'ok': False, 'valore': reale}
+
         # Crea un datetime combinato per la distinta corrente
         distinta_datetime = timezone.make_aware(
             datetime.combine(distinta.data, distinta.ora_inizio)
@@ -2152,11 +2171,9 @@ def elimina_movimento_conti(request, pk):
     return render(request, 'app/elimina_movimento_conti.html', context)
 
 
-@login_required
-@user_passes_test(is_manager_or_admin)
-def riepilogo_crediti(request):
-    """Tabella riepilogativa per data: crediti clienti, cassa finale, bevande, differenza distinta"""
-    db = DatabaseManager(request.user)
+def calcola_righe_riepilogo(db):
+    """Calcola le righe del riepilogo Saldi Finanziari (una per giorno con distinte),
+    con totale, differenza, differenza distinta e differenza reale. Riusabile."""
     alias = db.user_db
 
     # 1) Tutte le distinte (campi minimi) in UNA query, aggregate in Python per giorno:
@@ -2264,6 +2281,15 @@ def riepilogo_crediti(request):
             r['differenza'] = None
             r['differenza_reale'] = None
 
+    return righe
+
+
+@login_required
+@user_passes_test(is_manager_or_admin)
+def riepilogo_crediti(request):
+    """Tabella riepilogativa per data: crediti clienti, cassa finale, bevande, differenza distinta"""
+    db = DatabaseManager(request.user)
+    righe = calcola_righe_riepilogo(db)
     context = {'righe': righe}
     return render(request, 'app/riepilogo_crediti.html', context)
 
