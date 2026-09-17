@@ -69,7 +69,8 @@
                         <th style="min-width: 90px;">Entr-Usc</th>
                         <th style="min-width: 90px;">Cassa 2</th>
                         <th style="min-width: 80px;">Diff.</th>
-                        <th style="min-width: 110px;" title="Confronto tra differenza distinta e differenza reale dei Saldi Finanziari">Verifica saldi</th>
+                        <th style="min-width: 90px;" title="Confronto tra differenza distinta e differenza reale dei Saldi Finanziari">Verifica saldi</th>
+                        <th style="min-width: 90px;" title="Movimenti di conti di servizio da verificare (non saldati)">Conti serv.</th>
                         <th style="min-width: 100px;">Note Dist.</th>
                         <th style="min-width: 100px;">Note Ver.</th>
                         <th style="min-width: 80px;">Stato</th>
@@ -128,10 +129,17 @@
                         <td class="text-center">
                             {% if distinta.verifica_saldi %}
                                 {% if distinta.verifica_saldi.ok %}
-                                <span class="badge bg-success"><i class="fas fa-check me-1"></i>OK</span>
+                                <span class="badge bg-success" title="Differenza distinta e differenza reale coincidono (tolleranza ±1 €)">OK</span>
                                 {% else %}
-                                <span class="badge bg-danger" title="Differenza reale dei Saldi Finanziari">{{ distinta.verifica_saldi.valore|floatformat:2 }} €</span>
+                                <span class="badge bg-danger" title="Differenza reale dei Saldi Finanziari: {{ distinta.verifica_saldi.valore|floatformat:2 }} €"><i class="fas fa-times"></i></span>
                                 {% endif %}
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if distinta.mov_servizio_da_verificare %}
+                            <span class="badge bg-warning text-dark" title="Movimenti di conti di servizio non ancora saldati (da verificare/azzerare)">{{ distinta.mov_servizio_da_verificare }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
                             {% endif %}
                         </td>
                         <td>

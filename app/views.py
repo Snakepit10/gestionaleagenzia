@@ -1136,20 +1136,32 @@ def lista_distinte(request):
 
     # Verifica saldi finanziari: mappa per-giorno del riepilogo (differenza reale/distinta,
     # saldo cast estratto). Usata per confrontare la differenza distinta con la
-    # differenza reale dei Saldi Finanziari.
+    # differenza reale dei Saldi Finanziari (tolleranza +/- 1 euro).
     saldi_map = {r['data']: r for r in calcola_righe_riepilogo(db)}
     oggi = timezone.localdate()
 
+    # Conta i movimenti dei conti di servizio non ancora saldati (da verificare/azzerare)
+    # per ciascuna distinta della pagina, con una sola query aggregata.
+    from django.db.models import Count
+    ids_pagina = [d.pk for d in page_obj]
+    conti_serv_da_verif = dict(
+        db.get_queryset(Movimento)
+        .filter(distinta_id__in=ids_pagina, cliente__conto_servizio=True, saldato=False)
+        .values('distinta_id').annotate(n=Count('id')).values_list('distinta_id', 'n')
+    )
+
     for distinta in page_obj:
+        distinta.mov_servizio_da_verificare = conti_serv_da_verif.get(distinta.pk, 0)
+
         # Verifica saldi: nulla per le distinte di oggi o se i saldi del giorno non sono
-        # ancora stati estratti / non calcolabili.
+        # ancora stati estratti / non calcolabili. Tolleranza +/- 1 euro per l'OK.
         distinta.verifica_saldi = None
         if distinta.data != oggi:
             rs = saldi_map.get(distinta.data)
             if rs and rs.get('saldo_cast') is not None and rs.get('differenza_reale') is not None:
                 reale = rs['differenza_reale']
                 diff_dist = rs.get('differenza_distinta') or Decimal('0')
-                if abs(reale - diff_dist) < Decimal('0.01'):
+                if abs(reale - diff_dist) <= Decimal('1'):
                     distinta.verifica_saldi = {'ok': True}
                 else:
                     distinta.verifica_saldi = {'ok': False, 'valore': reale}
