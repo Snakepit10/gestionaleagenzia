@@ -3009,12 +3009,19 @@ def accetta_giroconto(request, pk):
     tipo_a = richiesta.tipo
     tipo_b = _tipo_opposto(tipo_a)
 
+    # La nota scritta dall'operatore alla creazione del giroconto viene riportata
+    # in entrambi i movimenti (es. "Giroconto da Goldbet: ricarica cliente x").
+    nota_op = (richiesta.note or '').strip()
+    suffisso_nota = f': {nota_op}' if nota_op else ''
+    note_dest = f'Giroconto da {agenzia_orig.nome}{suffisso_nota} (richiesta #{richiesta.pk})'
+    note_orig = f'Giroconto verso {agenzia_utente.nome}{suffisso_nota} (richiesta #{richiesta.pk})'
+
     try:
         # 3a) Contro-movimento in B (agenzia di chi accetta, utente presente in b_db)
         mov_b = Movimento(
             cliente=conto_b, tipo=tipo_b, importo=importo, distinta=distinta_b,
             creato_da_id=request.user.id,
-            note=f'Giroconto da {agenzia_orig.nome} (richiesta #{richiesta.pk})',
+            note=note_dest,
         )
         mov_b._state.db = b_db
         mov_b.save(using=b_db)
@@ -3024,7 +3031,7 @@ def accetta_giroconto(request, pk):
         mov_a = Movimento(
             cliente=conto_a, tipo=tipo_a, importo=importo, distinta=distinta_a,
             creato_da_id=richiesta.operatore_origine_id,
-            note=f'Giroconto verso {agenzia_utente.nome} (richiesta #{richiesta.pk})',
+            note=note_orig,
         )
         mov_a._state.db = a_db
         mov_a.save(using=a_db)
