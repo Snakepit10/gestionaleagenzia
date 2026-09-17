@@ -41,19 +41,19 @@
     </div>
 </div>
 
-<!-- Lista -->
-<div class="card">
-    <div class="card-header bg-primary text-white">
-        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Elenco task</h5>
+<!-- Sezioni per categoria -->
+{% for gruppo in gruppi %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-tag me-2"></i>{{ gruppo.nome }}</h5>
+        <span class="badge bg-light text-dark">{{ gruppo.tasks|length }}</span>
     </div>
     <div class="card-body p-0">
-        {% if page_obj %}
         <div class="table-responsive">
             <table class="table table-striped table-hover mb-0 table-sm align-middle">
                 <thead>
                     <tr>
                         <th>Titolo</th>
-                        <th>Categoria</th>
                         <th>Priorità</th>
                         <th>Assegnata a</th>
                         <th>Scadenza</th>
@@ -62,14 +62,13 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for task in page_obj %}
+                    {% for task in gruppo.tasks %}
                     <tr>
                         <td>
                             <strong>{{ task.titolo }}</strong>
                             {% if task.descrizione %}<br><span class="text-muted small">{{ task.descrizione|truncatechars:70 }}</span>{% endif %}
                             {% if task.note %}<br><span class="text-info small"><i class="fas fa-sticky-note me-1"></i>{{ task.note|truncatechars:60 }}</span>{% endif %}
                         </td>
-                        <td>{% if task.categoria %}<span class="badge bg-secondary">{{ task.categoria.nome }}</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
                         <td>
                             {% if task.priorita == 'alta' %}<span class="badge bg-danger">Alta</span>
                             {% elif task.priorita == 'media' %}<span class="badge bg-info text-dark">Media</span>
@@ -115,41 +114,16 @@
                 </tbody>
             </table>
         </div>
-
-        {% if page_obj.has_other_pages %}
-        <div class="p-3">
-            <nav>
-                <ul class="pagination justify-content-center mb-0">
-                    {% if page_obj.has_previous %}
-                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"><i class="fas fa-angle-left"></i></a></li>
-                    {% else %}
-                    <li class="page-item disabled"><span class="page-link"><i class="fas fa-angle-left"></i></span></li>
-                    {% endif %}
-                    {% for i in page_obj.paginator.page_range %}
-                        {% if page_obj.number == i %}
-                        <li class="page-item active"><span class="page-link">{{ i }}</span></li>
-                        {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
-                        <li class="page-item"><a class="page-link" href="?page={{ i }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ i }}</a></li>
-                        {% endif %}
-                    {% endfor %}
-                    {% if page_obj.has_next %}
-                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"><i class="fas fa-angle-right"></i></a></li>
-                    {% else %}
-                    <li class="page-item disabled"><span class="page-link"><i class="fas fa-angle-right"></i></span></li>
-                    {% endif %}
-                </ul>
-            </nav>
-        </div>
-        {% endif %}
-
-        {% else %}
-        <div class="text-center py-5">
-            <i class="fas fa-tasks text-muted fa-4x mb-3"></i>
-            <h5>Nessuna task</h5>
-            <p class="text-muted">Non ci sono task che corrispondono ai filtri.</p>
-            <a href="{% url 'nuova_task' %}" class="btn btn-primary"><i class="fas fa-plus-circle me-1"></i>Crea la prima task</a>
-        </div>
-        {% endif %}
     </div>
 </div>
+{% empty %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-tasks text-muted fa-4x mb-3"></i>
+        <h5>Nessuna task</h5>
+        <p class="text-muted">Non ci sono task che corrispondono ai filtri.</p>
+        <a href="{% url 'nuova_task' %}" class="btn btn-primary"><i class="fas fa-plus-circle me-1"></i>Crea la prima task</a>
+    </div>
+</div>
+{% endfor %}
 {% endblock %}

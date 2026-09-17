@@ -3151,11 +3151,21 @@ def lista_task(request):
         'completata': base.filter(stato='completata').count(),
     }
 
-    paginator = Paginator(tasks, 30)
-    page_obj = paginator.get_page(request.GET.get('page'))
+    # Raggruppa le task in sezioni per categoria (categorie ordinate; task senza
+    # categoria in coda). Mostra solo le sezioni non vuote.
+    tasks_list = list(tasks)
+    gruppi = []
+    for c in db.get_queryset(CategoriaTask).order_by('ordine', 'nome'):
+        ts = [t for t in tasks_list if t.categoria_id == c.id]
+        if ts:
+            gruppi.append({'nome': c.nome, 'id': c.id, 'tasks': ts})
+    senza = [t for t in tasks_list if t.categoria_id is None]
+    if senza:
+        gruppi.append({'nome': 'Senza categoria', 'id': None, 'tasks': senza})
 
     return render(request, 'app/lista_task.html', {
-        'page_obj': page_obj,
+        'gruppi': gruppi,
+        'totale': len(tasks_list),
         'form_filtro': form_filtro,
         'conteggi': conteggi,
         'oggi': timezone.localdate(),
