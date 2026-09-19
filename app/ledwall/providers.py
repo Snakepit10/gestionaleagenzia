@@ -43,9 +43,14 @@ except Exception:  # pragma: no cover
 # Chiavi del feed FlashScore/diretta usate:
 #   AA id, AD start(unix), AB status(1 sched,2 live,3 finita), AC fase, AO inizio periodo,
 #   AE/AF nome casa/ospite, AG/AH gol casa/ospite.
+# Codici fase (AC), verificati confrontando col minuto mostrato da diretta.it:
+#   12 = 1o tempo (minuto = minuti da AO)
+#   13 = 2o tempo (minuto = 45 + minuti da AO)
+#   38 = INTERVALLO (nessun minuto: si mostra "INT")
+# Altri codici (supplementari, rigori, ecc.) -> etichetta generica "LIVE".
 _STATUS = {'1': 'scheduled', '2': 'live', '3': 'finished'}
-# base minuti per fase (AC): 1o tempo, 2o tempo, supplementari 1, supplementari 2
-_PHASE_BASE = {'12': 0, '13': 45, '38': 90, '39': 105}
+_PHASE_BASE = {'12': 0, '13': 45}
+_AC_INTERVALLO = '38'
 
 
 def _parse_records(text):
@@ -97,17 +102,17 @@ def _match_competition(za_name):
 
 def _minute(ev, now_ts):
     ac = ev.get('AC')
-    ao = ev.get('AO')
+    if ac == _AC_INTERVALLO:
+        return 'INT'                 # intervallo: nessun minuto
     base = _PHASE_BASE.get(ac)
-    elapsed = None
-    if ao:
-        try:
-            elapsed = int((now_ts - int(ao)) // 60) + 1
-        except (TypeError, ValueError):
-            elapsed = None
-    if base is not None and elapsed is not None:
-        return str(base + max(1, elapsed))
-    return 'LIVE'  # intervallo / fase sconosciuta / senza inizio periodo
+    ao = ev.get('AO')
+    if base is None or not ao:
+        return 'LIVE'                # supplementari/rigori/fase sconosciuta
+    try:
+        elapsed = int((now_ts - int(ao) + 30) // 60)   # minuti da inizio periodo, arrotondati
+    except (TypeError, ValueError):
+        return 'LIVE'
+    return str(base + max(1, elapsed))
 
 
 def _int_or_none(v):
