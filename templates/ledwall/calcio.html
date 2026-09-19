@@ -18,30 +18,32 @@
   .lane{flex:1;position:relative;overflow:hidden;display:block;}
 
   /* ---- Scheda partita (una alla volta, stile tabellone) ---- */
-  .card{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1.1fr 1fr;align-items:center;
-        padding:0 2%;color:#fff;opacity:0;transform:translateY(25%);
-        transition:opacity .35s,transform .35s;}
+  /* Intestazione centrata (competizione + data) sopra, riga logo-punteggio-logo sotto,
+     il tutto centrato verticalmente: distribuzione bilanciata. */
+  .card{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+        gap:calc(var(--h) * 0.025);padding:calc(var(--h) * 0.04) 3%;color:#fff;
+        opacity:0;transform:translateY(25%);transition:opacity .35s,transform .35s;}
   .card.on{opacity:1;transform:none;}
   .card.out{opacity:0;transform:translateY(-25%);}
-  .team{display:flex;flex-direction:column;align-items:center;gap:0.28em;min-width:0;}
-  .badge{width:calc(var(--h) * 0.34);height:calc(var(--h) * 0.34);border-radius:50%;background:#fff;
+  .hdr{display:flex;flex-direction:column;align-items:center;line-height:1;gap:calc(var(--h) * 0.012);}
+  .hdr .cl{font-size:calc(var(--h) * 0.095);font-weight:800;color:#ffd200;letter-spacing:0.05em;text-align:center;}
+  .hdr .dt{font-size:calc(var(--h) * 0.075);color:#b8c3cc;font-weight:600;font-variant-numeric:tabular-nums;}
+  .row{display:grid;grid-template-columns:1fr 1.15fr 1fr;align-items:center;}
+  .team{display:flex;flex-direction:column;align-items:center;gap:0.2em;min-width:0;}
+  .badge{width:calc(var(--h) * 0.32);height:calc(var(--h) * 0.32);border-radius:50%;background:#fff;
          display:flex;align-items:center;justify-content:center;overflow:hidden;}
-  /* I loghi di diretta.it sono 30x30: non ingrandirli oltre il nativo (restano nitidi),
-     al massimo li rimpiccioliamo per stare nel badge. */
-  .badge img{max-width:78%;max-height:78%;width:auto;height:auto;object-fit:contain;
-             image-rendering:auto;}
+  /* I loghi di diretta.it sono 30x30: non ingrandirli oltre il nativo (restano nitidi). */
+  .badge img{max-width:78%;max-height:78%;width:auto;height:auto;object-fit:contain;image-rendering:auto;}
   .badge i{font-style:normal;width:100%;height:100%;display:flex;align-items:center;justify-content:center;
-           font-size:calc(var(--h) * 0.13);font-weight:800;color:#111;letter-spacing:0.02em;}
-  .team .nm{font-size:calc(var(--h) * 0.13);font-weight:700;white-space:nowrap;max-width:100%;
-            overflow:hidden;text-overflow:ellipsis;}
+           font-size:calc(var(--h) * 0.12);font-weight:800;color:#111;letter-spacing:0.02em;}
+  .team .nm{font-size:calc(var(--h) * 0.12);font-weight:700;white-space:nowrap;max-width:100%;
+            overflow:hidden;text-overflow:ellipsis;text-align:center;}
   .team .nm.win{color:#ffd200;}
-  .mid{display:flex;flex-direction:column;align-items:center;gap:0.18em;text-align:center;}
-  .mid .cl{font-size:calc(var(--h) * 0.095);font-weight:800;color:#ffd200;letter-spacing:0.05em;}
-  .mid .dt{font-size:calc(var(--h) * 0.085);color:#b8c3cc;font-weight:600;font-variant-numeric:tabular-nums;}
-  .mid .big{font-size:calc(var(--h) * 0.32);font-weight:800;line-height:0.95;
+  .mid{display:flex;flex-direction:column;align-items:center;gap:0.02em;text-align:center;}
+  .mid .big{font-size:calc(var(--h) * 0.34);font-weight:800;line-height:0.95;
             font-variant-numeric:tabular-nums;letter-spacing:0.02em;}
   .mid .big.time{font-size:calc(var(--h) * 0.24);color:#2b7bff;}
-  .mid .stat{font-size:calc(var(--h) * 0.10);font-weight:800;color:#e5202f;letter-spacing:0.05em;}
+  .mid .stat{font-size:calc(var(--h) * 0.11);font-weight:800;color:#e5202f;letter-spacing:0.05em;}
   .mid .stat.live{animation:blink 1.2s steps(2,start) infinite;}
   .mid .stat.gray{color:#b8c3cc;}
 
@@ -138,22 +140,24 @@
   function barLive(m){ if(m==='INT') return 'INT'; if(isMin(m)) return "LIVE "+m+"'"; return 'LIVE'; }
 
   function card(it){
-    var m=it.m, hw=false, aw=false, mid, cl='<span class="cl">'+esc(it.c)+'</span>';
-    var dt = '<span class="dt">'+esc(m.date||todayStr())+'</span>';
+    var m=it.m, hw=false, aw=false, big, stat;
     if(m.status==='live'){
       var stCls = (m.minute==='INT') ? 'stat' : 'stat live';
-      mid = cl+dt+'<span class="big">'+(m.homeScore==null?0:m.homeScore)+'-'+(m.awayScore==null?0:m.awayScore)+
-            '</span><span class="'+stCls+'">'+cardStat(m.minute)+'</span>';
+      big='<span class="big">'+(m.homeScore==null?0:m.homeScore)+'-'+(m.awayScore==null?0:m.awayScore)+'</span>';
+      stat='<span class="'+stCls+'">'+cardStat(m.minute)+'</span>';
     } else if(m.status==='scheduled'){
-      mid = cl+dt+'<span class="big time">'+esc(m.time||'')+'</span><span class="stat gray">OGGI</span>';
+      big='<span class="big time">'+esc(m.time||'')+'</span>';
+      stat='<span class="stat gray">'+(m.date?'DOMANI':'OGGI')+'</span>';
     } else {
       hw = (m.homeScore!=null && m.awayScore!=null && m.homeScore>m.awayScore);
       aw = (m.homeScore!=null && m.awayScore!=null && m.awayScore>m.homeScore);
-      mid = cl+dt+'<span class="big">'+(m.homeScore==null?'-':m.homeScore)+'-'+(m.awayScore==null?'-':m.awayScore)+
-            '</span><span class="stat">FINALE</span>';
+      big='<span class="big">'+(m.homeScore==null?'-':m.homeScore)+'-'+(m.awayScore==null?'-':m.awayScore)+'</span>';
+      stat='<span class="stat">FINALE</span>';
     }
+    var hdr='<div class="hdr"><span class="cl">'+esc(it.c)+'</span><span class="dt">'+esc(m.date||todayStr())+'</span></div>';
+    var row='<div class="row">'+team(m.home,m.homeLogo,hw)+'<div class="mid">'+big+stat+'</div>'+team(m.away,m.awayLogo,aw)+'</div>';
     var el=document.createElement('div'); el.className='card';
-    el.innerHTML = team(m.home,m.homeLogo,hw)+'<div class="mid">'+mid+'</div>'+team(m.away,m.awayLogo,aw);
+    el.innerHTML = hdr+row;
     return el;
   }
   function fit(el){
@@ -187,8 +191,8 @@
   }
   function placeholder(){
     var el=document.createElement('div'); el.className='card';
-    el.innerHTML='<div></div><div class="mid"><span class="cl">CALCIO OGGI</span>'+
-      '<span class="dt">'+todayStr()+'</span><span class="stat gray">IN ATTESA DATI</span></div><div></div>';
+    el.innerHTML='<div class="hdr"><span class="cl">CALCIO OGGI</span><span class="dt">'+todayStr()+'</span></div>'+
+      '<div class="row"><div></div><div class="mid"><span class="stat gray">IN ATTESA DATI</span></div><div></div></div>';
     lane.appendChild(el); clearCur(); cur=el; enter(el);
   }
   function adPhase(){

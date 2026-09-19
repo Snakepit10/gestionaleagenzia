@@ -2038,6 +2038,29 @@ class PubblicitaLedwall(models.Model):
         return self.titolo or f"Pubblicità #{self.pk}"
 
 
+class CompetizioneLedwall(models.Model):
+    """Competizione mostrabile sul ledwall (DB 'default'). Attiva/disattiva e ordina i
+    campionati dall'admin. Il match col nome usato da diretta.it avviene tramite gli
+    'aliases' (nome esatto "PAESE: Torneo", uno per riga) o 'contiene' (sottostringa)."""
+    codice = models.SlugField(max_length=40, unique=True)
+    nome = models.CharField(max_length=80)
+    short_name = models.CharField(max_length=20, help_text="Etichetta gialla sul ledwall (es. SERIE A)")
+    ordine = models.IntegerField(default=0, help_text="Priorità: numero più basso = più in alto")
+    attivo = models.BooleanField(default=True, help_text="Se spento, non compare sul ledwall")
+    aliases = models.TextField(blank=True, default='',
+                               help_text="Nomi esatti di diretta.it, uno per riga (es. 'ITALIA: Serie A')")
+    contiene = models.CharField(max_length=80, blank=True, default='',
+                                help_text="In alternativa: sottostringa del nome (es. 'champions league')")
+
+    class Meta:
+        verbose_name = "Ledwall - Competizione"
+        verbose_name_plural = "Ledwall - Competizioni"
+        ordering = ['ordine', 'nome']
+
+    def __str__(self):
+        return self.nome
+
+
 class ImpostazioniLedwall(models.Model):
     """Impostazioni globali del ledwall (riga unica). DB 'default'."""
     secondi_scheda = models.FloatField(default=5,
@@ -2047,6 +2070,14 @@ class ImpostazioniLedwall(models.Model):
     secondi_pubblicita = models.FloatField(default=5,
                                            help_text="Secondi di default per ogni immagine pubblicitaria "
                                                      "(usato se la singola immagine ha secondi = 0)")
+    # Filtri: quali partite mostrare
+    mostra_live = models.BooleanField(default=True, help_text="Mostra le partite in corso (risultati live)")
+    mostra_oggi_in_programma = models.BooleanField(default=True,
+                                                   help_text="Mostra le partite di oggi non ancora iniziate (orario)")
+    mostra_oggi_finite = models.BooleanField(default=True,
+                                             help_text="Mostra i risultati finali delle partite di oggi")
+    mostra_domani = models.BooleanField(default=False,
+                                        help_text="Mostra anche le partite in programma domani (con la data)")
 
     class Meta:
         verbose_name = "Ledwall - Impostazioni"

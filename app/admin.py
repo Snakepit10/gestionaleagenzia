@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from .models import (Cliente, Movimento, DistintaCassa, Comunicazione, Agenzia, ProfiloUtente,
                      SaldoEsterno, AzzeramentoProgrammato, RichiestaGiroconto, TaskAgenzia,
-                     CategoriaTask, PubblicitaLedwall, ImpostazioniLedwall)
+                     CategoriaTask, PubblicitaLedwall, ImpostazioniLedwall, CompetizioneLedwall)
 from .database_utils import AGENZIA_DATABASE_MAP
 
 
@@ -289,12 +289,28 @@ class PubblicitaLedwallAdmin(admin.ModelAdmin):
     anteprima.short_description = 'Anteprima'
 
 
+@admin.register(CompetizioneLedwall)
+class CompetizioneLedwallAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'short_name', 'ordine', 'attivo', 'contiene')
+    list_display_links = ('nome',)
+    list_editable = ('short_name', 'ordine', 'attivo')
+    list_filter = ('attivo',)
+    search_fields = ('nome', 'short_name', 'codice', 'aliases')
+    ordering = ('ordine', 'nome')
+    fields = ('codice', 'nome', 'short_name', 'ordine', 'attivo', 'aliases', 'contiene')
+
+
 @admin.register(ImpostazioniLedwall)
 class ImpostazioniLedwallAdmin(admin.ModelAdmin):
-    list_display = ('__str__', 'secondi_scheda', 'ogni_n_schede', 'secondi_pubblicita')
+    list_display = ('__str__', 'secondi_scheda', 'ogni_n_schede', 'secondi_pubblicita',
+                    'mostra_live', 'mostra_oggi_in_programma', 'mostra_oggi_finite', 'mostra_domani')
+    fieldsets = (
+        ('Tempi', {'fields': ('secondi_scheda', 'ogni_n_schede', 'secondi_pubblicita')}),
+        ('Filtri partite', {'fields': ('mostra_live', 'mostra_oggi_in_programma',
+                                       'mostra_oggi_finite', 'mostra_domani')}),
+    )
 
     def has_add_permission(self, request):
-        # Riga unica: consenti l'aggiunta solo se non esiste ancora.
         return not ImpostazioniLedwall.objects.using('default').exists()
 
     def has_delete_permission(self, request, obj=None):

@@ -80,20 +80,55 @@ def _logo(code):
     return 'api/logo/' + code
 
 
-def _match_competition(za_name):
-    """Ritorna la competizione di config per un'intestazione 'PAESE: Torneo', o None."""
+def _load_competizioni():
+    """Competizioni attive dal DB (gestite in admin); fallback a config.COMPETITIONS."""
+    try:
+        from ..models import CompetizioneLedwall
+        rows = list(CompetizioneLedwall.objects.using('default')
+                    .filter(attivo=True).order_by('ordine', 'nome'))
+        if rows:
+            out = []
+            for r in rows:
+                aliases = [a.strip() for a in (r.aliases or '').splitlines() if a.strip()]
+                out.append({'id': r.codice, 'name': r.nome, 'shortName': r.short_name,
+                            'priority': r.ordine, 'aliases': aliases,
+                            'contains': (r.contiene or '').strip().lower() or None})
+            return out
+    except Exception:
+        pass
+    return [{'id': c['id'], 'name': c['name'], 'shortName': c['shortName'],
+             'priority': c['priority'], 'aliases': c.get('aliases', []),
+             'contains': c.get('contains')} for c in config.COMPETITIONS]
+
+
+def _load_impostazioni():
+    """Filtri (quali partite mostrare) dal DB; default se non disponibili."""
+    d = {'live': True, 'oggi_sched': True, 'oggi_fin': True, 'domani': False}
+    try:
+        from ..models import ImpostazioniLedwall
+        o = ImpostazioniLedwall.get_solo()
+        d['live'] = o.mostra_live
+        d['oggi_sched'] = o.mostra_oggi_in_programma
+        d['oggi_fin'] = o.mostra_oggi_finite
+        d['domani'] = o.mostra_domani
+    except Exception:
+        pass
+    return d
+
+
+def _match_competition(za_name, comps):
+    """Ritorna la competizione per un'intestazione 'PAESE: Torneo', o None."""
     if not za_name:
         return None
     low = za_name.lower()
     for pat in config.EXCLUDE:
         if pat in low:
             return None
-    # prima gli alias esatti (piu' precisi), poi il 'contains'
-    for comp in config.COMPETITIONS:
+    for comp in comps:                      # prima gli alias esatti
         for alias in comp.get('aliases', []):
             if za_name == alias:
                 return comp
-    for comp in config.COMPETITIONS:
+    for comp in comps:                      # poi il 'contains'
         c = comp.get('contains')
         if c and c in low:
             return comp
@@ -163,13 +198,13 @@ def _event_to_match(ev, now_ts, with_date=False):
     return m
 
 
-def _collect(text, now_ts, with_date=False):
+def _collect(text, now_ts, comps, with_date=False):
     """Raggruppa gli eventi del feed per competizione configurata."""
     buckets = {}  # comp id -> {comp, matches:[]}
     current = None
     for rec in _parse_records(text):
         if 'ZA' in rec:
-            current = _match_competition(rec['ZA'])
+            current = _match_competition(rec['ZA'], comps)
         elif 'AA' in rec and current is not None:
             m = _event_to_match(rec, now_ts, with_date=with_date)
             if m is None:
@@ -212,21 +247,47 @@ class DirettaProvider:
 
     def fetch(self):
         now_ts = int(datetime.now(_tz.utc).timestamp())
-        text = self._fetch_day(0)
-        buckets = _collect(text, now_ts, with_date=False)
-        if buckets:
-            comps = _build_competitions(buckets)
-            return self._envelope(comps)
+        comps = _load_competizioni()
+        imp = _load_impostazioni()
 
-        # Nessuna partita oggi nelle competizioni configurate:
-        # mostra ultimi risultati (ieri) e prossime partite (domani), con la data.
+        text = self._fetch_day(0)
+        buckets = _collect(text, now_ts, comps, with_date=False)
+
+        # Filtra le partite di oggi secondo gli interruttori dell'admin.
+        def keep_today(m):
+            if m['status'] == 'live':
+                return imp['live']
+            if m['status'] == 'scheduled':
+                return imp['oggi_sched']
+            if m['status'] == 'finished':
+                return imp['oggi_fin']
+            return False
+        for b in buckets.values():
+            b['matches'] = [m for m in b['matches'] if keep_today(m)]
+
+        # Aggiungi le partite in programma DOMANI (se attivo), con la data.
+        if imp['domani']:
+            try:
+                t1 = self._fetch_day(1)
+                for cid, b in _collect(t1, now_ts, comps, with_date=True).items():
+                    sched = [m for m in b['matches'] if m['status'] == 'scheduled']
+                    if sched:
+                        buckets.setdefault(cid, {'comp': b['comp'], 'matches': []})['matches'].extend(sched)
+            except Exception:
+                pass
+
+        buckets = {k: v for k, v in buckets.items() if v['matches']}
+        if buckets:
+            return self._envelope(_build_competitions(buckets))
+
+        # Niente da mostrare: ultimi risultati (ieri) + prossime partite (domani), con la data.
         fb = {}
         for day in (-1, 1):
             try:
                 t = self._fetch_day(day)
             except Exception:
                 continue
-            for cid, b in _collect(t, now_ts, with_date=True).items():
+            for cid, b in _collect(t, now_ts, comps, with_date=True).items():
                 fb.setdefault(cid, {'comp': b['comp'], 'matches': []})['matches'].extend(b['matches'])
         return self._envelope(_build_competitions(fb))
 

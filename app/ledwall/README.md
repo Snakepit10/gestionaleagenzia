@@ -37,6 +37,22 @@ La pagina legge tutto da `/ledwall/api/ads.json` (config + elenco con `fx`/`seco
 immagine) e serve le immagini da `/ledwall/api/ad/<id>`. Le modifiche si vedono sul ledwall
 entro ~5 minuti (o al reload).
 
+## Filtri: quali campionati e quali partite (da Django admin)
+Dal menu **"Ledwall"** (super-user):
+- **Ledwall - Competizioni** (`app.CompetizioneLedwall`): l'elenco dei campionati. Per ognuno
+  **attivo** (on/off), **ordine** (priorità, le italiane per prime), **short_name** (etichetta
+  gialla) e le regole di match col nome di diretta.it (**aliases** esatti, uno per riga, oppure
+  **contiene** una sottostringa). Le voci iniziali (Serie A/B, Coppa Italia, Champions, Europa,
+  Conference, Premier, LaLiga, Bundesliga, Ligue 1, Nations, Mondiali, Europei) sono già presenti;
+  puoi aggiungerne altre.
+- **Ledwall - Impostazioni → Filtri partite**: interruttori per **mostra_live** (risultati in
+  corso), **mostra_oggi_in_programma** (partite di oggi non iniziate), **mostra_oggi_finite**
+  (risultati finali di oggi), **mostra_domani** (anche le partite in programma domani, con la data).
+  Se non c'è nulla da mostrare, il ledwall ripiega su ultimi risultati (ieri) + prossime (domani).
+
+Il provider legge questi filtri dal DB (`_load_competizioni` / `_load_impostazioni`); le modifiche
+si vedono sul ledwall entro il TTL della cache (max 10 min, o al reload).
+
 ## Loghi squadra
 Presi da diretta.it (codici `OA`/`OB` del feed) e serviti dal **nostro proxy** con cache
 `/ledwall/api/logo/<code>` (base in `config.LOGO_BASE`), così il ledwall continua a chiamare
