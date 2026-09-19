@@ -1,8 +1,13 @@
 from django.urls import path
 from . import views
 from . import views_conto_economico as ce
+from . import views_ledwall
 
 urlpatterns = [
+    # Ledwall calcio (pubblico, per player LED — nessun login)
+    path('ledwall/calcio', views_ledwall.ledwall_calcio, name='ledwall_calcio'),
+    path('ledwall/api/calcio.json', views_ledwall.ledwall_api_calcio, name='ledwall_api_calcio'),
+
     # Homepage (accessibile a tutti gli utenti autenticati)
     path('', views.home, name='home'),
 

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=320, height=200, initial-scale=1, user-scalable=no">
+<title>Ledwall Calcio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --yellow:#FFD200; --blue:#2B7BFF; --red:#E5202F; --white:#FFFFFF; --bg:#000000;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:320px;height:200px;overflow:hidden;background:var(--bg);}
+  body{
+    font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
+    font-weight:700; color:var(--white); line-height:1;
+    -webkit-font-smoothing:none; text-rendering:optimizeSpeed;
+  }
+  #stage{position:relative;width:320px;height:200px;overflow:hidden;}
+
+  /* Nastro scorrevole: animazione CSS sul compositor (continua anche se il main
+     thread e' sotto carico; le due copie identiche rendono il loop invisibile). */
+  #track{position:absolute;top:0;left:0;height:200px;display:flex;
+         align-items:center;white-space:nowrap;will-change:transform;}
+  #track.run{animation-name:ledscroll;animation-timing-function:linear;
+             animation-iteration-count:infinite;animation-duration:40s;}
+  .copy{display:inline-flex;align-items:center;height:200px;white-space:nowrap;}
+  @keyframes ledscroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+
+  /* Etichetta competizione */
+  .comp{color:var(--yellow);font-size:52px;font-weight:700;
+        padding:0 26px 0 40px;letter-spacing:.5px;text-transform:uppercase;}
+
+  /* Partita */
+  .m{display:inline-flex;align-items:center;height:200px;padding:0 20px;}
+  .team{font-size:52px;color:var(--white);}
+  .team.win{color:var(--yellow);}
+  .score{font-size:64px;font-weight:700;color:var(--white);padding:0 14px;letter-spacing:1px;}
+  .time{font-size:52px;color:var(--blue);padding-right:16px;}
+  .vs{font-size:44px;color:#cfcfcf;padding:0 12px;}
+  .live{font-size:40px;color:#fff;background:var(--red);padding:4px 12px;border-radius:4px;
+        margin-right:14px;animation:blink 1s steps(1) infinite;}
+  .min{font-size:46px;color:var(--red);padding-right:14px;font-weight:700;}
+  .date{font-size:38px;color:var(--blue);padding-right:14px;}
+  .sep{display:inline-block;color:var(--yellow);font-size:40px;padding:0 30px;opacity:.9;}
+
+  @keyframes blink{50%{opacity:0;}}
+
+  /* Riquadro fisso a sinistra (non scorre) */
+  #label{position:absolute;top:0;left:0;height:200px;width:92px;background:#000;
+         display:flex;flex-direction:column;align-items:center;justify-content:center;
+         z-index:5;pointer-events:none;}
+  #label::after{content:"";position:absolute;left:92px;top:0;width:22px;height:200px;
+         background:linear-gradient(90deg,#000,rgba(0,0,0,0));}
+  #ball{font-size:52px;line-height:1;}
+  #labeltext{color:var(--yellow);font-size:32px;font-weight:700;text-align:center;
+             text-transform:uppercase;margin-top:4px;letter-spacing:.5px;}
+
+  /* Meta: ora ultimo aggiornamento (piccola, in basso a destra) */
+  #foot{position:absolute;right:3px;bottom:1px;z-index:5;font-size:13px;color:#4a4a4a;
+        font-weight:600;}
+  #foot.stale{color:var(--red);}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="track"><div class="copy" id="c1"></div><div class="copy" id="c2"></div></div>
+  <div id="label"><div id="ball">&#9917;</div><div id="labeltext">CALCIO OGGI</div></div>
+  <div id="foot"></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var qs = new URLSearchParams(location.search);
+  var LABEL = (qs.get('label') || 'CALCIO OGGI').toUpperCase();
+  var SPEED = parseFloat(qs.get('speed')) || 3;          // caratteri al secondo
+  var DEMO  = qs.get('demo') ? ('?demo=' + qs.get('demo')) : '';
+  var API   = 'api/calcio.json' + DEMO;                    // relativo a /ledwall/calcio
+  document.getElementById('labeltext').textContent = LABEL;
+
+  var stage = document.getElementById('stage');
+  var track = document.getElementById('track');
+  var c1 = document.getElementById('c1');
+  var c2 = document.getElementById('c2');
+  var foot = document.getElementById('foot');
+
+  var esc = function(s){ return String(s==null?'':s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+
+  function renderMatch(m){
+    var hs = m.homeScore, as = m.awayScore;
+    var homeWin = (hs!=null && as!=null && hs>as);
+    var awayWin = (hs!=null && as!=null && as>hs);
+    var home = '<span class="team'+(homeWin?' win':'')+'">'+esc(m.home)+'</span>';
+    var away = '<span class="team'+(awayWin?' win':'')+'">'+esc(m.away)+'</span>';
+    var dt = m.date ? '<span class="date">'+esc(m.date)+'</span>' : '';
+    if(m.status==='live'){
+      var mn = (m.minute && m.minute!=='LIVE') ? '<span class="min">'+esc(m.minute)+"'</span>" : '';
+      var sc = '<span class="score">'+(hs==null?0:hs)+'-'+(as==null?0:as)+'</span>';
+      return '<span class="m">'+dt+'<span class="live">LIVE</span>'+mn+home+sc+away+'</span>';
+    }
+    if(m.status==='finished'){
+      var sc2 = '<span class="score">'+(hs==null?'-':hs)+'-'+(as==null?'-':as)+'</span>';
+      return '<span class="m">'+dt+home+sc2+away+'</span>';
+    }
+    // scheduled
+    return '<span class="m">'+dt+'<span class="time">'+esc(m.time||'')+'</span>'+
+           home+'<span class="vs">&ndash;</span>'+away+'</span>';
+  }
+
+  function buildHTML(data){
+    if(!data || !data.competitions || !data.competitions.length) return '';
+    var out = [];
+    for(var i=0;i<data.competitions.length;i++){
+      var c = data.competitions[i];
+      if(!c.matches || !c.matches.length) continue;
+      out.push('<span class="comp">'+esc(c.shortName||c.name)+'</span>');
+      for(var j=0;j<c.matches.length;j++){ out.push(renderMatch(c.matches[j])); }
+      out.push('<span class="sep">&#9670;</span>');
+    }
+    return out.join('');
+  }
+
+  // --- Misura e riempimento per uno scorrimento senza vuoti ---
+  var meas = document.createElement('div');
+  meas.className = 'copy';
+  meas.style.cssText = 'position:absolute;visibility:hidden;left:-99999px;top:0;';
+  document.body.appendChild(meas);
+
+  function fillCopies(html){
+    if(!html){ c1.innerHTML=''; c2.innerHTML=''; return; }
+    meas.innerHTML = html;
+    var raw = meas.getBoundingClientRect().width || 1;
+    // ripeti finche' una copia copre almeno la larghezza dello stage (evita gap nel loop)
+    var need = 320 + 120;
+    var k = Math.max(1, Math.ceil(need / raw));
+    var full = '';
+    for(var i=0;i<k;i++){ full += html; }
+    c1.innerHTML = full; c2.innerHTML = full;
+  }
+
+  // --- Scroll continuo con animazione CSS; swap dati al termine del loop ---
+  // Durata di un giro = (caratteri di una copia) / velocita' in caratteri/sec.
+  // Le due copie sono identiche: a fine ciclo (translateX -50%) l'immagine coincide
+  // con l'inizio, quindi sostituire il contenuto in quel momento non produce salti.
+  var pending = null;
+
+  function setDuration(){
+    var nChars = Math.max(1, (c1.textContent || '').length);
+    var dur = Math.max(8, nChars / SPEED);
+    track.style.animationDuration = dur + 's';
+  }
+
+  function applyData(html){
+    fillCopies(html);
+    setDuration();
+    track.classList.add('run');
+  }
+
+  // A ogni giro completo, se ci sono dati nuovi, li applico (nessun salto).
+  track.addEventListener('animationiteration', function(){
+    if(pending !== null){ applyData(pending); pending = null; }
+  });
+
+  // --- Aggiornamento dati ---
+  function fmtUpdated(iso, stale){
+    if(!iso){ foot.textContent = ''; return; }
+    var d = new Date(iso);
+    var hh = ('0'+d.getHours()).slice(-2), mm = ('0'+d.getMinutes()).slice(-2);
+    foot.textContent = 'agg. ' + hh + ':' + mm;
+    foot.className = stale ? 'stale' : '';
+  }
+
+  var haveContent = false;
+  var refreshTimer = null;
+
+  function scheduleNext(hasLive, ok){
+    if(refreshTimer) clearTimeout(refreshTimer);
+    var ms = ok ? (hasLive ? 60000 : 600000) : 15000;   // retry veloce se fallito
+    refreshTimer = setTimeout(load, ms);
+  }
+
+  function hasLive(data){
+    if(!data || !data.competitions) return false;
+    for(var i=0;i<data.competitions.length;i++){
+      var ms = data.competitions[i].matches||[];
+      for(var j=0;j<ms.length;j++){ if(ms[j].status==='live') return true; }
+    }
+    return false;
+  }
+
+  function load(){
+    fetch(API, {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(data){
+      var html = buildHTML(data);
+      if(html){
+        if(!haveContent){ applyData(html); haveContent = true; }
+        else { pending = html; }              // applicato al prossimo wrap: nessun salto
+      }
+      fmtUpdated(data.updated, data.stale);
+      scheduleNext(hasLive(data), true);
+    }).catch(function(){
+      // Nessun dato nuovo: continua con l'ultimo valido, segnala stale.
+      if(foot.textContent) foot.className = 'stale';
+      scheduleNext(false, false);
+    });
+  }
+
+  // Avvio
+  load();
+
+  // Ricarica completa ogni 6 ore per liberare memoria del player.
+  setTimeout(function(){ location.reload(); }, 6*60*60*1000);
+})();
+</script>
+</body>
+</html>
