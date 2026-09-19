@@ -121,6 +121,8 @@
   var ADS  = [];    // {url, fx, seconds}
   var CFG  = {hold:5, adEvery:4, adSlide:5};   // impostazioni dal backend (default di sicurezza)
   var i = 0, cur = null, shown = 0, started = false;
+  var barOffset = 0;         // secondi di scorrimento risultati accumulati (per riprendere)
+  var BAR_DUR = 40;          // deve combaciare con animation-duration di .bar .trk (40s)
 
   function applyCfg(c){
     c = c || {};
@@ -224,6 +226,11 @@
     bar.innerHTML='<div class="trk">'+half+half+'</div>';
     lane.appendChild(ad); lane.appendChild(bar);
     clearCur();
+    // Riprende lo scorrimento risultati da dove era rimasto (animation-delay negativo).
+    var trk=bar.querySelector('.trk');
+    trk.style.animationDelay = '-' + (barOffset % BAR_DUR) + 's';
+    var barStart=Date.now(), barClosed=false;
+    function closeBar(){ if(!barClosed){ barClosed=true; barOffset += (Date.now()-barStart)/1000; } }
     var slides=ad.querySelectorAll('.sl'), k=0;
     setTimeout(function(){
       ad.classList.add('on'); bar.classList.add('on'); if(slides[0]) slides[0].classList.add('on');
@@ -233,6 +240,7 @@
       slides[k].classList.remove('on'); slides[k].classList.add('out'); k++;
       if(k<slides.length){ slides[k].classList.add('on'); setTimeout(next, secOf(k)); }
       else {
+        closeBar();                          // memorizza dove si e' fermato lo scorrimento
         ad.classList.remove('on'); bar.classList.remove('on');
         setTimeout(function(){ if(ad.parentNode)ad.remove(); if(bar.parentNode)bar.remove(); step(); }, 480);
       }
