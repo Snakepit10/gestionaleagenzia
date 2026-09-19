@@ -6,210 +6,248 @@
 <title>Ledwall Calcio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@500&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --yellow:#FFD200; --blue:#2B7BFF; --red:#E5202F; --white:#FFFFFF; --bg:#000000;
-  }
   *{margin:0;padding:0;box-sizing:border-box;}
-  html,body{width:320px;height:200px;overflow:hidden;background:var(--bg);}
-  body{
-    font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
-    font-weight:700; color:var(--white); line-height:1;
-    -webkit-font-smoothing:none; text-rendering:optimizeSpeed;
-  }
-  #stage{position:relative;width:320px;height:200px;overflow:hidden;}
+  html,body{width:320px;height:200px;overflow:hidden;background:#000;}
+  body{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;color:#fff;
+       -webkit-font-smoothing:none;text-rendering:optimizeSpeed;}
+  #tk{height:100vh;width:100vw;display:flex;flex-direction:column;background:#0b1e2c;overflow:hidden;}
+  .lane{flex:1;position:relative;overflow:hidden;display:block;}
 
-  /* Nastro scorrevole: animazione CSS sul compositor (continua anche se il main
-     thread e' sotto carico; le due copie identiche rendono il loop invisibile). */
-  #track{position:absolute;top:0;left:0;height:200px;display:flex;
-         align-items:center;white-space:nowrap;will-change:transform;}
-  #track.run{animation-name:ledscroll;animation-timing-function:linear;
-             animation-iteration-count:infinite;animation-duration:40s;}
-  .copy{display:inline-flex;align-items:center;height:200px;white-space:nowrap;}
-  @keyframes ledscroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+  /* ---- Scheda partita (una alla volta, stile tabellone) ---- */
+  .card{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1.1fr 1fr;align-items:center;
+        padding:0 2%;color:#fff;opacity:0;transform:translateY(25%);
+        transition:opacity .35s,transform .35s;}
+  .card.on{opacity:1;transform:none;}
+  .card.out{opacity:0;transform:translateY(-25%);}
+  .team{display:flex;flex-direction:column;align-items:center;gap:0.28em;min-width:0;}
+  .badge{width:calc(100vh * 0.42);height:calc(100vh * 0.42);border-radius:50%;background:#fff;
+         display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .badge img{width:84%;height:84%;object-fit:contain;}
+  .badge i{font-style:normal;width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+           font-size:calc(100vh * 0.13);font-weight:800;color:#fff;letter-spacing:0.02em;}
+  .team .nm{font-size:calc(100vh * 0.13);font-weight:700;white-space:nowrap;max-width:100%;
+            overflow:hidden;text-overflow:ellipsis;}
+  .team .nm.win{color:#ffd200;}
+  .mid{display:flex;flex-direction:column;align-items:center;gap:0.18em;text-align:center;}
+  .mid .cl{font-size:calc(100vh * 0.095);font-weight:800;color:#ffd200;letter-spacing:0.05em;}
+  .mid .dt{font-size:calc(100vh * 0.085);color:#b8c3cc;font-weight:600;font-variant-numeric:tabular-nums;}
+  .mid .big{font-size:calc(100vh * 0.32);font-weight:800;line-height:0.95;
+            font-variant-numeric:tabular-nums;letter-spacing:0.02em;}
+  .mid .big.time{font-size:calc(100vh * 0.24);color:#2b7bff;}
+  .mid .stat{font-size:calc(100vh * 0.10);font-weight:800;color:#e5202f;letter-spacing:0.05em;}
+  .mid .stat.live{animation:blink 1.2s steps(2,start) infinite;}
+  .mid .stat.gray{color:#b8c3cc;}
 
-  /* Etichetta competizione */
-  .comp{color:var(--yellow);font-size:52px;font-weight:700;
-        padding:0 26px 0 40px;letter-spacing:.5px;text-transform:uppercase;}
+  /* ---- Intermezzo pubblicitario: risultati in basso, immagine sopra ---- */
+  .ad{position:absolute;left:0;right:0;top:0;bottom:calc(100vh * 0.24);overflow:hidden;background:#000;
+      transform:translateY(-105%);transition:transform .45s cubic-bezier(.2,.8,.2,1);}
+  .ad.on{transform:none;}
+  .ad .sl{position:absolute;inset:0;background-size:cover;background-position:center;background-repeat:no-repeat;
+          opacity:0;transition:opacity .5s,transform .5s cubic-bezier(.2,.8,.2,1);}
+  .ad .sl.on{opacity:1;transform:none;}
+  .ad .sl.fx-right{transform:translateX(60%);}   .ad .sl.fx-right.out{transform:translateX(-60%);opacity:0;}
+  .ad .sl.fx-zoom{transform:scale(0.6);}          .ad .sl.fx-zoom.out{transform:scale(1.3);opacity:0;}
+  .ad .sl.fx-up{transform:translateY(60%);}       .ad .sl.fx-up.out{transform:translateY(-60%);opacity:0;}
+  .bar{position:absolute;left:0;right:0;bottom:0;height:calc(100vh * 0.24);display:flex;align-items:center;
+       overflow:hidden;background:#0b1e2c;border-top:0.1em solid #ffd200;color:#fff;
+       font-size:calc(100vh * 0.11);font-weight:700;white-space:nowrap;
+       transform:translateY(105%);transition:transform .45s cubic-bezier(.2,.8,.2,1);}
+  .bar.on{transform:none;}
+  .bar .trk{display:inline-flex;align-items:center;gap:0.9em;padding-left:100vw;will-change:transform;
+            animation:barscroll linear infinite;animation-duration:40s;}
+  @keyframes barscroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+  .bar .it{display:inline-flex;align-items:center;gap:0.3em;}
+  .bar .bs{background:#fff;color:#000;padding:0 0.3em;border-radius:0.12em;font-weight:800;font-variant-numeric:tabular-nums;}
+  .bar .bt{background:#2b7bff;color:#fff;padding:0 0.3em;border-radius:0.12em;font-weight:800;font-variant-numeric:tabular-nums;}
+  .bar .bl{color:#e5202f;font-weight:800;font-size:0.85em;animation:blink 1.2s steps(2,start) infinite;}
+  .bar .bc{color:#ffd200;font-size:0.8em;margin-right:0.2em;}
 
-  /* Partita */
-  .m{display:inline-flex;align-items:center;height:200px;padding:0 20px;}
-  .team{font-size:52px;color:var(--white);}
-  .team.win{color:var(--yellow);}
-  .score{font-size:64px;font-weight:700;color:var(--white);padding:0 14px;letter-spacing:1px;}
-  .time{font-size:52px;color:var(--blue);padding-right:16px;}
-  .vs{font-size:44px;color:#cfcfcf;padding:0 12px;}
-  .live{font-size:40px;color:#fff;background:var(--red);padding:4px 12px;border-radius:4px;
-        margin-right:14px;animation:blink 1s steps(1) infinite;}
-  .min{font-size:46px;color:var(--red);padding-right:14px;font-weight:700;}
-  .date{font-size:38px;color:var(--blue);padding-right:14px;}
-  .sep{display:inline-block;color:var(--yellow);font-size:40px;padding:0 30px;opacity:.9;}
+  @keyframes blink{to{opacity:0.45;}}
 
-  @keyframes blink{50%{opacity:0;}}
-
-  /* Riquadro fisso a sinistra (non scorre) */
-  #label{position:absolute;top:0;left:0;height:200px;width:92px;background:#000;
-         display:flex;flex-direction:column;align-items:center;justify-content:center;
-         z-index:5;pointer-events:none;}
-  #label::after{content:"";position:absolute;left:92px;top:0;width:22px;height:200px;
-         background:linear-gradient(90deg,#000,rgba(0,0,0,0));}
-  #ball{font-size:52px;line-height:1;}
-  #labeltext{color:var(--yellow);font-size:32px;font-weight:700;text-align:center;
-             text-transform:uppercase;margin-top:4px;letter-spacing:.5px;}
-
-  /* Meta: ora ultimo aggiornamento (piccola, in basso a destra) */
-  #foot{position:absolute;right:3px;bottom:1px;z-index:5;font-size:13px;color:#4a4a4a;
-        font-weight:600;}
-  #foot.stale{color:var(--red);}
+  /* Meta: ora ultimo aggiornamento */
+  #foot{position:absolute;right:3px;bottom:1px;z-index:6;font-size:12px;color:#3a4a55;font-weight:600;}
+  #foot.stale{color:#e5202f;}
 </style>
 </head>
 <body>
-<div id="stage">
-  <div id="track"><div class="copy" id="c1"></div><div class="copy" id="c2"></div></div>
-  <div id="label"><div id="ball">&#9917;</div><div id="labeltext">CALCIO OGGI</div></div>
-  <div id="foot"></div>
-</div>
+<div id="tk"><div class="lane" id="lane"></div><div id="foot"></div></div>
 
 <script>
 (function(){
   "use strict";
   var qs = new URLSearchParams(location.search);
-  var LABEL = (qs.get('label') || 'CALCIO OGGI').toUpperCase();
-  var SPEED = parseFloat(qs.get('speed')) || 3;          // caratteri al secondo
-  var DEMO  = qs.get('demo') ? ('?demo=' + qs.get('demo')) : '';
-  var API   = 'api/calcio.json' + DEMO;                    // relativo a /ledwall/calcio
-  document.getElementById('labeltext').textContent = LABEL;
+  var DEMO   = qs.get('demo') ? ('?demo=' + qs.get('demo')) : '';
+  var HOLD   = (parseFloat(qs.get('hold'))   || 5) * 1000;   // secondi per scheda
+  var ADEVERY= parseInt(qs.get('adEvery'))   || 4;           // pubblicita' ogni N schede
+  var ADSLIDE= (parseFloat(qs.get('adSlide'))|| 5) * 1000;   // secondi per immagine promo
 
-  var stage = document.getElementById('stage');
-  var track = document.getElementById('track');
-  var c1 = document.getElementById('c1');
-  var c2 = document.getElementById('c2');
+  var lane = document.getElementById('lane');
   var foot = document.getElementById('foot');
-
   var esc = function(s){ return String(s==null?'':s)
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
 
-  function renderMatch(m){
-    var hs = m.homeScore, as = m.awayScore;
-    var homeWin = (hs!=null && as!=null && hs>as);
-    var awayWin = (hs!=null && as!=null && as>hs);
-    var home = '<span class="team'+(homeWin?' win':'')+'">'+esc(m.home)+'</span>';
-    var away = '<span class="team'+(awayWin?' win':'')+'">'+esc(m.away)+'</span>';
-    var dt = m.date ? '<span class="date">'+esc(m.date)+'</span>' : '';
-    if(m.status==='live'){
-      var mn = (m.minute && m.minute!=='LIVE') ? '<span class="min">'+esc(m.minute)+"'</span>" : '';
-      var sc = '<span class="score">'+(hs==null?0:hs)+'-'+(as==null?0:as)+'</span>';
-      return '<span class="m">'+dt+'<span class="live">LIVE</span>'+mn+home+sc+away+'</span>';
-    }
-    if(m.status==='finished'){
-      var sc2 = '<span class="score">'+(hs==null?'-':hs)+'-'+(as==null?'-':as)+'</span>';
-      return '<span class="m">'+dt+home+sc2+away+'</span>';
-    }
-    // scheduled
-    return '<span class="m">'+dt+'<span class="time">'+esc(m.time||'')+'</span>'+
-           home+'<span class="vs">&ndash;</span>'+away+'</span>';
-  }
+  var LIST = [];     // partite appiattite: {c, m}
+  var ADS  = [];     // url immagini pubblicitarie
+  var i = 0, cur = null, shown = 0, started = false;
+  var fx = ['fx-right','fx-zoom','fx-up'];
 
-  function buildHTML(data){
-    if(!data || !data.competitions || !data.competitions.length) return '';
+  // Attiva la transizione d'ingresso al tick successivo (non usa rAF: alcuni webview
+  // integrati lo congelano quando non a fuoco, lasciando gli elementi invisibili).
+  function enter(el){ setTimeout(function(){ el.classList.add('on'); }, 30); }
+
+  function order(st){ return st==='live'?0 : st==='scheduled'?1 : 2; }
+
+  function flatten(data){
     var out = [];
-    for(var i=0;i<data.competitions.length;i++){
-      var c = data.competitions[i];
-      if(!c.matches || !c.matches.length) continue;
-      out.push('<span class="comp">'+esc(c.shortName||c.name)+'</span>');
-      for(var j=0;j<c.matches.length;j++){ out.push(renderMatch(c.matches[j])); }
-      out.push('<span class="sep">&#9670;</span>');
+    (data.competitions||[]).forEach(function(c){
+      (c.matches||[]).slice().sort(function(a,b){return order(a.status)-order(b.status);})
+        .forEach(function(m){ out.push({c:c.shortName||c.name, m:m}); });
+    });
+    return out;
+  }
+
+  function initials(n){
+    return (n||'').split(/\s+/).map(function(w){return w[0]||'';}).join('').slice(0,3).toUpperCase();
+  }
+  function badge(name, logo){
+    if(logo){
+      return '<span class="badge"><img src="'+esc(logo)+'" alt="" '+
+             'onerror="this.parentNode.innerHTML=\'<i>'+esc(initials(name))+'</i>\'"></span>';
     }
-    return out.join('');
+    return '<span class="badge"><i>'+esc(initials(name))+'</i></span>';
+  }
+  function team(name, logo, win){
+    return '<div class="team">'+badge(name,logo)+
+           '<span class="nm'+(win?' win':'')+'">'+esc(name)+'</span></div>';
   }
 
-  // --- Misura e riempimento per uno scorrimento senza vuoti ---
-  var meas = document.createElement('div');
-  meas.className = 'copy';
-  meas.style.cssText = 'position:absolute;visibility:hidden;left:-99999px;top:0;';
-  document.body.appendChild(meas);
+  function todayStr(){ return new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+  function liveLabel(min){ return (min && min!=='LIVE') ? esc(min)+"'" : 'LIVE'; }
 
-  function fillCopies(html){
-    if(!html){ c1.innerHTML=''; c2.innerHTML=''; return; }
-    meas.innerHTML = html;
-    var raw = meas.getBoundingClientRect().width || 1;
-    // ripeti finche' una copia copre almeno la larghezza dello stage (evita gap nel loop)
-    var need = 320 + 120;
-    var k = Math.max(1, Math.ceil(need / raw));
-    var full = '';
-    for(var i=0;i<k;i++){ full += html; }
-    c1.innerHTML = full; c2.innerHTML = full;
-  }
-
-  // --- Scroll continuo con animazione CSS; swap dati al termine del loop ---
-  // Durata di un giro = (caratteri di una copia) / velocita' in caratteri/sec.
-  // Le due copie sono identiche: a fine ciclo (translateX -50%) l'immagine coincide
-  // con l'inizio, quindi sostituire il contenuto in quel momento non produce salti.
-  var pending = null;
-
-  function setDuration(){
-    var nChars = Math.max(1, (c1.textContent || '').length);
-    var dur = Math.max(8, nChars / SPEED);
-    track.style.animationDuration = dur + 's';
-  }
-
-  function applyData(html){
-    fillCopies(html);
-    setDuration();
-    track.classList.add('run');
-  }
-
-  // A ogni giro completo, se ci sono dati nuovi, li applico (nessun salto).
-  track.addEventListener('animationiteration', function(){
-    if(pending !== null){ applyData(pending); pending = null; }
-  });
-
-  // --- Aggiornamento dati ---
-  function fmtUpdated(iso, stale){
-    if(!iso){ foot.textContent = ''; return; }
-    var d = new Date(iso);
-    var hh = ('0'+d.getHours()).slice(-2), mm = ('0'+d.getMinutes()).slice(-2);
-    foot.textContent = 'agg. ' + hh + ':' + mm;
-    foot.className = stale ? 'stale' : '';
-  }
-
-  var haveContent = false;
-  var refreshTimer = null;
-
-  function scheduleNext(hasLive, ok){
-    if(refreshTimer) clearTimeout(refreshTimer);
-    var ms = ok ? (hasLive ? 60000 : 600000) : 15000;   // retry veloce se fallito
-    refreshTimer = setTimeout(load, ms);
-  }
-
-  function hasLive(data){
-    if(!data || !data.competitions) return false;
-    for(var i=0;i<data.competitions.length;i++){
-      var ms = data.competitions[i].matches||[];
-      for(var j=0;j<ms.length;j++){ if(ms[j].status==='live') return true; }
+  function card(it){
+    var m=it.m, hw=false, aw=false, mid, cl='<span class="cl">'+esc(it.c)+'</span>';
+    var dt = '<span class="dt">'+esc(m.date||todayStr())+'</span>';
+    if(m.status==='live'){
+      mid = cl+dt+'<span class="big">'+(m.homeScore==null?0:m.homeScore)+'-'+(m.awayScore==null?0:m.awayScore)+
+            '</span><span class="stat live">'+liveLabel(m.minute)+'</span>';
+    } else if(m.status==='scheduled'){
+      mid = cl+dt+'<span class="big time">'+esc(m.time||'')+'</span><span class="stat gray">OGGI</span>';
+    } else {
+      hw = (m.homeScore!=null && m.awayScore!=null && m.homeScore>m.awayScore);
+      aw = (m.homeScore!=null && m.awayScore!=null && m.awayScore>m.homeScore);
+      mid = cl+dt+'<span class="big">'+(m.homeScore==null?'-':m.homeScore)+'-'+(m.awayScore==null?'-':m.awayScore)+
+            '</span><span class="stat">FINALE</span>';
     }
-    return false;
+    var el=document.createElement('div'); el.className='card';
+    el.innerHTML = team(m.home,m.homeLogo,hw)+'<div class="mid">'+mid+'</div>'+team(m.away,m.awayLogo,aw);
+    return el;
   }
-
-  function load(){
-    fetch(API, {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(data){
-      var html = buildHTML(data);
-      if(html){
-        if(!haveContent){ applyData(html); haveContent = true; }
-        else { pending = html; }              // applicato al prossimo wrap: nessun salto
-      }
-      fmtUpdated(data.updated, data.stale);
-      scheduleNext(hasLive(data), true);
-    }).catch(function(){
-      // Nessun dato nuovo: continua con l'ultimo valido, segnala stale.
-      if(foot.textContent) foot.className = 'stale';
-      scheduleNext(false, false);
+  function fit(el){   // rimpicciolisce i nomi lunghi finche' stanno nella colonna
+    el.querySelectorAll('.nm').forEach(function(nm){
+      var fs=parseFloat(getComputedStyle(nm).fontSize), n=0;
+      while(nm.scrollWidth>nm.clientWidth && n<12){ fs*=0.9; nm.style.fontSize=fs+'px'; n++; }
     });
   }
 
-  // Avvio
-  load();
+  function barItem(it){
+    var m=it.m, s;
+    if(m.status==='live') s='<span class="bl">LIVE '+liveLabel(m.minute)+'</span><span>'+esc(m.home)+
+        '</span><span class="bs">'+(m.homeScore==null?0:m.homeScore)+'-'+(m.awayScore==null?0:m.awayScore)+
+        '</span><span>'+esc(m.away)+'</span>';
+    else if(m.status==='scheduled') s='<span class="bt">'+esc(m.time||'')+'</span><span>'+esc(m.home)+' – '+esc(m.away)+'</span>';
+    else s='<span>'+esc(m.home)+'</span><span class="bs">'+(m.homeScore==null?'-':m.homeScore)+'-'+
+        (m.awayScore==null?'-':m.awayScore)+'</span><span>'+esc(m.away)+'</span>';
+    return '<span class="it"><span class="bc">'+esc(it.c)+'</span>'+s+'</span>';
+  }
+
+  function clearCur(){
+    if(cur){ var old=cur; cur=null; old.classList.remove('on'); old.classList.add('out');
+             setTimeout(function(){ if(old.parentNode) old.parentNode.removeChild(old); },400); }
+  }
+
+  function showCard(){
+    if(!LIST.length){ placeholder(); return; }
+    if(i>=LIST.length) i=0;
+    var it=LIST[i]; i=(i+1)%LIST.length;
+    var el=card(it); lane.appendChild(el); fit(el);
+    clearCur(); cur=el;
+    enter(el);
+  }
+
+  function placeholder(){
+    var el=document.createElement('div'); el.className='card';
+    el.innerHTML='<div></div><div class="mid"><span class="cl">CALCIO OGGI</span>'+
+      '<span class="dt">'+todayStr()+'</span><span class="stat gray">IN ATTESA DATI</span></div><div></div>';
+    lane.appendChild(el); clearCur(); cur=el;
+    enter(el);
+  }
+
+  function adPhase(){
+    if(!ADS.length || !LIST.length){ step(); return; }   // niente pubblicita': continua con le schede
+    var ad=document.createElement('div'); ad.className='ad';
+    ad.innerHTML = ADS.map(function(u,k){
+      return '<div class="sl '+fx[k%fx.length]+'" style="background-image:url('+esc(u)+')"></div>';
+    }).join('');
+    var bar=document.createElement('div'); bar.className='bar';
+    var half=LIST.map(barItem).join('');
+    bar.innerHTML='<div class="trk">'+half+half+'</div>';
+    lane.appendChild(ad); lane.appendChild(bar);
+    clearCur();
+    var slides=ad.querySelectorAll('.sl'), k=0;
+    setTimeout(function(){
+      ad.classList.add('on'); bar.classList.add('on'); if(slides[0]) slides[0].classList.add('on');
+    }, 30);
+    function next(){
+      slides[k].classList.remove('on'); slides[k].classList.add('out'); k++;
+      if(k<slides.length){ slides[k].classList.add('on'); setTimeout(next, ADSLIDE); }
+      else {
+        ad.classList.remove('on'); bar.classList.remove('on');
+        setTimeout(function(){ if(ad.parentNode)ad.remove(); if(bar.parentNode)bar.remove(); step(); }, 480);
+      }
+    }
+    if(slides.length) setTimeout(next, ADSLIDE); else { setTimeout(function(){ad.remove();bar.remove();step();}, 400); }
+  }
+
+  function step(){
+    if(shown>0 && shown % ADEVERY === 0 && ADS.length){ shown++; adPhase(); return; }
+    showCard(); shown++;
+    setTimeout(step, HOLD);
+  }
+
+  // ---- Dati ----
+  function fmtUpdated(iso, stale){
+    if(iso){ var d=new Date(iso); foot.textContent='agg. '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
+    foot.className = stale ? 'stale' : '';
+  }
+  function anyLive(){ return LIST.some(function(x){return x.m.status==='live';}); }
+
+  var dataTimer=null;
+  function loadData(){
+    fetch('api/calcio.json'+DEMO,{cache:'no-store'}).then(function(r){return r.json();}).then(function(data){
+      LIST = flatten(data);
+      fmtUpdated(data.updated, data.stale);
+      if(!started && (LIST.length || true)){ started=true; (document.fonts?document.fonts.ready:Promise.resolve()).then(step); }
+      if(dataTimer) clearTimeout(dataTimer);
+      dataTimer=setTimeout(loadData, anyLive()?60000:600000);
+    }).catch(function(){
+      if(foot.textContent) foot.className='stale';
+      if(!started){ started=true; step(); }        // parte comunque col placeholder
+      if(dataTimer) clearTimeout(dataTimer);
+      dataTimer=setTimeout(loadData, 15000);
+    });
+  }
+  function loadAds(){
+    fetch('api/ads.json'+ (DEMO?('&'+DEMO.slice(1)):''),{cache:'no-store'})
+      .then(function(r){return r.json();}).then(function(d){
+        ADS = (d.ads||[]).map(function(a){return a.url;});
+      }).catch(function(){ /* mantieni le precedenti */ });
+    setTimeout(loadAds, 300000);   // ricontrolla le pubblicita' ogni 5 min
+  }
+
+  loadAds();
+  loadData();
 
   // Ricarica completa ogni 6 ore per liberare memoria del player.
   setTimeout(function(){ location.reload(); }, 6*60*60*1000);

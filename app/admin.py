@@ -1,8 +1,12 @@
+from django import forms
 from django.contrib import admin
+from django.core.exceptions import ValidationError
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.html import format_html
-from .models import Cliente, Movimento, DistintaCassa, Comunicazione, Agenzia, ProfiloUtente, SaldoEsterno, AzzeramentoProgrammato, RichiestaGiroconto, TaskAgenzia, CategoriaTask
+from .models import (Cliente, Movimento, DistintaCassa, Comunicazione, Agenzia, ProfiloUtente,
+                     SaldoEsterno, AzzeramentoProgrammato, RichiestaGiroconto, TaskAgenzia,
+                     CategoriaTask, PubblicitaLedwall)
 from .database_utils import AGENZIA_DATABASE_MAP
 
 
@@ -241,6 +245,48 @@ class TaskAgenziaAdmin(DatabaseSelectorMixin, admin.ModelAdmin):
         else:
             obj.modificato_da = request.user
         super().save_model(request, obj, form, change)
+
+
+class PubblicitaLedwallForm(forms.ModelForm):
+    upload = forms.FileField(required=False, label='Immagine',
+                             help_text='Carica un\'immagine (PNG/JPG). Consigliato orizzontale, es. 320×140.')
+
+    class Meta:
+        model = PubblicitaLedwall
+        fields = ['titolo', 'attivo', 'ordine']
+
+    def clean(self):
+        cleaned = super().clean()
+        if not self.instance.pk and not cleaned.get('upload'):
+            raise ValidationError('Carica un\'immagine.')
+        return cleaned
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        f = self.cleaned_data.get('upload')
+        if f:
+            obj.dati = f.read()
+            obj.content_type = getattr(f, 'content_type', None) or 'image/png'
+        if commit:
+            obj.save()
+        return obj
+
+
+@admin.register(PubblicitaLedwall)
+class PubblicitaLedwallAdmin(admin.ModelAdmin):
+    form = PubblicitaLedwallForm
+    list_display = ('anteprima', 'titolo', 'attivo', 'ordine', 'data_caricamento')
+    list_display_links = ('titolo',)
+    list_editable = ('attivo', 'ordine')
+    ordering = ('ordine', 'id')
+
+    def anteprima(self, obj):
+        if obj.pk:
+            return format_html(
+                '<img src="/ledwall/api/ad/{}" style="height:44px;max-width:160px;'
+                'border:1px solid #ccc;background:#000">', obj.pk)
+        return '—'
+    anteprima.short_description = 'Anteprima'
 
 
 @admin.register(ProfiloUtente)

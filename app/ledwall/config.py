@@ -36,6 +36,11 @@ FEED = {
     },
 }
 
+# Base URL dei loghi squadra su diretta.it (i codici arrivano dal feed: chiavi OA/OB).
+# I loghi vengono serviti tramite il NOSTRO proxy /ledwall/api/logo/<code> (con cache),
+# cosi' il ledwall continua a chiamare solo il nostro server.
+LOGO_BASE = 'https://www.diretta.it/res/image/data/'
+
 # Provider dati attivo: 'diretta' (scraping) oppure 'demo' (dati fittizi).
 # Sostituibile con un provider ad API ufficiale mantenendo lo stesso JSON.
 PROVIDER = 'diretta'

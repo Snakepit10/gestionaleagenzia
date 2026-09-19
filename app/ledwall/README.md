@@ -5,15 +5,36 @@ Pagina a schermo intero per player LED (Colorlight A35, Chromium Android 9) su l
 mai diretta.it.
 
 ## URL
-- Pagina:   `https://<dominio>/ledwall/calcio`
-- Endpoint: `https://<dominio>/ledwall/api/calcio.json`
+- Pagina:        `https://<dominio>/ledwall/calcio`
+- Dati partite:  `https://<dominio>/ledwall/api/calcio.json`
+- Pubblicità:    `https://<dominio>/ledwall/api/ads.json` e `/ledwall/api/ad/<id>`
+- Loghi (proxy): `https://<dominio>/ledwall/api/logo/<code>`
+
+La pagina mostra le **schede partita** stile tabellone (una alla volta, con loghi squadra,
+competizione, data, punteggio e stato LIVE/OGGI/FINALE) e, ogni N schede, un **intermezzo
+pubblicitario**: i risultati scendono in una barra scorrevole in basso e sopra passano a
+rotazione le immagini pubblicitarie caricate dall'admin (con transizioni diverse).
 
 Parametri della pagina (query string):
-- `?label=CALCIO OGGI` — testo del riquadro fisso a sinistra (default "CALCIO OGGI").
-- `?speed=3` — velocità di scorrimento in **caratteri al secondo** (default 3).
-- `?demo=1` — dati fittizi (≥4 competizioni) per provare grafica/scorrimento senza rete.
+- `?hold=5` — secondi per ogni scheda partita (default 5).
+- `?adEvery=4` — mostra la pubblicità ogni N schede (default 4).
+- `?adSlide=5` — secondi per ogni immagine pubblicitaria (default 5).
+- `?demo=1` — dati partite fittizi per provare la grafica senza rete (le pubblicità restano
+  quelle reali dal DB).
 
-Esempio player: `https://<dominio>/ledwall/calcio?label=CALCIO%20OGGI&speed=3`
+Esempio player: `https://<dominio>/ledwall/calcio?hold=5&adEvery=4&adSlide=5`
+
+## Pubblicità (gestione dall'admin)
+Voce di menu **"Ledwall"** (solo super-user) → apre l'elenco delle immagini pubblicitarie
+(`app.PubblicitaLedwall`). Da lì si **carica/attiva/riordina/elimina** ogni immagine. I byte
+dell'immagine sono salvati **nel database** (non su filesystem), così sopravvivono ai redeploy
+senza configurare lo storage media. Consigliata un'immagine orizzontale (es. ~320×140). La
+pagina le legge da `/ledwall/api/ads.json` e le serve da `/ledwall/api/ad/<id>`.
+
+## Loghi squadra
+Presi da diretta.it (codici `OA`/`OB` del feed) e serviti dal **nostro proxy** con cache
+`/ledwall/api/logo/<code>` (base in `config.LOGO_BASE`), così il ledwall continua a chiamare
+solo il nostro server. Se un logo manca, la scheda mostra le iniziali della squadra.
 
 ## Architettura
 ```
@@ -32,7 +53,7 @@ JSON servito:
 {"updated":"<iso>","source":"diretta","stale":false,
  "competitions":[{"id","name","shortName","priority",
    "matches":[{"status":"live|scheduled|finished","minute","time",
-               "home","away","homeScore","awayScore","date"}]}]}
+               "home","away","homeScore","awayScore","homeLogo","awayLogo","date"}]}]}
 ```
 
 ## Come vengono raccolti i dati (diretta.it)
@@ -78,13 +99,13 @@ escluse da `EXCLUDE`. Le abbreviazioni squadra sono in `TEAM_ABBREVIATIONS`.
 - Requisiti: `requests` e `tzdata` (già in `requirements.txt`).
 
 ## Se cambia il formato del ledwall (es. 384×960 verticale)
-La pagina è pensata per una **fascia orizzontale** che riempie i 200 px di altezza. Per un
-formato diverso agire solo su `templates/ledwall/calcio.html`:
+Le dimensioni dei testi sono già espresse in `calc(100vh * …)`, quindi **scalano da sole con
+l'altezza**. Per un formato diverso agire solo su `templates/ledwall/calcio.html`:
 - **Dimensioni**: `html,body{width:…;height:…}` e `<meta viewport width=… height=…>` col nuovo
-  formato (es. 384×960).
-- **Formato verticale (384×960)**: una singola riga che scorre non sfrutta l'altezza. Meglio
-  passare a uno **scorrimento verticale** (in alto→basso) con le partite impilate: cambiare i
-  `@keyframes ledscroll` in `translateY(-50%)`, il `#track` a `flex-direction:column` e le
-  `.copy` a colonna; alzare le dimensioni del testo. La logica dati/JS resta identica.
-- **Font/spaziature**: i `font-size` in `.comp/.team/.score/.time` scalano l'aspetto; su superfici
-  più grandi aumentarli. Colori e regole di contrasto restano validi.
+  formato (es. 384×960). Le schede (grid a 3 colonne, centrata) e l'intermezzo pubblicitario si
+  adattano; su schermi molto più alti valutare di ridurre i moltiplicatori `100vh*…` per non
+  ingigantire troppo il testo.
+- **Formato verticale (384×960)**: c'è molto spazio verticale. Opzioni: aumentare l'area
+  pubblicitaria (alzare `.ad{bottom:…}` e la barra `.bar{height:…}`), o impilare i loghi/nomi;
+  la logica dati/JS resta identica.
+- **Colori e contrasti** restano validi su qualsiasi formato.

@@ -68,6 +68,13 @@ def _short_team(name):
     return config.TEAM_ABBREVIATIONS.get(name, name)
 
 
+def _logo(code):
+    """Dal codice logo del feed (OA/OB) all'URL del nostro proxy con cache."""
+    if not code:
+        return None
+    return 'api/logo/' + code
+
+
 def _match_competition(za_name):
     """Ritorna la competizione di config per un'intestazione 'PAESE: Torneo', o None."""
     if not za_name:
@@ -144,6 +151,8 @@ def _event_to_match(ev, now_ts, with_date=False):
         'away': _short_team(ev.get('AF', '')),
         'homeScore': _int_or_none(ev.get('AG')),
         'awayScore': _int_or_none(ev.get('AH')),
+        'homeLogo': _logo(ev.get('OA')),
+        'awayLogo': _logo(ev.get('OB')),
         'date': _fmt_date(ev.get('AD')) if with_date else None,
     }
     return m

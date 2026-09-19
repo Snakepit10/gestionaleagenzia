@@ -192,6 +192,14 @@
                         </a>
                     </li>
                     {% endif %}
+                    {% if user.is_superuser %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'admin:app_pubblicitaledwall_changelist' %}"
+                           title="Gestisci le immagini pubblicitarie del ledwall">
+                            <i class="fas fa-tv me-1"></i>Ledwall
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
                 
                 <ul class="navbar-nav ms-auto">

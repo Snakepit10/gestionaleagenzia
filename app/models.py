@@ -2001,3 +2001,27 @@ class TaskAgenzia(MultiDatabaseMixin, models.Model):
     @property
     def is_scaduta(self):
         return bool(self.scadenza) and self.is_aperta and self.scadenza < timezone.localdate()
+
+
+class PubblicitaLedwall(models.Model):
+    """Immagine pubblicitaria mostrata a rotazione sul ledwall (intermezzo tra le schede).
+
+    Vive sul DB condiviso 'default'. I byte dell'immagine sono salvati nel DB (non su
+    filesystem) cosi' sopravvivono ai redeploy e non serve configurare lo storage media.
+    Gestibile dall'admin: link "Ledwall" -> Pubblicita'.
+    """
+    titolo = models.CharField(max_length=120, blank=True, default='',
+                              help_text="Solo per riconoscerla nell'elenco (non mostrato sul ledwall)")
+    dati = models.BinaryField(help_text="Contenuto dell'immagine")
+    content_type = models.CharField(max_length=60, default='image/png')
+    attivo = models.BooleanField(default=True, help_text="Se spento, non compare sul ledwall")
+    ordine = models.IntegerField(default=0, help_text="Ordine di rotazione (numero piu' basso prima)")
+    data_caricamento = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Ledwall - Pubblicità"
+        verbose_name_plural = "Ledwall - Pubblicità"
+        ordering = ['ordine', 'id']
+
+    def __str__(self):
+        return self.titolo or f"Pubblicità #{self.pk}"
