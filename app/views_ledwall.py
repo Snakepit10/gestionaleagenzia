@@ -45,6 +45,7 @@ def ledwall_api_ads(request):
             'hold': cfg.secondi_scheda,
             'adEvery': cfg.ogni_n_schede,
             'adSlide': cfg.secondi_pubblicita,
+            'barDur': cfg.secondi_barra_risultati,
         },
         'ads': [{
             'id': a.pk,

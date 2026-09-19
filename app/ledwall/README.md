@@ -30,8 +30,9 @@ Voce di menu **"Ledwall"** (solo super-user) → apre la gestione. Due sezioni:
   filesystem), così sopravvivono ai redeploy senza configurare lo storage media. Consigliata
   un'immagine orizzontale (es. ~320×140).
 - **Ledwall - Impostazioni** (riga unica): **secondi per scheda** (durata di ogni scheda
-  partita), **ogni N schede** (dopo quante schede parte la pubblicità) e **secondi pubblicità**
-  di default.
+  partita), **ogni N schede** (dopo quante schede parte la pubblicità), **secondi pubblicità**
+  di default e **secondi barra risultati** (velocità dello scorrimento risultati: secondi per un
+  giro completo, più basso = più veloce).
 
 La pagina legge tutto da `/ledwall/api/ads.json` (config + elenco con `fx`/`seconds` per
 immagine) e serve le immagini da `/ledwall/api/ad/<id>`. Le modifiche si vedono sul ledwall

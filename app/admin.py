@@ -303,9 +303,11 @@ class CompetizioneLedwallAdmin(admin.ModelAdmin):
 @admin.register(ImpostazioniLedwall)
 class ImpostazioniLedwallAdmin(admin.ModelAdmin):
     list_display = ('__str__', 'secondi_scheda', 'ogni_n_schede', 'secondi_pubblicita',
-                    'mostra_live', 'mostra_oggi_in_programma', 'mostra_oggi_finite', 'mostra_domani')
+                    'secondi_barra_risultati', 'mostra_live', 'mostra_oggi_in_programma',
+                    'mostra_oggi_finite', 'mostra_domani')
     fieldsets = (
-        ('Tempi', {'fields': ('secondi_scheda', 'ogni_n_schede', 'secondi_pubblicita')}),
+        ('Tempi', {'fields': ('secondi_scheda', 'ogni_n_schede', 'secondi_pubblicita',
+                              'secondi_barra_risultati')}),
         ('Filtri partite', {'fields': ('mostra_live', 'mostra_oggi_in_programma',
                                        'mostra_oggi_finite', 'mostra_domani')}),
     )

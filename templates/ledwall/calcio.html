@@ -109,7 +109,8 @@
   var Q = {
     hold:    parseFloat(qs.get('hold'))    || null,
     adEvery: parseInt(qs.get('adEvery'))   || null,
-    adSlide: parseFloat(qs.get('adSlide')) || null
+    adSlide: parseFloat(qs.get('adSlide')) || null,
+    barDur:  parseFloat(qs.get('barDur'))  || null
   };
 
   var lane = document.getElementById('lane');
@@ -119,16 +120,16 @@
 
   var LIST = [];    // partite appiattite: {c, m}
   var ADS  = [];    // {url, fx, seconds}
-  var CFG  = {hold:5, adEvery:4, adSlide:5};   // impostazioni dal backend (default di sicurezza)
+  var CFG  = {hold:5, adEvery:4, adSlide:5, barDur:24};   // impostazioni dal backend (default di sicurezza)
   var i = 0, cur = null, shown = 0, started = false;
   var barOffset = 0;         // secondi di scorrimento risultati accumulati (per riprendere)
-  var BAR_DUR = 24;          // deve combaciare con animation-duration di .bar .trk (24s)
 
   function applyCfg(c){
     c = c || {};
     CFG.hold    = Q.hold    || c.hold    || 5;
     CFG.adEvery = Q.adEvery || c.adEvery || 4;
     CFG.adSlide = Q.adSlide || c.adSlide || 5;
+    CFG.barDur  = Q.barDur  || c.barDur  || 24;
   }
 
   function order(st){ return st==='live'?0 : st==='scheduled'?1 : 2; }
@@ -226,9 +227,10 @@
     bar.innerHTML='<div class="trk">'+half+half+'</div>';
     lane.appendChild(ad); lane.appendChild(bar);
     clearCur();
-    // Riprende lo scorrimento risultati da dove era rimasto (animation-delay negativo).
+    // Velocità e ripresa dello scorrimento risultati (durata dal backend, delay negativo).
     var trk=bar.querySelector('.trk');
-    trk.style.animationDelay = '-' + (barOffset % BAR_DUR) + 's';
+    trk.style.animationDuration = CFG.barDur + 's';
+    trk.style.animationDelay = '-' + (barOffset % CFG.barDur) + 's';
     var barStart=Date.now(), barClosed=false;
     function closeBar(){ if(!barClosed){ barClosed=true; barOffset += (Date.now()-barStart)/1000; } }
     var slides=ad.querySelectorAll('.sl'), k=0;
