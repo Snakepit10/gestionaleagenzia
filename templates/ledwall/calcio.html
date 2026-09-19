@@ -290,7 +290,7 @@
       fmtUpdated(data.updated, data.stale);
       startOnce();
       if(dataTimer) clearTimeout(dataTimer);
-      dataTimer=setTimeout(loadData, anyLive()?60000:600000);
+      dataTimer=setTimeout(loadData, anyLive()?60000:120000);   // live 60s, altrimenti 2 min
     }).catch(function(){
       if(foot.textContent) foot.className='stale';
       startOnce();
@@ -303,7 +303,7 @@
       applyCfg(d.config);
       ADS = (d.ads||[]).map(function(a){ return {url:a.url, fx:a.fx||'fx-right', seconds:a.seconds||CFG.adSlide}; });
     }).catch(function(){ applyCfg(null); });
-    setTimeout(loadAds, 300000);   // ricontrolla impostazioni e pubblicita' ogni 5 min
+    setTimeout(loadAds, 120000);   // ricontrolla impostazioni e pubblicita' ogni 2 min
   }
 
   applyCfg(null);   // default finche' non arriva ads.json

@@ -36,7 +36,7 @@ Voce di menu **"Ledwall"** (solo super-user) → apre la gestione. Due sezioni:
 
 La pagina legge tutto da `/ledwall/api/ads.json` (config + elenco con `fx`/`seconds` per
 immagine) e serve le immagini da `/ledwall/api/ad/<id>`. Le modifiche si vedono sul ledwall
-entro ~5 minuti (o al reload).
+entro ~2 minuti (o al reload).
 
 ## Filtri: quali campionati e quali partite (da Django admin)
 Dal menu **"Ledwall"** (super-user):
@@ -52,7 +52,8 @@ Dal menu **"Ledwall"** (super-user):
   Se non c'è nulla da mostrare, il ledwall ripiega su ultimi risultati (ieri) + prossime (domani).
 
 Il provider legge questi filtri dal DB (`_load_competizioni` / `_load_impostazioni`); le modifiche
-si vedono sul ledwall entro il TTL della cache (max 10 min, o al reload).
+si vedono sul ledwall entro ~2 minuti (la cache lato server viene invalidata al
+salvataggio delle impostazioni; il player ricontrolla ogni 2 minuti).
 
 ## Loghi squadra
 Serviti dal **nostro proxy** con cache (`/ledwall/api/logo/<src>/<code>`), così il ledwall chiama
