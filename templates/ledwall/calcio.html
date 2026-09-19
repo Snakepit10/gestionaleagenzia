@@ -81,7 +81,7 @@
        transform:translateY(105%);transition:transform .45s cubic-bezier(.2,.8,.2,1);}
   .bar.on{transform:none;}
   .bar .trk{display:inline-flex;align-items:center;gap:0.9em;padding-left:var(--w);will-change:transform;
-            animation:barscroll linear infinite;animation-duration:40s;}
+            animation:barscroll linear infinite;animation-duration:24s;}
   @keyframes barscroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
   .bar .it{display:inline-flex;align-items:center;gap:0.3em;}
   .bar .bs{background:#fff;color:#000;padding:0 0.3em;border-radius:0.12em;font-weight:800;font-variant-numeric:tabular-nums;}
@@ -122,7 +122,7 @@
   var CFG  = {hold:5, adEvery:4, adSlide:5};   // impostazioni dal backend (default di sicurezza)
   var i = 0, cur = null, shown = 0, started = false;
   var barOffset = 0;         // secondi di scorrimento risultati accumulati (per riprendere)
-  var BAR_DUR = 40;          // deve combaciare con animation-duration di .bar .trk (40s)
+  var BAR_DUR = 24;          // deve combaciare con animation-duration di .bar .trk (24s)
 
   function applyCfg(c){
     c = c || {};
