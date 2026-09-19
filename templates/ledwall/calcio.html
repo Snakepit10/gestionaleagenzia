@@ -14,7 +14,8 @@
   html,body{width:var(--w);height:var(--h);overflow:hidden;background:#000;}
   body{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;color:#fff;
        -webkit-font-smoothing:none;text-rendering:optimizeSpeed;}
-  #tk{width:var(--w);height:var(--h);display:flex;flex-direction:column;background:#0b1e2c;overflow:hidden;position:relative;}
+  #tk{width:var(--w);height:var(--h);display:flex;flex-direction:column;overflow:hidden;position:relative;
+      background:linear-gradient(160deg,#123a5a 0%,#0b2236 45%,#06121d 100%);}
   .lane{flex:1;position:relative;overflow:hidden;display:block;}
 
   /* ---- Scheda partita (una alla volta, stile tabellone) ---- */
@@ -25,9 +26,13 @@
         opacity:0;transform:translateY(25%);transition:opacity .35s,transform .35s;}
   .card.on{opacity:1;transform:none;}
   .card.out{opacity:0;transform:translateY(-25%);}
-  .hdr{display:flex;flex-direction:column;align-items:center;line-height:1;gap:calc(var(--h) * 0.012);}
-  .hdr .cl{font-size:calc(var(--h) * 0.095);font-weight:800;color:#ffd200;letter-spacing:0.05em;text-align:center;}
-  .hdr .dt{font-size:calc(var(--h) * 0.075);color:#b8c3cc;font-weight:600;font-variant-numeric:tabular-nums;}
+  .hdr{display:flex;flex-direction:column;align-items:center;line-height:1;gap:calc(var(--h) * 0.02);}
+  /* Nome campionato: banner giallo, testo scuro, grande e ben visibile */
+  .hdr .cl{font-size:calc(var(--h) * 0.135);font-weight:800;color:#111;background:#ffd200;
+           padding:0.1em 0.55em;border-radius:0.16em;letter-spacing:0.04em;text-transform:uppercase;
+           line-height:1;max-width:96%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+           box-shadow:0 calc(var(--h)*0.01) calc(var(--h)*0.03) rgba(0,0,0,.35);}
+  .hdr .dt{font-size:calc(var(--h) * 0.08);color:#cbd6df;font-weight:700;font-variant-numeric:tabular-nums;}
   .row{display:grid;grid-template-columns:1fr 1.15fr 1fr;align-items:center;}
   .team{display:flex;flex-direction:column;align-items:center;gap:0.2em;min-width:0;}
   .badge{width:calc(var(--h) * 0.32);height:calc(var(--h) * 0.32);border-radius:50%;background:#fff;
