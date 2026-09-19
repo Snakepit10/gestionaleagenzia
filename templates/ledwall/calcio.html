@@ -63,11 +63,18 @@
   .ad.on{transform:none;}
   .ad .sl{position:absolute;inset:0;background-size:cover;background-position:center;background-repeat:no-repeat;
           opacity:0;transition:opacity .5s,transform .5s cubic-bezier(.2,.8,.2,1);}
+  /* stato iniziale (entrata) di ciascun effetto */
+  .ad .sl.fx-right{transform:translateX(60%);}
+  .ad .sl.fx-zoom{transform:scale(0.6);}
+  .ad .sl.fx-up{transform:translateY(60%);}
+  .ad .sl.fx-fade{transform:none;}
+  /* stato attivo: immagine CENTRATA (deve venire DOPO gli stati iniziali per vincere) */
   .ad .sl.on{opacity:1;transform:none;}
-  .ad .sl.fx-right{transform:translateX(60%);}   .ad .sl.fx-right.out{transform:translateX(-60%);opacity:0;}
-  .ad .sl.fx-zoom{transform:scale(0.6);}          .ad .sl.fx-zoom.out{transform:scale(1.3);opacity:0;}
-  .ad .sl.fx-up{transform:translateY(60%);}       .ad .sl.fx-up.out{transform:translateY(-60%);opacity:0;}
-  .ad .sl.fx-fade{transform:none;}                .ad .sl.fx-fade.out{transform:none;opacity:0;}
+  /* stato di uscita */
+  .ad .sl.fx-right.out{transform:translateX(-60%);opacity:0;}
+  .ad .sl.fx-zoom.out{transform:scale(1.3);opacity:0;}
+  .ad .sl.fx-up.out{transform:translateY(-60%);opacity:0;}
+  .ad .sl.fx-fade.out{transform:none;opacity:0;}
   .bar{position:absolute;left:0;right:0;bottom:0;height:calc(var(--h) * 0.24);display:flex;align-items:center;
        overflow:hidden;background:#0b1e2c;border-top:0.1em solid #ffd200;color:#fff;
        font-size:calc(var(--h) * 0.11);font-weight:700;white-space:nowrap;
