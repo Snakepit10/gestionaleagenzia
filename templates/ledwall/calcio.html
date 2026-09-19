@@ -8,11 +8,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@500&display=swap" rel="stylesheet">
 <style>
+  /* Dimensioni del ledwall. Per un formato diverso (es. 384x960) cambiare SOLO --w/--h. */
+  :root{--w:320px; --h:200px;}
   *{margin:0;padding:0;box-sizing:border-box;}
-  html,body{width:320px;height:200px;overflow:hidden;background:#000;}
+  html,body{width:var(--w);height:var(--h);overflow:hidden;background:#000;}
   body{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;color:#fff;
        -webkit-font-smoothing:none;text-rendering:optimizeSpeed;}
-  #tk{height:100vh;width:100vw;display:flex;flex-direction:column;background:#0b1e2c;overflow:hidden;}
+  #tk{width:var(--w);height:var(--h);display:flex;flex-direction:column;background:#0b1e2c;overflow:hidden;position:relative;}
   .lane{flex:1;position:relative;overflow:hidden;display:block;}
 
   /* ---- Scheda partita (una alla volta, stile tabellone) ---- */
@@ -22,26 +24,26 @@
   .card.on{opacity:1;transform:none;}
   .card.out{opacity:0;transform:translateY(-25%);}
   .team{display:flex;flex-direction:column;align-items:center;gap:0.28em;min-width:0;}
-  .badge{width:calc(100vh * 0.42);height:calc(100vh * 0.42);border-radius:50%;background:#fff;
+  .badge{width:calc(var(--h) * 0.42);height:calc(var(--h) * 0.42);border-radius:50%;background:#fff;
          display:flex;align-items:center;justify-content:center;overflow:hidden;}
   .badge img{width:84%;height:84%;object-fit:contain;}
   .badge i{font-style:normal;width:100%;height:100%;display:flex;align-items:center;justify-content:center;
-           font-size:calc(100vh * 0.13);font-weight:800;color:#fff;letter-spacing:0.02em;}
-  .team .nm{font-size:calc(100vh * 0.13);font-weight:700;white-space:nowrap;max-width:100%;
+           font-size:calc(var(--h) * 0.13);font-weight:800;color:#111;letter-spacing:0.02em;}
+  .team .nm{font-size:calc(var(--h) * 0.13);font-weight:700;white-space:nowrap;max-width:100%;
             overflow:hidden;text-overflow:ellipsis;}
   .team .nm.win{color:#ffd200;}
   .mid{display:flex;flex-direction:column;align-items:center;gap:0.18em;text-align:center;}
-  .mid .cl{font-size:calc(100vh * 0.095);font-weight:800;color:#ffd200;letter-spacing:0.05em;}
-  .mid .dt{font-size:calc(100vh * 0.085);color:#b8c3cc;font-weight:600;font-variant-numeric:tabular-nums;}
-  .mid .big{font-size:calc(100vh * 0.32);font-weight:800;line-height:0.95;
+  .mid .cl{font-size:calc(var(--h) * 0.095);font-weight:800;color:#ffd200;letter-spacing:0.05em;}
+  .mid .dt{font-size:calc(var(--h) * 0.085);color:#b8c3cc;font-weight:600;font-variant-numeric:tabular-nums;}
+  .mid .big{font-size:calc(var(--h) * 0.32);font-weight:800;line-height:0.95;
             font-variant-numeric:tabular-nums;letter-spacing:0.02em;}
-  .mid .big.time{font-size:calc(100vh * 0.24);color:#2b7bff;}
-  .mid .stat{font-size:calc(100vh * 0.10);font-weight:800;color:#e5202f;letter-spacing:0.05em;}
+  .mid .big.time{font-size:calc(var(--h) * 0.24);color:#2b7bff;}
+  .mid .stat{font-size:calc(var(--h) * 0.10);font-weight:800;color:#e5202f;letter-spacing:0.05em;}
   .mid .stat.live{animation:blink 1.2s steps(2,start) infinite;}
   .mid .stat.gray{color:#b8c3cc;}
 
   /* ---- Intermezzo pubblicitario: risultati in basso, immagine sopra ---- */
-  .ad{position:absolute;left:0;right:0;top:0;bottom:calc(100vh * 0.24);overflow:hidden;background:#000;
+  .ad{position:absolute;left:0;right:0;top:0;bottom:calc(var(--h) * 0.24);overflow:hidden;background:#000;
       transform:translateY(-105%);transition:transform .45s cubic-bezier(.2,.8,.2,1);}
   .ad.on{transform:none;}
   .ad .sl{position:absolute;inset:0;background-size:cover;background-position:center;background-repeat:no-repeat;
@@ -50,12 +52,13 @@
   .ad .sl.fx-right{transform:translateX(60%);}   .ad .sl.fx-right.out{transform:translateX(-60%);opacity:0;}
   .ad .sl.fx-zoom{transform:scale(0.6);}          .ad .sl.fx-zoom.out{transform:scale(1.3);opacity:0;}
   .ad .sl.fx-up{transform:translateY(60%);}       .ad .sl.fx-up.out{transform:translateY(-60%);opacity:0;}
-  .bar{position:absolute;left:0;right:0;bottom:0;height:calc(100vh * 0.24);display:flex;align-items:center;
+  .ad .sl.fx-fade{transform:none;}                .ad .sl.fx-fade.out{transform:none;opacity:0;}
+  .bar{position:absolute;left:0;right:0;bottom:0;height:calc(var(--h) * 0.24);display:flex;align-items:center;
        overflow:hidden;background:#0b1e2c;border-top:0.1em solid #ffd200;color:#fff;
-       font-size:calc(100vh * 0.11);font-weight:700;white-space:nowrap;
+       font-size:calc(var(--h) * 0.11);font-weight:700;white-space:nowrap;
        transform:translateY(105%);transition:transform .45s cubic-bezier(.2,.8,.2,1);}
   .bar.on{transform:none;}
-  .bar .trk{display:inline-flex;align-items:center;gap:0.9em;padding-left:100vw;will-change:transform;
+  .bar .trk{display:inline-flex;align-items:center;gap:0.9em;padding-left:var(--w);will-change:transform;
             animation:barscroll linear infinite;animation-duration:40s;}
   @keyframes barscroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
   .bar .it{display:inline-flex;align-items:center;gap:0.3em;}
@@ -78,27 +81,32 @@
 (function(){
   "use strict";
   var qs = new URLSearchParams(location.search);
-  var DEMO   = qs.get('demo') ? ('?demo=' + qs.get('demo')) : '';
-  var HOLD   = (parseFloat(qs.get('hold'))   || 5) * 1000;   // secondi per scheda
-  var ADEVERY= parseInt(qs.get('adEvery'))   || 4;           // pubblicita' ogni N schede
-  var ADSLIDE= (parseFloat(qs.get('adSlide'))|| 5) * 1000;   // secondi per immagine promo
+  var DEMO = qs.get('demo') ? ('?demo=' + qs.get('demo')) : '';
+  // Override facoltativi via query (per test); la configurazione vera sta nel backend admin.
+  var Q = {
+    hold:    parseFloat(qs.get('hold'))    || null,
+    adEvery: parseInt(qs.get('adEvery'))   || null,
+    adSlide: parseFloat(qs.get('adSlide')) || null
+  };
 
   var lane = document.getElementById('lane');
   var foot = document.getElementById('foot');
   var esc = function(s){ return String(s==null?'':s)
      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
 
-  var LIST = [];     // partite appiattite: {c, m}
-  var ADS  = [];     // url immagini pubblicitarie
+  var LIST = [];    // partite appiattite: {c, m}
+  var ADS  = [];    // {url, fx, seconds}
+  var CFG  = {hold:5, adEvery:4, adSlide:5};   // impostazioni dal backend (default di sicurezza)
   var i = 0, cur = null, shown = 0, started = false;
-  var fx = ['fx-right','fx-zoom','fx-up'];
 
-  // Attiva la transizione d'ingresso al tick successivo (non usa rAF: alcuni webview
-  // integrati lo congelano quando non a fuoco, lasciando gli elementi invisibili).
-  function enter(el){ setTimeout(function(){ el.classList.add('on'); }, 30); }
+  function applyCfg(c){
+    c = c || {};
+    CFG.hold    = Q.hold    || c.hold    || 5;
+    CFG.adEvery = Q.adEvery || c.adEvery || 4;
+    CFG.adSlide = Q.adSlide || c.adSlide || 5;
+  }
 
   function order(st){ return st==='live'?0 : st==='scheduled'?1 : 2; }
-
   function flatten(data){
     var out = [];
     (data.competitions||[]).forEach(function(c){
@@ -107,7 +115,6 @@
     });
     return out;
   }
-
   function initials(n){
     return (n||'').split(/\s+/).map(function(w){return w[0]||'';}).join('').slice(0,3).toUpperCase();
   }
@@ -122,7 +129,6 @@
     return '<div class="team">'+badge(name,logo)+
            '<span class="nm'+(win?' win':'')+'">'+esc(name)+'</span></div>';
   }
-
   function todayStr(){ return new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}); }
   function liveLabel(min){ return (min && min!=='LIVE') ? esc(min)+"'" : 'LIVE'; }
 
@@ -144,13 +150,12 @@
     el.innerHTML = team(m.home,m.homeLogo,hw)+'<div class="mid">'+mid+'</div>'+team(m.away,m.awayLogo,aw);
     return el;
   }
-  function fit(el){   // rimpicciolisce i nomi lunghi finche' stanno nella colonna
+  function fit(el){
     el.querySelectorAll('.nm').forEach(function(nm){
       var fs=parseFloat(getComputedStyle(nm).fontSize), n=0;
       while(nm.scrollWidth>nm.clientWidth && n<12){ fs*=0.9; nm.style.fontSize=fs+'px'; n++; }
     });
   }
-
   function barItem(it){
     var m=it.m, s;
     if(m.status==='live') s='<span class="bl">LIVE '+liveLabel(m.minute)+'</span><span>'+esc(m.home)+
@@ -162,33 +167,29 @@
     return '<span class="it"><span class="bc">'+esc(it.c)+'</span>'+s+'</span>';
   }
 
+  function enter(el){ setTimeout(function(){ el.classList.add('on'); }, 30); }
   function clearCur(){
     if(cur){ var old=cur; cur=null; old.classList.remove('on'); old.classList.add('out');
              setTimeout(function(){ if(old.parentNode) old.parentNode.removeChild(old); },400); }
   }
-
   function showCard(){
     if(!LIST.length){ placeholder(); return; }
     if(i>=LIST.length) i=0;
     var it=LIST[i]; i=(i+1)%LIST.length;
     var el=card(it); lane.appendChild(el); fit(el);
-    clearCur(); cur=el;
-    enter(el);
+    clearCur(); cur=el; enter(el);
   }
-
   function placeholder(){
     var el=document.createElement('div'); el.className='card';
     el.innerHTML='<div></div><div class="mid"><span class="cl">CALCIO OGGI</span>'+
       '<span class="dt">'+todayStr()+'</span><span class="stat gray">IN ATTESA DATI</span></div><div></div>';
-    lane.appendChild(el); clearCur(); cur=el;
-    enter(el);
+    lane.appendChild(el); clearCur(); cur=el; enter(el);
   }
-
   function adPhase(){
-    if(!ADS.length || !LIST.length){ step(); return; }   // niente pubblicita': continua con le schede
+    if(!ADS.length || !LIST.length){ step(); return; }
     var ad=document.createElement('div'); ad.className='ad';
-    ad.innerHTML = ADS.map(function(u,k){
-      return '<div class="sl '+fx[k%fx.length]+'" style="background-image:url('+esc(u)+')"></div>';
+    ad.innerHTML = ADS.map(function(a){
+      return '<div class="sl '+a.fx+'" style="background-image:url('+esc(a.url)+')"></div>';
     }).join('');
     var bar=document.createElement('div'); bar.className='bar';
     var half=LIST.map(barItem).join('');
@@ -199,21 +200,21 @@
     setTimeout(function(){
       ad.classList.add('on'); bar.classList.add('on'); if(slides[0]) slides[0].classList.add('on');
     }, 30);
+    function secOf(idx){ return ((ADS[idx] && ADS[idx].seconds) || CFG.adSlide) * 1000; }
     function next(){
       slides[k].classList.remove('on'); slides[k].classList.add('out'); k++;
-      if(k<slides.length){ slides[k].classList.add('on'); setTimeout(next, ADSLIDE); }
+      if(k<slides.length){ slides[k].classList.add('on'); setTimeout(next, secOf(k)); }
       else {
         ad.classList.remove('on'); bar.classList.remove('on');
         setTimeout(function(){ if(ad.parentNode)ad.remove(); if(bar.parentNode)bar.remove(); step(); }, 480);
       }
     }
-    if(slides.length) setTimeout(next, ADSLIDE); else { setTimeout(function(){ad.remove();bar.remove();step();}, 400); }
+    if(slides.length) setTimeout(next, secOf(0)); else { setTimeout(function(){ad.remove();bar.remove();step();}, 400); }
   }
-
   function step(){
-    if(shown>0 && shown % ADEVERY === 0 && ADS.length){ shown++; adPhase(); return; }
+    if(shown>0 && shown % CFG.adEvery === 0 && ADS.length){ shown++; adPhase(); return; }
     showCard(); shown++;
-    setTimeout(step, HOLD);
+    setTimeout(step, CFG.hold*1000);
   }
 
   // ---- Dati ----
@@ -224,28 +225,30 @@
   function anyLive(){ return LIST.some(function(x){return x.m.status==='live';}); }
 
   var dataTimer=null;
+  function startOnce(){ if(!started){ started=true; (document.fonts?document.fonts.ready:Promise.resolve()).then(step); } }
   function loadData(){
     fetch('api/calcio.json'+DEMO,{cache:'no-store'}).then(function(r){return r.json();}).then(function(data){
       LIST = flatten(data);
       fmtUpdated(data.updated, data.stale);
-      if(!started && (LIST.length || true)){ started=true; (document.fonts?document.fonts.ready:Promise.resolve()).then(step); }
+      startOnce();
       if(dataTimer) clearTimeout(dataTimer);
       dataTimer=setTimeout(loadData, anyLive()?60000:600000);
     }).catch(function(){
       if(foot.textContent) foot.className='stale';
-      if(!started){ started=true; step(); }        // parte comunque col placeholder
+      startOnce();
       if(dataTimer) clearTimeout(dataTimer);
       dataTimer=setTimeout(loadData, 15000);
     });
   }
   function loadAds(){
-    fetch('api/ads.json'+ (DEMO?('&'+DEMO.slice(1)):''),{cache:'no-store'})
-      .then(function(r){return r.json();}).then(function(d){
-        ADS = (d.ads||[]).map(function(a){return a.url;});
-      }).catch(function(){ /* mantieni le precedenti */ });
-    setTimeout(loadAds, 300000);   // ricontrolla le pubblicita' ogni 5 min
+    fetch('api/ads.json',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
+      applyCfg(d.config);
+      ADS = (d.ads||[]).map(function(a){ return {url:a.url, fx:a.fx||'fx-right', seconds:a.seconds||CFG.adSlide}; });
+    }).catch(function(){ applyCfg(null); });
+    setTimeout(loadAds, 300000);   // ricontrolla impostazioni e pubblicita' ogni 5 min
   }
 
+  applyCfg(null);   // default finche' non arriva ads.json
   loadAds();
   loadData();
 

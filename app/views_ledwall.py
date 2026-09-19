@@ -5,12 +5,15 @@ import re
 import requests
 from django.http import JsonResponse, HttpResponse, HttpResponseNotFound
 
-from .models import PubblicitaLedwall
+from .models import PubblicitaLedwall, ImpostazioniLedwall
 from .ledwall import config
 from .ledwall.service import get_payload
 
 _SAFE_CODE = re.compile(r'^[A-Za-z0-9._-]{1,80}$')
 _logo_cache = {}   # code -> (bytes, content_type)
+
+# transizione (backend) -> classe CSS della pagina
+_FX = {'destra': 'fx-right', 'zoom': 'fx-zoom', 'alto': 'fx-up', 'dissolvenza': 'fx-fade'}
 
 
 def ledwall_calcio(request):
@@ -34,9 +37,22 @@ def ledwall_api_calcio(request):
 
 
 def ledwall_api_ads(request):
-    """Elenco delle pubblicita' attive (immagini gestite dall'admin)."""
+    """Pubblicita' attive + impostazioni globali, tutto configurato da Django admin."""
+    cfg = ImpostazioniLedwall.get_solo()
     ads = PubblicitaLedwall.objects.using('default').filter(attivo=True).order_by('ordine', 'id')
-    data = {'ads': [{'id': a.pk, 'url': 'api/ad/%d' % a.pk} for a in ads]}
+    data = {
+        'config': {
+            'hold': cfg.secondi_scheda,
+            'adEvery': cfg.ogni_n_schede,
+            'adSlide': cfg.secondi_pubblicita,
+        },
+        'ads': [{
+            'id': a.pk,
+            'url': 'api/ad/%d' % a.pk,
+            'fx': _FX.get(a.transizione, 'fx-right'),
+            'seconds': a.secondi or cfg.secondi_pubblicita,
+        } for a in ads],
+    }
     resp = JsonResponse(data)
     resp['Cache-Control'] = 'public, max-age=60'
     resp['Access-Control-Allow-Origin'] = '*'

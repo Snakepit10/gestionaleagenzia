@@ -2010,12 +2010,23 @@ class PubblicitaLedwall(models.Model):
     filesystem) cosi' sopravvivono ai redeploy e non serve configurare lo storage media.
     Gestibile dall'admin: link "Ledwall" -> Pubblicita'.
     """
+    TRANSIZIONE_CHOICES = [
+        ('destra', 'Scorrimento da destra'),
+        ('zoom', 'Zoom'),
+        ('alto', 'Dal basso'),
+        ('dissolvenza', 'Dissolvenza'),
+    ]
+
     titolo = models.CharField(max_length=120, blank=True, default='',
                               help_text="Solo per riconoscerla nell'elenco (non mostrato sul ledwall)")
     dati = models.BinaryField(help_text="Contenuto dell'immagine")
     content_type = models.CharField(max_length=60, default='image/png')
     attivo = models.BooleanField(default=True, help_text="Se spento, non compare sul ledwall")
     ordine = models.IntegerField(default=0, help_text="Ordine di rotazione (numero piu' basso prima)")
+    transizione = models.CharField(max_length=12, choices=TRANSIZIONE_CHOICES, default='destra',
+                                   help_text="Effetto di entrata di questa immagine")
+    secondi = models.FloatField(default=0,
+                                help_text="Secondi di permanenza di questa immagine (0 = usa il default globale)")
     data_caricamento = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -2025,3 +2036,33 @@ class PubblicitaLedwall(models.Model):
 
     def __str__(self):
         return self.titolo or f"Pubblicità #{self.pk}"
+
+
+class ImpostazioniLedwall(models.Model):
+    """Impostazioni globali del ledwall (riga unica). DB 'default'."""
+    secondi_scheda = models.FloatField(default=5,
+                                       help_text="Secondi di permanenza di ogni scheda partita")
+    ogni_n_schede = models.IntegerField(default=4,
+                                        help_text="Mostra la pubblicità ogni N schede partita")
+    secondi_pubblicita = models.FloatField(default=5,
+                                           help_text="Secondi di default per ogni immagine pubblicitaria "
+                                                     "(usato se la singola immagine ha secondi = 0)")
+
+    class Meta:
+        verbose_name = "Ledwall - Impostazioni"
+        verbose_name_plural = "Ledwall - Impostazioni"
+
+    def __str__(self):
+        return "Impostazioni Ledwall"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1  # riga unica (singleton)
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls, using='default'):
+        obj = cls.objects.using(using).filter(pk=1).first()
+        if obj is None:
+            obj = cls(pk=1)
+            obj.save(using=using)
+        return obj

@@ -15,21 +15,27 @@ competizione, data, punteggio e stato LIVE/OGGI/FINALE) e, ogni N schede, un **i
 pubblicitario**: i risultati scendono in una barra scorrevole in basso e sopra passano a
 rotazione le immagini pubblicitarie caricate dall'admin (con transizioni diverse).
 
-Parametri della pagina (query string):
-- `?hold=5` — secondi per ogni scheda partita (default 5).
-- `?adEvery=4` — mostra la pubblicità ogni N schede (default 4).
-- `?adSlide=5` — secondi per ogni immagine pubblicitaria (default 5).
-- `?demo=1` — dati partite fittizi per provare la grafica senza rete (le pubblicità restano
-  quelle reali dal DB).
+La rotazione, i tempi e le transizioni si configurano **dal backend Django** (vedi sotto),
+non servono parametri nell'URL. Solo per test si possono forzare con `?hold=`, `?adEvery=`,
+`?adSlide=`, e `?demo=1` usa dati partite fittizi (le pubblicità restano quelle reali dal DB).
 
-Esempio player: `https://<dominio>/ledwall/calcio?hold=5&adEvery=4&adSlide=5`
+Esempio player: `https://<dominio>/ledwall/calcio`
 
-## Pubblicità (gestione dall'admin)
-Voce di menu **"Ledwall"** (solo super-user) → apre l'elenco delle immagini pubblicitarie
-(`app.PubblicitaLedwall`). Da lì si **carica/attiva/riordina/elimina** ogni immagine. I byte
-dell'immagine sono salvati **nel database** (non su filesystem), così sopravvivono ai redeploy
-senza configurare lo storage media. Consigliata un'immagine orizzontale (es. ~320×140). La
-pagina le legge da `/ledwall/api/ads.json` e le serve da `/ledwall/api/ad/<id>`.
+## Pubblicità e tempi (tutto da Django admin)
+Voce di menu **"Ledwall"** (solo super-user) → apre la gestione. Due sezioni:
+- **Ledwall - Pubblicità** (`app.PubblicitaLedwall`): ogni immagine ha
+  **immagine** (upload), **attivo**, **ordine**, **transizione** d'entrata
+  (Scorrimento da destra / Zoom / Dal basso / Dissolvenza) e **secondi** di permanenza
+  (0 = usa il default globale). I byte dell'immagine sono salvati **nel database** (non su
+  filesystem), così sopravvivono ai redeploy senza configurare lo storage media. Consigliata
+  un'immagine orizzontale (es. ~320×140).
+- **Ledwall - Impostazioni** (riga unica): **secondi per scheda** (durata di ogni scheda
+  partita), **ogni N schede** (dopo quante schede parte la pubblicità) e **secondi pubblicità**
+  di default.
+
+La pagina legge tutto da `/ledwall/api/ads.json` (config + elenco con `fx`/`seconds` per
+immagine) e serve le immagini da `/ledwall/api/ad/<id>`. Le modifiche si vedono sul ledwall
+entro ~5 minuti (o al reload).
 
 ## Loghi squadra
 Presi da diretta.it (codici `OA`/`OB` del feed) e serviti dal **nostro proxy** con cache

@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from .models import (Cliente, Movimento, DistintaCassa, Comunicazione, Agenzia, ProfiloUtente,
                      SaldoEsterno, AzzeramentoProgrammato, RichiestaGiroconto, TaskAgenzia,
-                     CategoriaTask, PubblicitaLedwall)
+                     CategoriaTask, PubblicitaLedwall, ImpostazioniLedwall)
 from .database_utils import AGENZIA_DATABASE_MAP
 
 
@@ -253,7 +253,7 @@ class PubblicitaLedwallForm(forms.ModelForm):
 
     class Meta:
         model = PubblicitaLedwall
-        fields = ['titolo', 'attivo', 'ordine']
+        fields = ['titolo', 'attivo', 'ordine', 'transizione', 'secondi']
 
     def clean(self):
         cleaned = super().clean()
@@ -275,9 +275,9 @@ class PubblicitaLedwallForm(forms.ModelForm):
 @admin.register(PubblicitaLedwall)
 class PubblicitaLedwallAdmin(admin.ModelAdmin):
     form = PubblicitaLedwallForm
-    list_display = ('anteprima', 'titolo', 'attivo', 'ordine', 'data_caricamento')
+    list_display = ('anteprima', 'titolo', 'attivo', 'ordine', 'transizione', 'secondi', 'data_caricamento')
     list_display_links = ('titolo',)
-    list_editable = ('attivo', 'ordine')
+    list_editable = ('attivo', 'ordine', 'transizione', 'secondi')
     ordering = ('ordine', 'id')
 
     def anteprima(self, obj):
@@ -287,6 +287,18 @@ class PubblicitaLedwallAdmin(admin.ModelAdmin):
                 'border:1px solid #ccc;background:#000">', obj.pk)
         return '—'
     anteprima.short_description = 'Anteprima'
+
+
+@admin.register(ImpostazioniLedwall)
+class ImpostazioniLedwallAdmin(admin.ModelAdmin):
+    list_display = ('__str__', 'secondi_scheda', 'ogni_n_schede', 'secondi_pubblicita')
+
+    def has_add_permission(self, request):
+        # Riga unica: consenti l'aggiunta solo se non esiste ancora.
+        return not ImpostazioniLedwall.objects.using('default').exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(ProfiloUtente)
