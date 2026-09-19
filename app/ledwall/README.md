@@ -42,6 +42,11 @@ Presi da diretta.it (codici `OA`/`OB` del feed) e serviti dal **nostro proxy** c
 `/ledwall/api/logo/<code>` (base in `config.LOGO_BASE`), così il ledwall continua a chiamare
 solo il nostro server. Se un logo manca, la scheda mostra le iniziali della squadra.
 
+I loghi di diretta.it sono a **30×30 px**: per non renderli sgranati la scheda NON li ingrandisce
+oltre il nativo (`.badge img{max-width:…;width:auto}`), li mostra nitidi in un badge bianco. Per
+loghi grandi e nitidi servirebbe una fonte a maggiore risoluzione (es. API-Football), collegabile
+sostituendo il provider senza cambiare la pagina.
+
 ## Architettura
 ```
 Ledwall (browser)  ──GET──▶  /ledwall/api/calcio.json  ──▶  cache (60s live / 10min)

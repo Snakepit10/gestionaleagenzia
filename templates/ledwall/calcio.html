@@ -24,9 +24,12 @@
   .card.on{opacity:1;transform:none;}
   .card.out{opacity:0;transform:translateY(-25%);}
   .team{display:flex;flex-direction:column;align-items:center;gap:0.28em;min-width:0;}
-  .badge{width:calc(var(--h) * 0.42);height:calc(var(--h) * 0.42);border-radius:50%;background:#fff;
+  .badge{width:calc(var(--h) * 0.34);height:calc(var(--h) * 0.34);border-radius:50%;background:#fff;
          display:flex;align-items:center;justify-content:center;overflow:hidden;}
-  .badge img{width:84%;height:84%;object-fit:contain;}
+  /* I loghi di diretta.it sono 30x30: non ingrandirli oltre il nativo (restano nitidi),
+     al massimo li rimpiccioliamo per stare nel badge. */
+  .badge img{max-width:78%;max-height:78%;width:auto;height:auto;object-fit:contain;
+             image-rendering:auto;}
   .badge i{font-style:normal;width:100%;height:100%;display:flex;align-items:center;justify-content:center;
            font-size:calc(var(--h) * 0.13);font-weight:800;color:#111;letter-spacing:0.02em;}
   .team .nm{font-size:calc(var(--h) * 0.13);font-weight:700;white-space:nowrap;max-width:100%;
