@@ -35,10 +35,10 @@
   .hdr .dt{font-size:calc(var(--h) * 0.08);color:#cbd6df;font-weight:700;font-variant-numeric:tabular-nums;}
   .row{display:grid;grid-template-columns:1fr 1.15fr 1fr;align-items:center;}
   .team{display:flex;flex-direction:column;align-items:center;gap:0.2em;min-width:0;}
-  .badge{width:calc(var(--h) * 0.32);height:calc(var(--h) * 0.32);border-radius:50%;background:#fff;
+  .badge{width:calc(var(--h) * 0.35);height:calc(var(--h) * 0.35);border-radius:50%;background:#fff;
          display:flex;align-items:center;justify-content:center;overflow:hidden;}
-  /* I loghi di diretta.it sono 30x30: non ingrandirli oltre il nativo (restano nitidi). */
-  .badge img{max-width:78%;max-height:78%;width:auto;height:auto;object-fit:contain;image-rendering:auto;}
+  /* I loghi di diretta.it sono 30x30: leggero ingrandimento (~1.3x) per renderli piu' grandi. */
+  .badge img{width:calc(var(--h) * 0.20);height:calc(var(--h) * 0.20);object-fit:contain;image-rendering:auto;}
   .badge i{font-style:normal;width:100%;height:100%;display:flex;align-items:center;justify-content:center;
            font-size:calc(var(--h) * 0.12);font-weight:800;color:#111;letter-spacing:0.02em;}
   .team .nm{font-size:calc(var(--h) * 0.12);font-weight:700;white-space:nowrap;max-width:100%;
@@ -88,7 +88,8 @@
   .bar .bt{background:#2b7bff;color:#fff;padding:0 0.3em;border-radius:0.12em;font-weight:800;font-variant-numeric:tabular-nums;}
   .bar .bl{background:#e5202f;color:#fff;font-weight:800;font-size:0.78em;padding:0 0.32em;
            border-radius:0.12em;animation:blink 1.2s steps(2,start) infinite;}
-  .bar .bc{color:#ffd200;font-size:0.8em;margin-right:0.2em;}
+  .bar .bc{color:#ffd200;font-size:0.85em;font-weight:800;letter-spacing:.02em;}
+  .bar .bsep{color:#ffd200;font-weight:800;opacity:.85;}
 
   @keyframes blink{to{opacity:0.45;}}
 
@@ -204,6 +205,7 @@
     for(var j=0;j<list.length;j++){
       var it=list[j];
       if(it.c!==last){ out.push('<span class="bc">'+esc(it.c)+'</span>'); last=it.c; }
+      else { out.push('<span class="bsep">•</span>'); }   // separatore tra partite dello stesso campionato
       out.push(barItem(it));
     }
     return out.join('');
