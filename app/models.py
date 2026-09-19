@@ -2082,6 +2082,9 @@ class ImpostazioniLedwall(models.Model):
                                              help_text="Mostra i risultati finali delle partite di oggi")
     mostra_domani = models.BooleanField(default=False,
                                         help_text="Mostra anche le partite in programma domani (con la data)")
+    loghi_hd = models.BooleanField(default=True,
+                                   help_text="Loghi HD (API-Football) per le squadre principali; "
+                                             "per le altre usa i loghi di diretta.it")
 
     class Meta:
         verbose_name = "Ledwall - Impostazioni"

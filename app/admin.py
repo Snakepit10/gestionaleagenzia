@@ -310,6 +310,7 @@ class ImpostazioniLedwallAdmin(admin.ModelAdmin):
                               'secondi_barra_risultati')}),
         ('Filtri partite', {'fields': ('mostra_live', 'mostra_oggi_in_programma',
                                        'mostra_oggi_finite', 'mostra_domani')}),
+        ('Loghi', {'fields': ('loghi_hd',)}),
     )
 
     def has_add_permission(self, request):

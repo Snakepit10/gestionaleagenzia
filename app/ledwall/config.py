@@ -37,9 +37,34 @@ FEED = {
 }
 
 # Base URL dei loghi squadra su diretta.it (i codici arrivano dal feed: chiavi OA/OB).
-# I loghi vengono serviti tramite il NOSTRO proxy /ledwall/api/logo/<code> (con cache),
-# cosi' il ledwall continua a chiamare solo il nostro server.
+# I loghi vengono serviti tramite il NOSTRO proxy (con cache), cosi' il ledwall continua a
+# chiamare solo il nostro server. Sono 30x30 px.
 LOGO_BASE = 'https://www.diretta.it/res/image/data/'
+
+# Loghi ad alta risoluzione (150 px) dal CDN pubblico di API-Football (nessuna chiave).
+# Serviti anch'essi dal nostro proxy. Usati per le squadre presenti nella mappa qui sotto;
+# per le altre si usa il logo di diretta.it. La mappa e' indicizzata col NOME BREVE come
+# arriva da diretta.it (minuscolo). Verificata visivamente (montaggio) squadra per squadra.
+APIFOOTBALL_LOGO_BASE = 'https://media.api-sports.io/football/teams/'
+APIFOOTBALL_TEAM_IDS = {
+    # Serie A
+    'inter': 505, 'milan': 489, 'juventus': 496, 'napoli': 492, 'roma': 497, 'lazio': 487,
+    'atalanta': 499, 'fiorentina': 502, 'bologna': 500, 'torino': 503, 'udinese': 494,
+    'genoa': 495, 'cagliari': 490, 'lecce': 867, 'verona': 504, 'como': 895, 'parma': 523,
+    'cremonese': 520, 'sassuolo': 488,
+    # Premier League
+    'arsenal': 42, 'chelsea': 49, 'liverpool': 40, 'man city': 50, 'man utd': 33,
+    'tottenham': 47, 'newcastle': 34, 'aston villa': 66, 'brighton': 51, 'west ham': 48,
+    # LaLiga
+    'real madrid': 541, 'barcellona': 529, 'atletico': 530, 'siviglia': 536, 'betis': 543,
+    'villarreal': 533, 'athletic': 531, 'ath. bilbao': 531, 'sociedad': 548, 'valencia': 532,
+    'celta vigo': 538,
+    # Bundesliga
+    'bayern': 157, 'dortmund': 165, 'leverkusen': 168, 'lipsia': 173, 'stoccarda': 172,
+    'francoforte': 169,
+    # Ligue 1
+    'psg': 85, 'marsiglia': 81, 'lione': 80, 'monaco': 91, 'lille': 79, 'nizza': 84,
+}
 
 # Provider dati attivo: 'diretta' (scraping) oppure 'demo' (dati fittizi).
 # Sostituibile con un provider ad API ufficiale mantenendo lo stesso JSON.

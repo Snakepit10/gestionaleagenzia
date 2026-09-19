@@ -70,21 +70,29 @@ def ledwall_api_ad(request, pk):
     return resp
 
 
-def ledwall_api_logo(request, code):
-    """Proxy con cache dei loghi squadra da diretta.it (il ledwall chiama solo noi)."""
-    if not _SAFE_CODE.match(code or ''):
-        return HttpResponseNotFound()
-    cached = _logo_cache.get(code)
+def ledwall_api_logo(request, src, code):
+    """Proxy con cache dei loghi squadra (il ledwall chiama solo noi).
+    src='af' -> API-Football (HD 150px); src='d' -> diretta.it (30px)."""
+    if src == 'af':
+        if not re.match(r'^\d{1,7}\.png$', code or ''):
+            return HttpResponseNotFound()
+        base = config.APIFOOTBALL_LOGO_BASE
+    else:  # 'd'
+        if not _SAFE_CODE.match(code or ''):
+            return HttpResponseNotFound()
+        base = config.LOGO_BASE
+    key = src + '/' + code
+    cached = _logo_cache.get(key)
     if cached is None:
         try:
-            r = requests.get(config.LOGO_BASE + code,
+            r = requests.get(base + code,
                              headers={'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.diretta.it/'},
                              timeout=10)
             if r.status_code != 200 or not r.content:
                 return HttpResponseNotFound()
             cached = (r.content, r.headers.get('content-type', 'image/png'))
-            if len(_logo_cache) < 2000:      # cap semplice della cache in memoria
-                _logo_cache[code] = cached
+            if len(_logo_cache) < 4000:      # cap semplice della cache in memoria
+                _logo_cache[key] = cached
         except Exception:
             return HttpResponseNotFound()
     resp = HttpResponse(cached[0], content_type=cached[1])

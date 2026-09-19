@@ -9,7 +9,7 @@ urlpatterns = [
     path('ledwall/api/calcio.json', views_ledwall.ledwall_api_calcio, name='ledwall_api_calcio'),
     path('ledwall/api/ads.json', views_ledwall.ledwall_api_ads, name='ledwall_api_ads'),
     path('ledwall/api/ad/<int:pk>', views_ledwall.ledwall_api_ad, name='ledwall_api_ad'),
-    path('ledwall/api/logo/<str:code>', views_ledwall.ledwall_api_logo, name='ledwall_api_logo'),
+    path('ledwall/api/logo/<slug:src>/<str:code>', views_ledwall.ledwall_api_logo, name='ledwall_api_logo'),
 
     # Homepage (accessibile a tutti gli utenti autenticati)
     path('', views.home, name='home'),

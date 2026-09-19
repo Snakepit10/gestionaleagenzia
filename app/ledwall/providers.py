@@ -73,11 +73,16 @@ def _short_team(name):
     return config.TEAM_ABBREVIATIONS.get(name, name)
 
 
-def _logo(code):
-    """Dal codice logo del feed (OA/OB) all'URL del nostro proxy con cache."""
-    if not code:
-        return None
-    return 'api/logo/' + code
+def _logo(name, code, hd=True):
+    """URL del logo (proxy nostro). Se HD attivo e la squadra e' mappata, usa il logo
+    ad alta risoluzione di API-Football; altrimenti il logo di diretta.it; altrimenti None."""
+    if hd:
+        tid = config.APIFOOTBALL_TEAM_IDS.get((name or '').strip().lower())
+        if tid:
+            return 'api/logo/af/%d.png' % tid
+    if code:
+        return 'api/logo/d/' + code
+    return None
 
 
 def _load_competizioni():
@@ -103,7 +108,7 @@ def _load_competizioni():
 
 def _load_impostazioni():
     """Filtri (quali partite mostrare) dal DB; default se non disponibili."""
-    d = {'live': True, 'oggi_sched': True, 'oggi_fin': True, 'domani': False}
+    d = {'live': True, 'oggi_sched': True, 'oggi_fin': True, 'domani': False, 'hd': True}
     try:
         from ..models import ImpostazioniLedwall
         o = ImpostazioniLedwall.get_solo()
@@ -111,6 +116,7 @@ def _load_impostazioni():
         d['oggi_sched'] = o.mostra_oggi_in_programma
         d['oggi_fin'] = o.mostra_oggi_finite
         d['domani'] = o.mostra_domani
+        d['hd'] = o.loghi_hd
     except Exception:
         pass
     return d
@@ -179,26 +185,28 @@ def _fmt_date(ad):
     return dt.strftime('%d/%m')
 
 
-def _event_to_match(ev, now_ts, with_date=False):
+def _event_to_match(ev, now_ts, with_date=False, hd=True):
     status = _STATUS.get(ev.get('AB'))
     if status is None:
         return None  # rinviata/sospesa/annullata: ignora
+    home = _short_team(ev.get('AE', ''))
+    away = _short_team(ev.get('AF', ''))
     m = {
         'status': status,
         'minute': _minute(ev, now_ts) if status == 'live' else None,
-        'time': _fmt_time(ev.get('AD')) if status != 'finished' else _fmt_time(ev.get('AD')),
-        'home': _short_team(ev.get('AE', '')),
-        'away': _short_team(ev.get('AF', '')),
+        'time': _fmt_time(ev.get('AD')),
+        'home': home,
+        'away': away,
         'homeScore': _int_or_none(ev.get('AG')),
         'awayScore': _int_or_none(ev.get('AH')),
-        'homeLogo': _logo(ev.get('OA')),
-        'awayLogo': _logo(ev.get('OB')),
+        'homeLogo': _logo(home, ev.get('OA'), hd),
+        'awayLogo': _logo(away, ev.get('OB'), hd),
         'date': _fmt_date(ev.get('AD')) if with_date else None,
     }
     return m
 
 
-def _collect(text, now_ts, comps, with_date=False):
+def _collect(text, now_ts, comps, with_date=False, hd=True):
     """Raggruppa gli eventi del feed per competizione configurata."""
     buckets = {}  # comp id -> {comp, matches:[]}
     current = None
@@ -206,7 +214,7 @@ def _collect(text, now_ts, comps, with_date=False):
         if 'ZA' in rec:
             current = _match_competition(rec['ZA'], comps)
         elif 'AA' in rec and current is not None:
-            m = _event_to_match(rec, now_ts, with_date=with_date)
+            m = _event_to_match(rec, now_ts, with_date=with_date, hd=hd)
             if m is None:
                 continue
             b = buckets.setdefault(current['id'], {'comp': current, 'matches': []})
@@ -250,8 +258,9 @@ class DirettaProvider:
         comps = _load_competizioni()
         imp = _load_impostazioni()
 
+        hd = imp.get('hd', True)
         text = self._fetch_day(0)
-        buckets = _collect(text, now_ts, comps, with_date=False)
+        buckets = _collect(text, now_ts, comps, with_date=False, hd=hd)
 
         # Filtra le partite di oggi secondo gli interruttori dell'admin.
         def keep_today(m):
@@ -269,7 +278,7 @@ class DirettaProvider:
         if imp['domani']:
             try:
                 t1 = self._fetch_day(1)
-                for cid, b in _collect(t1, now_ts, comps, with_date=True).items():
+                for cid, b in _collect(t1, now_ts, comps, with_date=True, hd=hd).items():
                     sched = [m for m in b['matches'] if m['status'] == 'scheduled']
                     if sched:
                         buckets.setdefault(cid, {'comp': b['comp'], 'matches': []})['matches'].extend(sched)
@@ -287,7 +296,7 @@ class DirettaProvider:
                 t = self._fetch_day(day)
             except Exception:
                 continue
-            for cid, b in _collect(t, now_ts, comps, with_date=True).items():
+            for cid, b in _collect(t, now_ts, comps, with_date=True, hd=hd).items():
                 fb.setdefault(cid, {'comp': b['comp'], 'matches': []})['matches'].extend(b['matches'])
         return self._envelope(_build_competitions(fb))
 

@@ -55,14 +55,16 @@ Il provider legge questi filtri dal DB (`_load_competizioni` / `_load_impostazio
 si vedono sul ledwall entro il TTL della cache (max 10 min, o al reload).
 
 ## Loghi squadra
-Presi da diretta.it (codici `OA`/`OB` del feed) e serviti dal **nostro proxy** con cache
-`/ledwall/api/logo/<code>` (base in `config.LOGO_BASE`), così il ledwall continua a chiamare
-solo il nostro server. Se un logo manca, la scheda mostra le iniziali della squadra.
+Serviti dal **nostro proxy** con cache (`/ledwall/api/logo/<src>/<code>`), così il ledwall chiama
+solo il nostro server. Due sorgenti:
+- **HD (API-Football)**: loghi 150×150 px dal CDN pubblico `media.api-sports.io` (nessuna chiave),
+  usati per le squadre presenti nella mappa `config.APIFOOTBALL_TEAM_IDS` (Serie A + top club
+  europei, verificata visivamente). `src='af'`, `code='<id>.png'`.
+- **diretta.it** (fallback): loghi 30×30 px per tutte le altre squadre. `src='d'`.
 
-I loghi di diretta.it sono a **30×30 px**: per non renderli sgranati la scheda NON li ingrandisce
-oltre il nativo (`.badge img{max-width:…;width:auto}`), li mostra nitidi in un badge bianco. Per
-loghi grandi e nitidi servirebbe una fonte a maggiore risoluzione (es. API-Football), collegabile
-sostituendo il provider senza cambiare la pagina.
+L'interruttore **Ledwall - Impostazioni → Loghi → loghi_hd** attiva/disattiva gli HD. Se un logo
+manca, la scheda mostra le iniziali. Per aggiungere HD ad altre squadre basta inserire la coppia
+`nome-breve-diretta: id-api-football` in `config.APIFOOTBALL_TEAM_IDS`.
 
 ## Architettura
 ```
