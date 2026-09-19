@@ -2071,8 +2071,9 @@ class ImpostazioniLedwall(models.Model):
                                            help_text="Secondi di default per ogni immagine pubblicitaria "
                                                      "(usato se la singola immagine ha secondi = 0)")
     secondi_barra_risultati = models.FloatField(default=24,
-                                                help_text="Velocità barra risultati: secondi per un giro completo. "
-                                                          "Più basso = più veloce (es. 16 veloce, 40 lento)")
+                                                help_text="Velocità della barra risultati (costante, indipendente dal "
+                                                          "numero di partite). Più basso = più veloce. Default 24 "
+                                                          "(es. 16 veloce, 40 lento)")
     # Filtri: quali partite mostrare
     mostra_live = models.BooleanField(default=True, help_text="Mostra le partite in corso (risultati live)")
     mostra_oggi_in_programma = models.BooleanField(default=True,

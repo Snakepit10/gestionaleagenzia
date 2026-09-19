@@ -80,8 +80,8 @@
        font-size:calc(var(--h) * 0.11);font-weight:700;white-space:nowrap;
        transform:translateY(105%);transition:transform .45s cubic-bezier(.2,.8,.2,1);}
   .bar.on{transform:none;}
-  .bar .trk{display:inline-flex;align-items:center;gap:0.9em;padding-left:var(--w);will-change:transform;
-            animation:barscroll linear infinite;animation-duration:24s;}
+  .bar .trk{display:inline-flex;align-items:center;gap:0.9em;will-change:transform;
+            animation:barscroll linear infinite;}
   @keyframes barscroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
   .bar .it{display:inline-flex;align-items:center;gap:0.3em;}
   .bar .bs{background:#fff;color:#000;padding:0 0.3em;border-radius:0.12em;font-weight:800;font-variant-numeric:tabular-nums;}
@@ -238,10 +238,15 @@
     bar.innerHTML='<div class="trk">'+half+half+'</div>';
     lane.appendChild(ad); lane.appendChild(bar);
     clearCur();
-    // Velocità e ripresa dello scorrimento risultati (durata dal backend, delay negativo).
+    // Velocità COSTANTE (px/sec) indipendente dal numero di partite: la durata si
+    // calcola dalla larghezza reale del contenuto. barDur (backend) regola la velocità
+    // (più basso = più veloce). La ripresa usa la durata effettiva.
     var trk=bar.querySelector('.trk');
-    trk.style.animationDuration = CFG.barDur + 's';
-    trk.style.animationDelay = '-' + (barOffset % CFG.barDur) + 's';
+    var halfW = (trk.scrollWidth/2) || 1;          // larghezza di una copia (px)
+    var pxPerSec = 4500 / (CFG.barDur || 24);      // velocità costante (px/sec)
+    var dur = halfW / pxPerSec;                     // secondi per un giro
+    trk.style.animationDuration = dur + 's';
+    trk.style.animationDelay = '-' + (barOffset % dur) + 's';
     var barStart=Date.now(), barClosed=false;
     function closeBar(){ if(!barClosed){ barClosed=true; barOffset += (Date.now()-barStart)/1000; } }
     var slides=ad.querySelectorAll('.sl'), k=0;
