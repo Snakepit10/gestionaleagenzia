@@ -195,7 +195,18 @@
     else if(m.status==='scheduled') s='<span class="bt">'+esc(m.time||'')+'</span><span>'+esc(m.home)+' – '+esc(m.away)+'</span>';
     else s='<span>'+esc(m.home)+'</span><span class="bs">'+(m.homeScore==null?'-':m.homeScore)+'-'+
         (m.awayScore==null?'-':m.awayScore)+'</span><span>'+esc(m.away)+'</span>';
-    return '<span class="it"><span class="bc">'+esc(it.c)+'</span>'+s+'</span>';
+    return '<span class="it">'+s+'</span>';
+  }
+  // Costruisce lo scroll: il nome del campionato compare UNA volta a inizio gruppo,
+  // poi tutte le sue partite senza ripetere l'etichetta.
+  function buildBar(list){
+    var out=[], last=null;
+    for(var j=0;j<list.length;j++){
+      var it=list[j];
+      if(it.c!==last){ out.push('<span class="bc">'+esc(it.c)+'</span>'); last=it.c; }
+      out.push(barItem(it));
+    }
+    return out.join('');
   }
 
   function enter(el){ setTimeout(function(){ el.classList.add('on'); }, 30); }
@@ -223,7 +234,7 @@
       return '<div class="sl '+a.fx+'" style="background-image:url('+esc(a.url)+')"></div>';
     }).join('');
     var bar=document.createElement('div'); bar.className='bar';
-    var half=LIST.map(barItem).join('');
+    var half=buildBar(LIST);
     bar.innerHTML='<div class="trk">'+half+half+'</div>';
     lane.appendChild(ad); lane.appendChild(bar);
     clearCur();
