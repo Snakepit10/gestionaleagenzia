@@ -79,10 +79,29 @@
                     <li class="mb-2"><strong>Saldo Online:</strong> apri il tuo portale <strong>PV Online</strong> (pvonline.lottomatica.it / goldbet.it / planetwin365.it), fai login e vai su <strong>Estratto Conto</strong>. Clicca il preferito una <strong>prima volta</strong> (lo "arma"), poi premi <strong>Cerca</strong> sulla pagina, infine <strong>ri-clicca</strong> il preferito per inviare i saldi.</li>
                     <li>Il bookmarklet capisce da solo su quale portale sei e invia i valori corrispondenti al gestionale.</li>
                 </ol>
-                <div class="alert alert-light border small mb-0">
+                <div class="alert alert-light border small mb-2">
                     In alternativa, copia questo codice e crea un nuovo preferito con esso come indirizzo:
                     <textarea id="cast-bm-text" class="form-control form-control-sm mt-2" rows="3" readonly onclick="this.select()"></textarea>
                 </div>
+                <details class="small border rounded p-2" style="background:#f8f9fa;">
+                    <summary class="fw-bold"><i class="fas fa-mobile-alt me-1 text-primary"></i>Da telefono/tablet Android</summary>
+                    <div class="mt-2">
+                        Su Android non si trascinano i preferiti, ma il bookmarklet funziona lo stesso. Due modi:
+                        <div class="mt-2"><strong>Chrome (o Edge/Samsung Internet):</strong></div>
+                        <ol class="mb-2">
+                            <li>Tocca l'area del codice qui sopra e <strong>Copia</strong> (assicurati di copiare tutto,
+                                deve iniziare con <code>javascript:</code>).</li>
+                            <li>Aggiungi un segnalibro di una pagina qualsiasi (icona stella), poi <strong>modificalo</strong>:
+                                incolla il codice nel campo <em>URL/Indirizzo</em> e dai un <em>Nome</em> breve, es. <code>saldicast</code>.</li>
+                            <li>Apri il portale <strong>CAST</strong> (o PV Online) e fai <strong>login</strong> nello stesso browser.</li>
+                            <li>Nella barra degli indirizzi scrivi <code>saldicast</code> e tocca il suggerimento del segnalibro:
+                                parte l'estrazione. (Su PV Online: prima volta "arma", premi Cerca, poi ripeti.)</li>
+                        </ol>
+                        <div><strong>Più semplice:</strong> usa <strong>Firefox</strong> o <strong>Kiwi Browser</strong> per Android —
+                            lì i preferiti <code>javascript:</code> si eseguono direttamente come su PC.</div>
+                        <div class="text-muted mt-1">Requisito: essere loggati al portale CAST nello stesso browser del telefono.</div>
+                    </div>
+                </details>
             </div>
         </div>
         <script>
