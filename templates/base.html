@@ -329,9 +329,11 @@
                 }, 15000);
             });
 
-            // Chiudi automaticamente i messaggi di alert dopo 5 secondi
+            // Chiudi automaticamente SOLO i messaggi flash (dentro .messages) dopo 5 secondi.
+            // NON toccare gli alert decorativi/informativi delle pagine (es. il codice del
+            // bookmarklet nella pagina Estrazione saldi), altrimenti sparirebbero da soli.
             setTimeout(function() {
-                $('.alert').alert('close');
+                $('.messages .alert').alert('close');
             }, 5000);
 
             // Inizializza i tooltip
