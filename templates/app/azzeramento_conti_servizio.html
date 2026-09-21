@@ -243,18 +243,26 @@
         var iAmt = header.indexOf('amount'); if (iAmt < 0) iAmt = 18;
         var iDate = header.indexOf('created_date');
         var iStat = header.indexOf('transaction_status');
-        var rows = [], contab = 0, scartate = 0;
+        var rows = [], contab = 0, scartateRows = [];
         for (var i = 1; i < lines.length; i++) {
             var cols = lines[i].split(',');
             if (cols.length <= iAmt) continue;
-            if (iStat >= 0 && (cols[iStat] || '').trim().toUpperCase() !== 'COMPLETED') { scartate++; continue; }
-            var imp = parseImporto(cols[iAmt]);
-            if (imp === null || imp <= 0) continue;
             var d = iDate >= 0 ? (cols[iDate] || '').trim().slice(0, 10) : '';
+            var imp = parseImporto(cols[iAmt]);
+            if (iStat >= 0 && (cols[iStat] || '').trim().toUpperCase() !== 'COMPLETED') {
+                scartateRows.push({ importo: (imp != null ? Math.abs(imp) : null), data: d, riga: i + 1,
+                                    motivo: 'stato: ' + ((cols[iStat] || '').trim() || '—') });
+                continue;
+            }
+            if (imp === null || imp <= 0) {
+                scartateRows.push({ importo: (imp != null ? Math.abs(imp) : null), data: d, riga: i + 1, motivo: 'importo non valido' });
+                continue;
+            }
             rows.push({ data: d, importo: imp });
             contab++;
         }
-        return { tipo: 'MuchBetter', matchByDate: true, rows: rows, contab: contab, scartate: scartate, scartateLabel: 'non COMPLETED' };
+        return { tipo: 'MuchBetter', matchByDate: true, rows: rows, contab: contab,
+                 scartate: scartateRows.length, scartateRows: scartateRows };
     }
 
     function parsePOS(lines) {
@@ -264,17 +272,25 @@
         if (iImp < 0) iImp = header.findIndex(function(h) { return h.indexOf('importo') >= 0 && h.indexOf('storn') < 0; });
         if (iImp < 0) iImp = 4;
         var iStato = header.findIndex(function(h) { return h.indexOf('stato') >= 0; });
-        var rows = [], contab = 0, scartate = 0;
+        var rows = [], contab = 0, scartateRows = [];
         for (var i = 1; i < lines.length; i++) {
             var cols = lines[i].split(delim);
             if (cols.length <= iImp) continue;
-            if (iStato >= 0 && (cols[iStato] || '').trim().toLowerCase().indexOf('contabilizzat') < 0) { scartate++; continue; }
             var imp = parseImporto(cols[iImp]);
-            if (imp === null || imp <= 0) continue;
+            if (iStato >= 0 && (cols[iStato] || '').trim().toLowerCase().indexOf('contabilizzat') < 0) {
+                scartateRows.push({ importo: (imp != null ? Math.abs(imp) : null), data: '', riga: i + 1,
+                                    motivo: 'stato: ' + ((cols[iStato] || '').trim() || '—') });
+                continue;
+            }
+            if (imp === null || imp <= 0) {
+                scartateRows.push({ importo: (imp != null ? Math.abs(imp) : null), data: '', riga: i + 1, motivo: 'importo non valido' });
+                continue;
+            }
             rows.push({ data: '', importo: imp });   // POS: match per solo importo
             contab++;
         }
-        return { tipo: 'POS', matchByDate: false, rows: rows, contab: contab, scartate: scartate, scartateLabel: 'rifiutate' };
+        return { tipo: 'POS', matchByDate: false, rows: rows, contab: contab,
+                 scartate: scartateRows.length, scartateRows: scartateRows };
     }
 
     // Differenza in giorni tra due date 'YYYY-MM-DD' (Infinity se manca una data).
@@ -352,12 +368,52 @@
             }
         });
 
-        var nonTrovate = Object.keys(pool).reduce(function(a, k) { return a + pool[k].length; }, 0);
+        // Transazioni del CSV rimaste nel pool = senza corrispondenza tra i movimenti.
+        var nonTrovateRows = [];
+        Object.keys(pool).forEach(function(k) {
+            pool[k].forEach(function(d) { nonTrovateRows.push({ importo: parseFloat(k), data: d }); });
+        });
+        nonTrovateRows.sort(function(a, b) { return b.importo - a.importo; });
+        var nonTrovate = nonTrovateRows.length;
         var criterio = res.matchByDate ? 'data (±1g) + importo' : 'importo';
-        esito.innerHTML = 'Formato <b>' + res.tipo + '</b> (match per ' + criterio + ') · conto <b>' + contoNome + '</b> · ' +
-                          '<b>' + res.contab + '</b> transazioni valide (' + res.scartate + ' ' + res.scartateLabel + ' ignorate) · ' +
-                          '<b class="text-success">' + matched + '</b> movimenti spuntati · ' +
-                          '<span class="text-warning">' + nonTrovate + '</span> senza corrispondenza.';
+
+        function e(s) { return String(s == null ? '' : s).replace(/[&<>]/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
+        function fmtImp(v) { return (v == null ? '—' : v.toFixed(2) + ' €'); }
+        function fmtRow(r) { return (r.data ? e(r.data) + ' · ' : '') + fmtImp(r.importo); }
+
+        var summary = 'Formato <b>' + res.tipo + '</b> (match per ' + criterio + ') · conto <b>' + e(contoNome) + '</b> · ' +
+                      '<b>' + res.contab + '</b> transazioni valide (' + res.scartate + ' ignorate) · ' +
+                      '<b class="text-success">' + matched + '</b> movimenti spuntati · ' +
+                      '<span class="text-warning">' + nonTrovate + '</span> senza corrispondenza.';
+
+        var dett = '';
+        if (nonTrovate || res.scartate) {
+            dett = ' <a href="#" id="csv-toggle" class="text-decoration-none">[mostra dettagli]</a>' +
+                   '<div id="csv-dett" class="mt-1 border rounded p-2" style="display:none;background:#f8f9fa;">';
+            if (nonTrovate) {
+                dett += '<div class="fw-bold text-warning">Senza corrispondenza (' + nonTrovate + ') — transazioni del CSV che non combaciano con nessun movimento aperto:</div><ul class="mb-2">';
+                nonTrovateRows.forEach(function(r) { dett += '<li>' + fmtRow(r) + '</li>'; });
+                dett += '</ul>';
+            }
+            if (res.scartate) {
+                dett += '<div class="fw-bold text-danger">Ignorate/rifiutate (' + res.scartate + ') — righe del CSV escluse in partenza:</div><ul class="mb-0">';
+                res.scartateRows.forEach(function(r) {
+                    dett += '<li>riga ' + r.riga + ' · ' + fmtImp(r.importo) + ' · <span class="text-muted">' + e(r.motivo) + '</span></li>';
+                });
+                dett += '</ul>';
+            }
+            dett += '</div>';
+        }
+
+        esito.innerHTML = summary + dett;
+        var tg = document.getElementById('csv-toggle');
+        if (tg) tg.addEventListener('click', function(ev) {
+            ev.preventDefault();
+            var d = document.getElementById('csv-dett');
+            var show = d.style.display === 'none';
+            d.style.display = show ? 'block' : 'none';
+            tg.textContent = show ? '[nascondi dettagli]' : '[mostra dettagli]';
+        });
         aggiorna();
     }
 
