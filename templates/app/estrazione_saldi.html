@@ -109,7 +109,7 @@
             var GEST = JSON.stringify(location.origin);
             var TOKEN = JSON.stringify("{{ token_estrazione }}");
             function build(GIORNI, FORZA) {
-            return "javascript:(async()=>{try{"
+            return "javascript:void (async()=>{try{"
               + "var GEST=" + GEST + ",TOKEN=" + TOKEN + ";var host=location.hostname;var dati={};var nota='';var castInfo='';var contoCast='';"
               + "if(host.indexOf('cast-agent')>=0){"
               + "function findId(){var re=/BalanceAccount\\?id=([A-Za-z0-9._-]+)/;"
