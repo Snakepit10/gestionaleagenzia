@@ -22,6 +22,68 @@ from . import config
 
 CATALOG_JSON = os.path.join(os.path.dirname(__file__), 'competizioni_catalogo.json')
 
+# ---------------------------------------------------------------------------
+# Set CURATO delle competizioni PRINCIPALI (le piu' giocate), raggruppate per nazione.
+# Per le nazioni top: campionati fino alla terza serie + coppa. Match col feed diretta.it via
+# `aliases` (nome esatto "PAESE: Torneo") oppure `contiene` (sottostringa, piu' robusta per le
+# coppe / suffissi di stagione). Alcune competizioni fuori stagione ora compariranno con la
+# partita appena tornano in calendario.  Campi: codice, nazione, nome, short, flag, alias, contiene.
+# ---------------------------------------------------------------------------
+_P = lambda codice, nazione, nome, short, flag, alias='', contiene='': {
+    'codice': codice, 'nazione': nazione, 'nome': nome, 'short_name': short,
+    'bandiera': flag, 'aliases': alias, 'contiene': contiene}
+
+PRINCIPALI = [
+    # Coppe / Nazionali internazionali
+    _P('champions', 'Europa', 'Champions League', 'CHAMPIONS', 'eu', 'EUROPA: Champions League', 'champions league'),
+    _P('europa', 'Europa', 'Europa League', 'EUROPA LG', 'eu', 'EUROPA: Europa League', 'europa league'),
+    _P('conference', 'Europa', 'Conference League', 'CONFERENCE', 'eu', 'EUROPA: Conference League', 'conference league'),
+    _P('nations', 'Europa', 'Nations League', 'NATIONS', 'eu', 'EUROPA: UEFA Nations League', 'nations league'),
+    _P('europei', 'Europa', 'Europei', 'EUROPEI', 'eu', '', 'campionato europeo'),
+    _P('mondiali', 'Mondo', 'Mondiali', 'MONDIALI', '', '', 'coppa del mondo'),
+    # Italia
+    _P('serie-a', 'Italia', 'Serie A', 'SERIE A', 'it', 'ITALIA: Serie A'),
+    _P('serie-b', 'Italia', 'Serie B', 'SERIE B', 'it', 'ITALIA: Serie B'),
+    _P('italia-serie-c-girone-a', 'Italia', 'Serie C - Girone A', 'SERIE C-A', 'it', 'ITALIA: Serie C - Girone A'),
+    _P('italia-serie-c-girone-b', 'Italia', 'Serie C - Girone B', 'SERIE C-B', 'it', 'ITALIA: Serie C - Girone B'),
+    _P('italia-serie-c-girone-c', 'Italia', 'Serie C - Girone C', 'SERIE C-C', 'it', 'ITALIA: Serie C - Girone C'),
+    _P('coppa-italia', 'Italia', 'Coppa Italia', 'COPPA ITALIA', 'it', 'ITALIA: Coppa Italia'),
+    _P('supercoppa-italiana', 'Italia', 'Supercoppa Italiana', 'SUPERCOPPA', 'it', '', 'italia: supercoppa'),
+    # Inghilterra
+    _P('premier', 'Inghilterra', 'Premier League', 'PREMIER', 'gb-eng', 'INGHILTERRA: Premier League'),
+    _P('championship', 'Inghilterra', 'Championship', 'CHAMPIONSHIP', 'gb-eng', 'INGHILTERRA: Championship'),
+    _P('league-one', 'Inghilterra', 'League One', 'LEAGUE ONE', 'gb-eng', 'INGHILTERRA: League One'),
+    _P('league-two', 'Inghilterra', 'League Two', 'LEAGUE TWO', 'gb-eng', 'INGHILTERRA: League Two'),
+    _P('fa-cup', 'Inghilterra', 'FA Cup', 'FA CUP', 'gb-eng', 'INGHILTERRA: FA Cup', 'inghilterra: fa cup'),
+    _P('efl-cup', 'Inghilterra', 'EFL Cup', 'EFL CUP', 'gb-eng', 'INGHILTERRA: EFL Cup', 'carabao'),
+    # Spagna
+    _P('laliga', 'Spagna', 'LaLiga', 'LALIGA', 'es', 'SPAGNA: LaLiga'),
+    _P('laliga2', 'Spagna', 'LaLiga2', 'LALIGA2', 'es', 'SPAGNA: LaLiga2'),
+    _P('spagna-primera-rfef', 'Spagna', 'Primera RFEF', 'PRIMERA RFEF', 'es', '', 'spagna: primera rfef'),
+    _P('spagna-copa-del-rey', 'Spagna', 'Copa del Rey', 'COPA DEL REY', 'es', 'SPAGNA: Copa del Rey'),
+    # Germania
+    _P('bundesliga', 'Germania', 'Bundesliga', 'BUNDESLIGA', 'de', 'GERMANIA: Bundesliga'),
+    _P('germania-2-bundesliga', 'Germania', '2. Bundesliga', '2.BUNDESLIGA', 'de', 'GERMANIA: 2. Bundesliga'),
+    _P('germania-3-liga', 'Germania', '3. Liga', '3. LIGA', 'de', 'GERMANIA: 3. Liga'),
+    _P('germania-coppa', 'Germania', 'Coppa di Germania', 'DFB POKAL', 'de', '', 'germania: coppa'),
+    # Francia
+    _P('ligue1', 'Francia', 'Ligue 1', 'LIGUE 1', 'fr', 'FRANCIA: Ligue 1'),
+    _P('francia-ligue-2', 'Francia', 'Ligue 2', 'LIGUE 2', 'fr', 'FRANCIA: Ligue 2'),
+    _P('francia-coppa', 'Francia', 'Coppa di Francia', 'COPPA FRA', 'fr', '', 'francia: coppa'),
+    # Portogallo
+    _P('portogallo-primeira', 'Portogallo', 'Primeira Liga', 'PRIMEIRA', 'pt', 'PORTOGALLO: Liga Portugal', 'portogallo: liga portugal'),
+    _P('portogallo-taca', 'Portogallo', 'Taca de Portugal', 'TACA', 'pt', 'PORTOGALLO: Taça de Portugal', 'portogallo: ta'),
+    # Olanda
+    _P('olanda-eredivisie', 'Olanda', 'Eredivisie', 'EREDIVISIE', 'nl', 'OLANDA: Eredivisie'),
+    _P('olanda-knvb', 'Olanda', 'KNVB Beker', 'KNVB', 'nl', 'OLANDA: KNVB Beker'),
+    # Altre leghe molto seguite
+    _P('brasile-serie-a', 'Brasile', 'Brasileirao', 'BRASILE A', 'br', 'BRASILE: Serie A'),
+    _P('argentina-liga-profesional-clausura', 'Argentina', 'Liga Profesional', 'LIGA ARG', 'ar', '', 'argentina: liga profesional'),
+    _P('usa-mls', 'Usa', 'MLS', 'MLS', 'us', 'USA: MLS'),
+    _P('messico-liga-mx-apertura', 'Messico', 'Liga MX', 'LIGA MX', 'mx', '', 'messico: liga mx'),
+    _P('arabia-saudita-pro-league', 'Arabia Saudita', 'Saudi Pro League', 'SAUDI', 'sa', '', 'arabia saudita: saudi'),
+]
+
 
 def _parse_records(text):
     for rec in text.split('~'):
@@ -101,6 +163,26 @@ def load_json(path=CATALOG_JSON):
             return json.load(f)
     except Exception:
         return []
+
+
+def sync_principali(Model, using='default', attiva=True):
+    """Tiene SOLO le competizioni principali: elimina tutte le altre e crea/aggiorna quelle
+    dell'elenco PRINCIPALI (attive). Ritorna (create, aggiornate, eliminate)."""
+    codici = [c['codice'] for c in PRINCIPALI]
+    eliminate = Model.objects.using(using).exclude(codice__in=codici).delete()[0]
+    creati = aggiornati = 0
+    for i, c in enumerate(PRINCIPALI):
+        defaults = {
+            'nome': c['nome'], 'nazione': c['nazione'], 'short_name': c['short_name'],
+            'bandiera': c['bandiera'], 'aliases': c['aliases'], 'contiene': c['contiene'],
+            'modalita': 'entrambe', 'ordine': 10 + i,
+        }
+        if attiva:
+            defaults['attivo'] = True
+        obj, made = Model.objects.using(using).update_or_create(codice=c['codice'], defaults=defaults)
+        creati += 1 if made else 0
+        aggiornati += 0 if made else 1
+    return creati, aggiornati, eliminate
 
 
 def upsert(Model, catalog, using='default'):

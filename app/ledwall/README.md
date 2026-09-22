@@ -81,12 +81,14 @@ Dal menu **"Ledwall"** (super-user):
   League`); metti **attivo**. Per trovare l'alias esatto guarda l'intestazione della competizione su
   diretta.it, oppure usa l'import qui sotto che li precompila.
 
-  **Import automatico di tutte le competizioni**: l'elenco arriva già pre-caricato (centinaia di
-  competizioni, **tutte disattivate**, raggruppate per **nazione**): basta filtrare per nazione,
-  accendere quelle che vuoi e impostare bandiera/modalità/ordine. Per aggiornare l'elenco (nuove
-  competizioni/stagioni) c'è il comando `python manage.py importa_competizioni_ledwall`
-  (scandisce il feed su più giorni, aggiunge solo le nuove, senza toccare quelle già configurate;
-  aggiorna anche il file `competizioni_catalogo.json` versionato che semina la produzione al deploy).
+  **Set pre-caricato (solo le principali)**: arriva già pronto un elenco curato di ~40 competizioni
+  **principali**, **attive** e **raggruppate per nazione** — per le nazioni top (Italia, Inghilterra,
+  Spagna, Germania, Francia) i campionati fino alla **terza serie** più la **coppa**, oltre a
+  Portogallo/Olanda, alle leghe più seguite (Brasile, Argentina, USA, Messico, Arabia) e a
+  Europa/Mondo. L'elenco è in `catalogo.PRINCIPALI` (con alias/`contiene` per il match col feed).
+  Per **ripristinare** questo set (elimina il resto e riattiva le principali):
+  `python manage.py importa_competizioni_ledwall`. Solo se vuoi **tutte** le competizioni del feed
+  (centinaia, disattivate): `python manage.py importa_competizioni_ledwall --tutte`.
 - **Ledwall - Impostazioni → Filtri partite**: interruttori per **mostra_live** (risultati in
   corso), **mostra_oggi_in_programma** (partite di oggi non iniziate), **mostra_oggi_finite**
   (risultati finali di oggi), **mostra_domani** (anche le partite in programma domani, con la data).
