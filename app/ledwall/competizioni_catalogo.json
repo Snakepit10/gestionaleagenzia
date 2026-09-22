@@ -1,0 +1,3130 @@
+[
+ {
+  "aliases": "AFRICA: African Nations Cup - Qualificazione",
+  "bandiera": "",
+  "codice": "africa-african-nations-cup-qualificazion",
+  "nazione": "Africa",
+  "nome": "African Nations Cup - Qualificazione",
+  "short_name": "AFRICAN NATIONS CUP "
+ },
+ {
+  "aliases": "ALGERIA: Ligue 1",
+  "bandiera": "",
+  "codice": "algeria-ligue-1",
+  "nazione": "Algeria",
+  "nome": "Ligue 1",
+  "short_name": "LIGUE 1"
+ },
+ {
+  "aliases": "ALGERIA: Ligue 2",
+  "bandiera": "",
+  "codice": "algeria-ligue-2",
+  "nazione": "Algeria",
+  "nome": "Ligue 2",
+  "short_name": "LIGUE 2"
+ },
+ {
+  "aliases": "ANGOLA: Girabola League",
+  "bandiera": "",
+  "codice": "angola-girabola-league",
+  "nazione": "Angola",
+  "nome": "Girabola League",
+  "short_name": "GIRABOLA LEAGUE"
+ },
+ {
+  "aliases": "ARGENTINA: Copa Argentina",
+  "bandiera": "ar",
+  "codice": "argentina-copa-argentina",
+  "nazione": "Argentina",
+  "nome": "Copa Argentina",
+  "short_name": "COPA ARGENTINA"
+ },
+ {
+  "aliases": "ARGENTINA: International Super Cup",
+  "bandiera": "ar",
+  "codice": "argentina-international-super-cup",
+  "nazione": "Argentina",
+  "nome": "International Super Cup",
+  "short_name": "INTERNATIONAL SUPER "
+ },
+ {
+  "aliases": "ARGENTINA: Liga Profesional - Clausura",
+  "bandiera": "ar",
+  "codice": "argentina-liga-profesional-clausura",
+  "nazione": "Argentina",
+  "nome": "Liga Profesional - Clausura",
+  "short_name": "LIGA PROFESIONAL - C"
+ },
+ {
+  "aliases": "ARGENTINA: Primera B",
+  "bandiera": "ar",
+  "codice": "argentina-primera-b",
+  "nazione": "Argentina",
+  "nome": "Primera B",
+  "short_name": "PRIMERA B"
+ },
+ {
+  "aliases": "ARGENTINA: Primera C",
+  "bandiera": "ar",
+  "codice": "argentina-primera-c",
+  "nazione": "Argentina",
+  "nome": "Primera C",
+  "short_name": "PRIMERA C"
+ },
+ {
+  "aliases": "ARGENTINA: Primera Nacional",
+  "bandiera": "ar",
+  "codice": "argentina-primera-nacional",
+  "nazione": "Argentina",
+  "nome": "Primera Nacional",
+  "short_name": "PRIMERA NACIONAL"
+ },
+ {
+  "aliases": "ARGENTINA: Reserve League - Clausura",
+  "bandiera": "ar",
+  "codice": "argentina-reserve-league-clausura",
+  "nazione": "Argentina",
+  "nome": "Reserve League - Clausura",
+  "short_name": "RESERVE LEAGUE - CLA"
+ },
+ {
+  "aliases": "ARGENTINA: Torneo Federal - Play Off",
+  "bandiera": "ar",
+  "codice": "argentina-torneo-federal-play-off",
+  "nazione": "Argentina",
+  "nome": "Torneo Federal - Play Off",
+  "short_name": "TORNEO FEDERAL - PLA"
+ },
+ {
+  "aliases": "ARGENTINA: Torneo Promocional Amateur - Promozione",
+  "bandiera": "ar",
+  "codice": "argentina-torneo-promocional-amateur-pro",
+  "nazione": "Argentina",
+  "nome": "Torneo Promocional Amateur - Promozione",
+  "short_name": "TORNEO PROMOCIONAL A"
+ },
+ {
+  "aliases": "ARMENIA: First League",
+  "bandiera": "",
+  "codice": "armenia-first-league",
+  "nazione": "Armenia",
+  "nome": "First League",
+  "short_name": "FIRST LEAGUE"
+ },
+ {
+  "aliases": "ASIA: Arabian Gulf Cup",
+  "bandiera": "",
+  "codice": "asia-arabian-gulf-cup",
+  "nazione": "Asia",
+  "nome": "Arabian Gulf Cup",
+  "short_name": "ARABIAN GULF CUP"
+ },
+ {
+  "aliases": "ASIA: FIFA ASEAN Cup - Division 1",
+  "bandiera": "",
+  "codice": "asia-fifa-asean-cup-division-1",
+  "nazione": "Asia",
+  "nome": "FIFA ASEAN Cup - Division 1",
+  "short_name": "FIFA ASEAN CUP - DIV"
+ },
+ {
+  "aliases": "ASIA: FIFA ASEAN Cup - Division 2",
+  "bandiera": "",
+  "codice": "asia-fifa-asean-cup-division-2",
+  "nazione": "Asia",
+  "nome": "FIFA ASEAN Cup - Division 2",
+  "short_name": "FIFA ASEAN CUP - DIV"
+ },
+ {
+  "aliases": "ASIA: Giochi Asiatici",
+  "bandiera": "",
+  "codice": "asia-giochi-asiatici",
+  "nazione": "Asia",
+  "nome": "Giochi Asiatici",
+  "short_name": "GIOCHI ASIATICI"
+ },
+ {
+  "aliases": "ASIA: Giochi Asiatici - Play Off",
+  "bandiera": "",
+  "codice": "asia-giochi-asiatici-play-off",
+  "nazione": "Asia",
+  "nome": "Giochi Asiatici - Play Off",
+  "short_name": "GIOCHI ASIATICI - PL"
+ },
+ {
+  "aliases": "AUSTRIA: Burgenland",
+  "bandiera": "at",
+  "codice": "austria-burgenland",
+  "nazione": "Austria",
+  "nome": "Burgenland",
+  "short_name": "BURGENLAND"
+ },
+ {
+  "aliases": "AUSTRIA: Karnten",
+  "bandiera": "at",
+  "codice": "austria-karnten",
+  "nazione": "Austria",
+  "nome": "Karnten",
+  "short_name": "KARNTEN"
+ },
+ {
+  "aliases": "AUSTRIA: Niederosterreich",
+  "bandiera": "at",
+  "codice": "austria-niederosterreich",
+  "nazione": "Austria",
+  "nome": "Niederosterreich",
+  "short_name": "NIEDEROSTERREICH"
+ },
+ {
+  "aliases": "AUSTRIA: Oberosterreich",
+  "bandiera": "at",
+  "codice": "austria-oberosterreich",
+  "nazione": "Austria",
+  "nome": "Oberosterreich",
+  "short_name": "OBEROSTERREICH"
+ },
+ {
+  "aliases": "AUSTRIA: Regionalliga Est",
+  "bandiera": "at",
+  "codice": "austria-regionalliga-est",
+  "nazione": "Austria",
+  "nome": "Regionalliga Est",
+  "short_name": "REGIONALLIGA EST"
+ },
+ {
+  "aliases": "AUSTRIA: Regionalliga North",
+  "bandiera": "at",
+  "codice": "austria-regionalliga-north",
+  "nazione": "Austria",
+  "nome": "Regionalliga North",
+  "short_name": "REGIONALLIGA NORTH"
+ },
+ {
+  "aliases": "AUSTRIA: Regionalliga Ovest",
+  "bandiera": "at",
+  "codice": "austria-regionalliga-ovest",
+  "nazione": "Austria",
+  "nome": "Regionalliga Ovest",
+  "short_name": "REGIONALLIGA OVEST"
+ },
+ {
+  "aliases": "AUSTRIA: Regionalliga South",
+  "bandiera": "at",
+  "codice": "austria-regionalliga-south",
+  "nazione": "Austria",
+  "nome": "Regionalliga South",
+  "short_name": "REGIONALLIGA SOUTH"
+ },
+ {
+  "aliases": "AUSTRIA: Salzburg",
+  "bandiera": "at",
+  "codice": "austria-salzburg",
+  "nazione": "Austria",
+  "nome": "Salzburg",
+  "short_name": "SALZBURG"
+ },
+ {
+  "aliases": "AUSTRIA: Steiermark",
+  "bandiera": "at",
+  "codice": "austria-steiermark",
+  "nazione": "Austria",
+  "nome": "Steiermark",
+  "short_name": "STEIERMARK"
+ },
+ {
+  "aliases": "AUSTRIA: Tirol",
+  "bandiera": "at",
+  "codice": "austria-tirol",
+  "nazione": "Austria",
+  "nome": "Tirol",
+  "short_name": "TIROL"
+ },
+ {
+  "aliases": "AUSTRIA: Vorarlberg",
+  "bandiera": "at",
+  "codice": "austria-vorarlberg",
+  "nazione": "Austria",
+  "nome": "Vorarlberg",
+  "short_name": "VORARLBERG"
+ },
+ {
+  "aliases": "AUSTRIA: Wien",
+  "bandiera": "at",
+  "codice": "austria-wien",
+  "nazione": "Austria",
+  "nome": "Wien",
+  "short_name": "WIEN"
+ },
+ {
+  "aliases": "BANGLADESH: BFL",
+  "bandiera": "",
+  "codice": "bangladesh-bfl",
+  "nazione": "Bangladesh",
+  "nome": "BFL",
+  "short_name": "BFL"
+ },
+ {
+  "aliases": "BANGLADESH: Federation Cup",
+  "bandiera": "",
+  "codice": "bangladesh-federation-cup",
+  "nazione": "Bangladesh",
+  "nome": "Federation Cup",
+  "short_name": "FEDERATION CUP"
+ },
+ {
+  "aliases": "BELGIO: Coppa del Belgio",
+  "bandiera": "",
+  "codice": "belgio-coppa-del-belgio",
+  "nazione": "Belgio",
+  "nome": "Coppa del Belgio",
+  "short_name": "COPPA DEL BELGIO"
+ },
+ {
+  "aliases": "BELGIO: National Division 1 - ACFF",
+  "bandiera": "",
+  "codice": "belgio-national-division-1-acff",
+  "nazione": "Belgio",
+  "nome": "National Division 1 - ACFF",
+  "short_name": "NATIONAL DIVISION 1 "
+ },
+ {
+  "aliases": "BELGIO: National Division 1 - VV",
+  "bandiera": "",
+  "codice": "belgio-national-division-1-vv",
+  "nazione": "Belgio",
+  "nome": "National Division 1 - VV",
+  "short_name": "NATIONAL DIVISION 1 "
+ },
+ {
+  "aliases": "BELGIO: Second Amateur Division Group ACFF",
+  "bandiera": "",
+  "codice": "belgio-second-amateur-division-group-acf",
+  "nazione": "Belgio",
+  "nome": "Second Amateur Division Group ACFF",
+  "short_name": "SECOND AMATEUR DIVIS"
+ },
+ {
+  "aliases": "BELGIO: Second Amateur Division Group VFV A",
+  "bandiera": "",
+  "codice": "belgio-second-amateur-division-group-vfv",
+  "nazione": "Belgio",
+  "nome": "Second Amateur Division Group VFV A",
+  "short_name": "SECOND AMATEUR DIVIS"
+ },
+ {
+  "aliases": "BELGIO: Woman´s Cup",
+  "bandiera": "",
+  "codice": "belgio-woman-s-cup",
+  "nazione": "Belgio",
+  "nome": "Woman´s Cup",
+  "short_name": "WOMAN´S CUP"
+ },
+ {
+  "aliases": "BENIN: Ligue 1",
+  "bandiera": "",
+  "codice": "benin-ligue-1",
+  "nazione": "Benin",
+  "nome": "Ligue 1",
+  "short_name": "LIGUE 1"
+ },
+ {
+  "aliases": "BHUTAN: Premier League",
+  "bandiera": "",
+  "codice": "bhutan-premier-league",
+  "nazione": "Bhutan",
+  "nome": "Premier League",
+  "short_name": "PREMIER LEAGUE"
+ },
+ {
+  "aliases": "BIELORUSSIA: Pershaya Liga",
+  "bandiera": "",
+  "codice": "bielorussia-pershaya-liga",
+  "nazione": "Bielorussia",
+  "nome": "Pershaya Liga",
+  "short_name": "PERSHAYA LIGA"
+ },
+ {
+  "aliases": "BOLIVIA: Copa Pacena",
+  "bandiera": "",
+  "codice": "bolivia-copa-pacena",
+  "nazione": "Bolivia",
+  "nome": "Copa Pacena",
+  "short_name": "COPA PACENA"
+ },
+ {
+  "aliases": "BOLIVIA: Copa Simon Bolivar",
+  "bandiera": "",
+  "codice": "bolivia-copa-simon-bolivar",
+  "nazione": "Bolivia",
+  "nome": "Copa Simon Bolivar",
+  "short_name": "COPA SIMON BOLIVAR"
+ },
+ {
+  "aliases": "BOSNIA & HERZEGOVINA: Prva Liga - FBiH",
+  "bandiera": "",
+  "codice": "bosnia-herzegovina-prva-liga-fbih",
+  "nazione": "Bosnia & Herzegovina",
+  "nome": "Prva Liga - FBiH",
+  "short_name": "PRVA LIGA - FBIH"
+ },
+ {
+  "aliases": "BOSNIA & HERZEGOVINA: Prva Liga - RS",
+  "bandiera": "",
+  "codice": "bosnia-herzegovina-prva-liga-rs",
+  "nazione": "Bosnia & Herzegovina",
+  "nome": "Prva Liga - RS",
+  "short_name": "PRVA LIGA - RS"
+ },
+ {
+  "aliases": "BRASILE: Brasileiro Donne - Play Off",
+  "bandiera": "",
+  "codice": "brasile-brasileiro-donne-play-off",
+  "nazione": "Brasile",
+  "nome": "Brasileiro Donne - Play Off",
+  "short_name": "BRASILEIRO DONNE - P"
+ },
+ {
+  "aliases": "BRASILE: Brasiliense 2",
+  "bandiera": "",
+  "codice": "brasile-brasiliense-2",
+  "nazione": "Brasile",
+  "nome": "Brasiliense 2",
+  "short_name": "BRASILIENSE 2"
+ },
+ {
+  "aliases": "BRASILE: Brasiliense Donne",
+  "bandiera": "",
+  "codice": "brasile-brasiliense-donne",
+  "nazione": "Brasile",
+  "nome": "Brasiliense Donne",
+  "short_name": "BRASILIENSE DONNE"
+ },
+ {
+  "aliases": "BRASILE: Carioca B1",
+  "bandiera": "",
+  "codice": "brasile-carioca-b1",
+  "nazione": "Brasile",
+  "nome": "Carioca B1",
+  "short_name": "CARIOCA B1"
+ },
+ {
+  "aliases": "BRASILE: Carioca B2",
+  "bandiera": "",
+  "codice": "brasile-carioca-b2",
+  "nazione": "Brasile",
+  "nome": "Carioca B2",
+  "short_name": "CARIOCA B2"
+ },
+ {
+  "aliases": "BRASILE: Catarinense 3",
+  "bandiera": "",
+  "codice": "brasile-catarinense-3",
+  "nazione": "Brasile",
+  "nome": "Catarinense 3",
+  "short_name": "CATARINENSE 3"
+ },
+ {
+  "aliases": "BRASILE: Catarinense Donne",
+  "bandiera": "",
+  "codice": "brasile-catarinense-donne",
+  "nazione": "Brasile",
+  "nome": "Catarinense Donne",
+  "short_name": "CATARINENSE DONNE"
+ },
+ {
+  "aliases": "BRASILE: Cearense 3 - Play Off",
+  "bandiera": "",
+  "codice": "brasile-cearense-3-play-off",
+  "nazione": "Brasile",
+  "nome": "Cearense 3 - Play Off",
+  "short_name": "CEARENSE 3 - PLAY OF"
+ },
+ {
+  "aliases": "BRASILE: Copa FMF (Mato Grosso)",
+  "bandiera": "",
+  "codice": "brasile-copa-fmf-mato-grosso",
+  "nazione": "Brasile",
+  "nome": "Copa FMF (Mato Grosso)",
+  "short_name": "COPA FMF (MATO GROSS"
+ },
+ {
+  "aliases": "BRASILE: Copa Parana",
+  "bandiera": "",
+  "codice": "brasile-copa-parana",
+  "nazione": "Brasile",
+  "nome": "Copa Parana",
+  "short_name": "COPA PARANA"
+ },
+ {
+  "aliases": "BRASILE: Copa Paulista - Play Off",
+  "bandiera": "",
+  "codice": "brasile-copa-paulista-play-off",
+  "nazione": "Brasile",
+  "nome": "Copa Paulista - Play Off",
+  "short_name": "COPA PAULISTA - PLAY"
+ },
+ {
+  "aliases": "BRASILE: Coppa Rio",
+  "bandiera": "",
+  "codice": "brasile-coppa-rio",
+  "nazione": "Brasile",
+  "nome": "Coppa Rio",
+  "short_name": "COPPA RIO"
+ },
+ {
+  "aliases": "BRASILE: Coppa Santa Catarina",
+  "bandiera": "",
+  "codice": "brasile-coppa-santa-catarina",
+  "nazione": "Brasile",
+  "nome": "Coppa Santa Catarina",
+  "short_name": "COPPA SANTA CATARINA"
+ },
+ {
+  "aliases": "BRASILE: Gaucho 2",
+  "bandiera": "",
+  "codice": "brasile-gaucho-2",
+  "nazione": "Brasile",
+  "nome": "Gaucho 2",
+  "short_name": "GAUCHO 2"
+ },
+ {
+  "aliases": "BRASILE: Gaucho 3",
+  "bandiera": "",
+  "codice": "brasile-gaucho-3",
+  "nazione": "Brasile",
+  "nome": "Gaucho 3",
+  "short_name": "GAUCHO 3"
+ },
+ {
+  "aliases": "BRASILE: Gaucho Donne - Seconda fase",
+  "bandiera": "",
+  "codice": "brasile-gaucho-donne-seconda-fase",
+  "nazione": "Brasile",
+  "nome": "Gaucho Donne - Seconda fase",
+  "short_name": "GAUCHO DONNE - SECON"
+ },
+ {
+  "aliases": "BRASILE: Goiano 2",
+  "bandiera": "",
+  "codice": "brasile-goiano-2",
+  "nazione": "Brasile",
+  "nome": "Goiano 2",
+  "short_name": "GOIANO 2"
+ },
+ {
+  "aliases": "BRASILE: Goiano Donne - Prima fase",
+  "bandiera": "",
+  "codice": "brasile-goiano-donne-prima-fase",
+  "nazione": "Brasile",
+  "nome": "Goiano Donne - Prima fase",
+  "short_name": "GOIANO DONNE - PRIMA"
+ },
+ {
+  "aliases": "BRASILE: Matogrossense Donne",
+  "bandiera": "",
+  "codice": "brasile-matogrossense-donne",
+  "nazione": "Brasile",
+  "nome": "Matogrossense Donne",
+  "short_name": "MATOGROSSENSE DONNE"
+ },
+ {
+  "aliases": "BRASILE: Mineiro 3",
+  "bandiera": "",
+  "codice": "brasile-mineiro-3",
+  "nazione": "Brasile",
+  "nome": "Mineiro 3",
+  "short_name": "MINEIRO 3"
+ },
+ {
+  "aliases": "BRASILE: Mineiro Donne",
+  "bandiera": "",
+  "codice": "brasile-mineiro-donne",
+  "nazione": "Brasile",
+  "nome": "Mineiro Donne",
+  "short_name": "MINEIRO DONNE"
+ },
+ {
+  "aliases": "BRASILE: Paraense A3",
+  "bandiera": "",
+  "codice": "brasile-paraense-a3",
+  "nazione": "Brasile",
+  "nome": "Paraense A3",
+  "short_name": "PARAENSE A3"
+ },
+ {
+  "aliases": "BRASILE: Paraibano 2",
+  "bandiera": "",
+  "codice": "brasile-paraibano-2",
+  "nazione": "Brasile",
+  "nome": "Paraibano 2",
+  "short_name": "PARAIBANO 2"
+ },
+ {
+  "aliases": "BRASILE: Paranaense 3 - Play Off",
+  "bandiera": "",
+  "codice": "brasile-paranaense-3-play-off",
+  "nazione": "Brasile",
+  "nome": "Paranaense 3 - Play Off",
+  "short_name": "PARANAENSE 3 - PLAY "
+ },
+ {
+  "aliases": "BRASILE: Paranaense Donne",
+  "bandiera": "",
+  "codice": "brasile-paranaense-donne",
+  "nazione": "Brasile",
+  "nome": "Paranaense Donne",
+  "short_name": "PARANAENSE DONNE"
+ },
+ {
+  "aliases": "BRASILE: Piauiense 2",
+  "bandiera": "",
+  "codice": "brasile-piauiense-2",
+  "nazione": "Brasile",
+  "nome": "Piauiense 2",
+  "short_name": "PIAUIENSE 2"
+ },
+ {
+  "aliases": "BRASILE: Serie B",
+  "bandiera": "",
+  "codice": "brasile-serie-b",
+  "nazione": "Brasile",
+  "nome": "Serie B",
+  "short_name": "SERIE B"
+ },
+ {
+  "aliases": "BRASILE: Serie C - Seconda fase",
+  "bandiera": "",
+  "codice": "brasile-serie-c-seconda-fase",
+  "nazione": "Brasile",
+  "nome": "Serie C - Seconda fase",
+  "short_name": "SERIE C - SECONDA FA"
+ },
+ {
+  "aliases": "BRASILE: Tocantinense 2",
+  "bandiera": "",
+  "codice": "brasile-tocantinense-2",
+  "nazione": "Brasile",
+  "nome": "Tocantinense 2",
+  "short_name": "TOCANTINENSE 2"
+ },
+ {
+  "aliases": "BULGARIA: Third League - North-East",
+  "bandiera": "",
+  "codice": "bulgaria-third-league-north-east",
+  "nazione": "Bulgaria",
+  "nome": "Third League - North-East",
+  "short_name": "THIRD LEAGUE - NORTH"
+ },
+ {
+  "aliases": "BULGARIA: Third League - North-West",
+  "bandiera": "",
+  "codice": "bulgaria-third-league-north-west",
+  "nazione": "Bulgaria",
+  "nome": "Third League - North-West",
+  "short_name": "THIRD LEAGUE - NORTH"
+ },
+ {
+  "aliases": "BULGARIA: Third League - South-East",
+  "bandiera": "",
+  "codice": "bulgaria-third-league-south-east",
+  "nazione": "Bulgaria",
+  "nome": "Third League - South-East",
+  "short_name": "THIRD LEAGUE - SOUTH"
+ },
+ {
+  "aliases": "BULGARIA: Third League - South-West",
+  "bandiera": "",
+  "codice": "bulgaria-third-league-south-west",
+  "nazione": "Bulgaria",
+  "nome": "Third League - South-West",
+  "short_name": "THIRD LEAGUE - SOUTH"
+ },
+ {
+  "aliases": "BULGARIA: Vtora liga",
+  "bandiera": "",
+  "codice": "bulgaria-vtora-liga",
+  "nazione": "Bulgaria",
+  "nome": "Vtora liga",
+  "short_name": "VTORA LIGA"
+ },
+ {
+  "aliases": "BURUNDI: Primus League",
+  "bandiera": "",
+  "codice": "burundi-primus-league",
+  "nazione": "Burundi",
+  "nome": "Primus League",
+  "short_name": "PRIMUS LEAGUE"
+ },
+ {
+  "aliases": "CANADA: Canadian Premier League",
+  "bandiera": "",
+  "codice": "canada-canadian-premier-league",
+  "nazione": "Canada",
+  "nome": "Canadian Premier League",
+  "short_name": "CANADIAN PREMIER LEA"
+ },
+ {
+  "aliases": "CILE: Copa Chile - Play Off",
+  "bandiera": "",
+  "codice": "cile-copa-chile-play-off",
+  "nazione": "Cile",
+  "nome": "Copa Chile - Play Off",
+  "short_name": "COPA CHILE - PLAY OF"
+ },
+ {
+  "aliases": "CILE: Liga de Ascenso",
+  "bandiera": "",
+  "codice": "cile-liga-de-ascenso",
+  "nazione": "Cile",
+  "nome": "Liga de Ascenso",
+  "short_name": "LIGA DE ASCENSO"
+ },
+ {
+  "aliases": "CILE: Segunda Division - Gruppo Promozione",
+  "bandiera": "",
+  "codice": "cile-segunda-division-gruppo-promozione",
+  "nazione": "Cile",
+  "nome": "Segunda Division - Gruppo Promozione",
+  "short_name": "SEGUNDA DIVISION - G"
+ },
+ {
+  "aliases": "CILE: Segunda Division - Gruppo Retrocessione",
+  "bandiera": "",
+  "codice": "cile-segunda-division-gruppo-retrocessio",
+  "nazione": "Cile",
+  "nome": "Segunda Division - Gruppo Retrocessione",
+  "short_name": "SEGUNDA DIVISION - G"
+ },
+ {
+  "aliases": "CINA: League One",
+  "bandiera": "",
+  "codice": "cina-league-one",
+  "nazione": "Cina",
+  "nome": "League One",
+  "short_name": "LEAGUE ONE"
+ },
+ {
+  "aliases": "COLOMBIA: Copa Colombia - Prima Fase - Play Off",
+  "bandiera": "",
+  "codice": "colombia-copa-colombia-prima-fase-play-o",
+  "nazione": "Colombia",
+  "nome": "Copa Colombia - Prima Fase - Play Off",
+  "short_name": "COPA COLOMBIA - PRIM"
+ },
+ {
+  "aliases": "COLOMBIA: Primera A - Clausura",
+  "bandiera": "",
+  "codice": "colombia-primera-a-clausura",
+  "nazione": "Colombia",
+  "nome": "Primera A - Clausura",
+  "short_name": "PRIMERA A - CLAUSURA"
+ },
+ {
+  "aliases": "COLOMBIA: Primera B - Clausura",
+  "bandiera": "",
+  "codice": "colombia-primera-b-clausura",
+  "nazione": "Colombia",
+  "nome": "Primera B - Clausura",
+  "short_name": "PRIMERA B - CLAUSURA"
+ },
+ {
+  "aliases": "COSTA D'AVORIO: Ligue 1",
+  "bandiera": "",
+  "codice": "costa-davorio-ligue-1",
+  "nazione": "Costa D'Avorio",
+  "nome": "Ligue 1",
+  "short_name": "LIGUE 1"
+ },
+ {
+  "aliases": "COSTARICA: Liga de Ascenso - Apertura",
+  "bandiera": "",
+  "codice": "costarica-liga-de-ascenso-apertura",
+  "nazione": "Costarica",
+  "nome": "Liga de Ascenso - Apertura",
+  "short_name": "LIGA DE ASCENSO - AP"
+ },
+ {
+  "aliases": "COSTARICA: Primera División - Apertura",
+  "bandiera": "",
+  "codice": "costarica-primera-division-apertura",
+  "nazione": "Costarica",
+  "nome": "Primera División - Apertura",
+  "short_name": "PRIMERA DIVISIÓN - A"
+ },
+ {
+  "aliases": "CROAZIA: Druga NL",
+  "bandiera": "",
+  "codice": "croazia-druga-nl",
+  "nazione": "Croazia",
+  "nome": "Druga NL",
+  "short_name": "DRUGA NL"
+ },
+ {
+  "aliases": "CROAZIA: Prva NL",
+  "bandiera": "",
+  "codice": "croazia-prva-nl",
+  "nazione": "Croazia",
+  "nome": "Prva NL",
+  "short_name": "PRVA NL"
+ },
+ {
+  "aliases": "DANIMARCA: 1st Division",
+  "bandiera": "",
+  "codice": "danimarca-1st-division",
+  "nazione": "Danimarca",
+  "nome": "1st Division",
+  "short_name": "1ST DIVISION"
+ },
+ {
+  "aliases": "DANIMARCA: 2nd Division",
+  "bandiera": "",
+  "codice": "danimarca-2nd-division",
+  "nazione": "Danimarca",
+  "nome": "2nd Division",
+  "short_name": "2ND DIVISION"
+ },
+ {
+  "aliases": "DANIMARCA: 3rd Division",
+  "bandiera": "",
+  "codice": "danimarca-3rd-division",
+  "nazione": "Danimarca",
+  "nome": "3rd Division",
+  "short_name": "3RD DIVISION"
+ },
+ {
+  "aliases": "ECUADOR: Copa Ecuador",
+  "bandiera": "",
+  "codice": "ecuador-copa-ecuador",
+  "nazione": "Ecuador",
+  "nome": "Copa Ecuador",
+  "short_name": "COPA ECUADOR"
+ },
+ {
+  "aliases": "ECUADOR: Liga Pro - Gruppo Retrocessione",
+  "bandiera": "",
+  "codice": "ecuador-liga-pro-gruppo-retrocessione",
+  "nazione": "Ecuador",
+  "nome": "Liga Pro - Gruppo Retrocessione",
+  "short_name": "LIGA PRO - GRUPPO RE"
+ },
+ {
+  "aliases": "ECUADOR: Liga Pro - Play-Offs Championship",
+  "bandiera": "",
+  "codice": "ecuador-liga-pro-play-offs-championship",
+  "nazione": "Ecuador",
+  "nome": "Liga Pro - Play-Offs Championship",
+  "short_name": "LIGA PRO - PLAY-OFFS"
+ },
+ {
+  "aliases": "ECUADOR: Serie B - Gruppo Promozione",
+  "bandiera": "",
+  "codice": "ecuador-serie-b-gruppo-promozione",
+  "nazione": "Ecuador",
+  "nome": "Serie B - Gruppo Promozione",
+  "short_name": "SERIE B - GRUPPO PRO"
+ },
+ {
+  "aliases": "ECUADOR: Serie B - Gruppo Retrocessione",
+  "bandiera": "",
+  "codice": "ecuador-serie-b-gruppo-retrocessione",
+  "nazione": "Ecuador",
+  "nome": "Serie B - Gruppo Retrocessione",
+  "short_name": "SERIE B - GRUPPO RET"
+ },
+ {
+  "aliases": "EGITTO: Division 2 A",
+  "bandiera": "",
+  "codice": "egitto-division-2-a",
+  "nazione": "Egitto",
+  "nome": "Division 2 A",
+  "short_name": "DIVISION 2 A"
+ },
+ {
+  "aliases": "EL SALVADOR: Primera Division - Apertura",
+  "bandiera": "",
+  "codice": "el-salvador-primera-division-apertura",
+  "nazione": "El Salvador",
+  "nome": "Primera Division - Apertura",
+  "short_name": "PRIMERA DIVISION - A"
+ },
+ {
+  "aliases": "EMIRATI ARABI: Presidents Cup",
+  "bandiera": "",
+  "codice": "emirati-arabi-presidents-cup",
+  "nazione": "Emirati Arabi",
+  "nome": "Presidents Cup",
+  "short_name": "PRESIDENTS CUP"
+ },
+ {
+  "aliases": "ESTONIA: Coppa di Estonia",
+  "bandiera": "",
+  "codice": "estonia-coppa-di-estonia",
+  "nazione": "Estonia",
+  "nome": "Coppa di Estonia",
+  "short_name": "COPPA DI ESTONIA"
+ },
+ {
+  "aliases": "ESTONIA: Esiliiga",
+  "bandiera": "",
+  "codice": "estonia-esiliiga",
+  "nazione": "Estonia",
+  "nome": "Esiliiga",
+  "short_name": "ESILIIGA"
+ },
+ {
+  "aliases": "ESTONIA: Esiliiga B",
+  "bandiera": "",
+  "codice": "estonia-esiliiga-b",
+  "nazione": "Estonia",
+  "nome": "Esiliiga B",
+  "short_name": "ESILIIGA B"
+ },
+ {
+  "aliases": "EUROPA: Premier League (Crimea)",
+  "bandiera": "",
+  "codice": "europa-premier-league-crimea",
+  "nazione": "Europa",
+  "nome": "Premier League (Crimea)",
+  "short_name": "PREMIER LEAGUE (CRIM"
+ },
+ {
+  "aliases": "EUROPA: Premier League International Cup",
+  "bandiera": "",
+  "codice": "europa-premier-league-international-cup",
+  "nazione": "Europa",
+  "nome": "Premier League International Cup",
+  "short_name": "PREMIER LEAGUE INTER"
+ },
+ {
+  "aliases": "EUROPA: UEFA Nations League - League A",
+  "bandiera": "",
+  "codice": "europa-uefa-nations-league-league-a",
+  "nazione": "Europa",
+  "nome": "UEFA Nations League - League A",
+  "short_name": "UEFA NATIONS LEAGUE "
+ },
+ {
+  "aliases": "EUROPA: UEFA Nations League - League B",
+  "bandiera": "",
+  "codice": "europa-uefa-nations-league-league-b",
+  "nazione": "Europa",
+  "nome": "UEFA Nations League - League B",
+  "short_name": "UEFA NATIONS LEAGUE "
+ },
+ {
+  "aliases": "EUROPA: UEFA Nations League - League C",
+  "bandiera": "",
+  "codice": "europa-uefa-nations-league-league-c",
+  "nazione": "Europa",
+  "nome": "UEFA Nations League - League C",
+  "short_name": "UEFA NATIONS LEAGUE "
+ },
+ {
+  "aliases": "EUROPA: UEFA Nations League - League D",
+  "bandiera": "",
+  "codice": "europa-uefa-nations-league-league-d",
+  "nazione": "Europa",
+  "nome": "UEFA Nations League - League D",
+  "short_name": "UEFA NATIONS LEAGUE "
+ },
+ {
+  "aliases": "FILIPPINE: PFL",
+  "bandiera": "",
+  "codice": "filippine-pfl",
+  "nazione": "Filippine",
+  "nome": "PFL",
+  "short_name": "PFL"
+ },
+ {
+  "aliases": "FINLANDIA: Kakkonen - Group A - Fase Perdenti",
+  "bandiera": "",
+  "codice": "finlandia-kakkonen-group-a-fase-perdenti",
+  "nazione": "Finlandia",
+  "nome": "Kakkonen - Group A - Fase Perdenti",
+  "short_name": "KAKKONEN - GROUP A -"
+ },
+ {
+  "aliases": "FINLANDIA: Kakkonen - Group B - Fase Perdenti",
+  "bandiera": "",
+  "codice": "finlandia-kakkonen-group-b-fase-perdenti",
+  "nazione": "Finlandia",
+  "nome": "Kakkonen - Group B - Fase Perdenti",
+  "short_name": "KAKKONEN - GROUP B -"
+ },
+ {
+  "aliases": "FINLANDIA: Kakkonen - Group C - Fase Perdenti",
+  "bandiera": "",
+  "codice": "finlandia-kakkonen-group-c-fase-perdenti",
+  "nazione": "Finlandia",
+  "nome": "Kakkonen - Group C - Fase Perdenti",
+  "short_name": "KAKKONEN - GROUP C -"
+ },
+ {
+  "aliases": "FINLANDIA: Ykkonen - Gruppo Retrocessione",
+  "bandiera": "",
+  "codice": "finlandia-ykkonen-gruppo-retrocessione",
+  "nazione": "Finlandia",
+  "nome": "Ykkonen - Gruppo Retrocessione",
+  "short_name": "YKKONEN - GRUPPO RET"
+ },
+ {
+  "aliases": "FINLANDIA: Ykkonen - Play-Offs Championship",
+  "bandiera": "",
+  "codice": "finlandia-ykkonen-play-offs-championship",
+  "nazione": "Finlandia",
+  "nome": "Ykkonen - Play-Offs Championship",
+  "short_name": "YKKONEN - PLAY-OFFS "
+ },
+ {
+  "aliases": "FINLANDIA: Ykkosliiga",
+  "bandiera": "",
+  "codice": "finlandia-ykkosliiga",
+  "nazione": "Finlandia",
+  "nome": "Ykkosliiga",
+  "short_name": "YKKOSLIIGA"
+ },
+ {
+  "aliases": "FRANCIA: Ligue 3",
+  "bandiera": "",
+  "codice": "francia-ligue-3",
+  "nazione": "Francia",
+  "nome": "Ligue 3",
+  "short_name": "LIGUE 3"
+ },
+ {
+  "aliases": "GALLES: Cymru North",
+  "bandiera": "",
+  "codice": "galles-cymru-north",
+  "nazione": "Galles",
+  "nome": "Cymru North",
+  "short_name": "CYMRU NORTH"
+ },
+ {
+  "aliases": "GALLES: Cymru Premier",
+  "bandiera": "",
+  "codice": "galles-cymru-premier",
+  "nazione": "Galles",
+  "nome": "Cymru Premier",
+  "short_name": "CYMRU PREMIER"
+ },
+ {
+  "aliases": "GALLES: Cymru South",
+  "bandiera": "",
+  "codice": "galles-cymru-south",
+  "nazione": "Galles",
+  "nome": "Cymru South",
+  "short_name": "CYMRU SOUTH"
+ },
+ {
+  "aliases": "GEORGIA: Coppa",
+  "bandiera": "",
+  "codice": "georgia-coppa",
+  "nazione": "Georgia",
+  "nome": "Coppa",
+  "short_name": "COPPA"
+ },
+ {
+  "aliases": "GEORGIA: Crystalbet Erovnuli Liga",
+  "bandiera": "",
+  "codice": "georgia-crystalbet-erovnuli-liga",
+  "nazione": "Georgia",
+  "nome": "Crystalbet Erovnuli Liga",
+  "short_name": "CRYSTALBET EROVNULI "
+ },
+ {
+  "aliases": "GERMANIA: 3. Liga",
+  "bandiera": "",
+  "codice": "germania-3-liga",
+  "nazione": "Germania",
+  "nome": "3. Liga",
+  "short_name": "3. LIGA"
+ },
+ {
+  "aliases": "GERMANIA: Oberliga Baden-Württemberg",
+  "bandiera": "",
+  "codice": "germania-oberliga-baden-wurttemberg",
+  "nazione": "Germania",
+  "nome": "Oberliga Baden-Württemberg",
+  "short_name": "OBERLIGA BADEN-WÜRTT"
+ },
+ {
+  "aliases": "GERMANIA: Oberliga Bayern Nord",
+  "bandiera": "",
+  "codice": "germania-oberliga-bayern-nord",
+  "nazione": "Germania",
+  "nome": "Oberliga Bayern Nord",
+  "short_name": "OBERLIGA BAYERN NORD"
+ },
+ {
+  "aliases": "GERMANIA: Oberliga Bayern Süd",
+  "bandiera": "",
+  "codice": "germania-oberliga-bayern-sud",
+  "nazione": "Germania",
+  "nome": "Oberliga Bayern Süd",
+  "short_name": "OBERLIGA BAYERN SÜD"
+ },
+ {
+  "aliases": "GERMANIA: Oberliga Bremen",
+  "bandiera": "",
+  "codice": "germania-oberliga-bremen",
+  "nazione": "Germania",
+  "nome": "Oberliga Bremen",
+  "short_name": "OBERLIGA BREMEN"
+ },
+ {
+  "aliases": "GERMANIA: Oberliga Hamburg",
+  "bandiera": "",
+  "codice": "germania-oberliga-hamburg",
+  "nazione": "Germania",
+  "nome": "Oberliga Hamburg",
+  "short_name": "OBERLIGA HAMBURG"
+ },
+ {
+  "aliases": "GERMANIA: Oberliga Hessen",
+  "bandiera": "",
+  "codice": "germania-oberliga-hessen",
+  "nazione": "Germania",
+  "nome": "Oberliga Hessen",
+  "short_name": "OBERLIGA HESSEN"
+ },
+ {
+  "aliases": "GERMANIA: Oberliga Mittelrhein",
+  "bandiera": "",
+  "codice": "germania-oberliga-mittelrhein",
+  "nazione": "Germania",
+  "nome": "Oberliga Mittelrhein",
+  "short_name": "OBERLIGA MITTELRHEIN"
+ },
+ {
+  "aliases": "GERMANIA: Oberliga NOFV- Sud",
+  "bandiera": "",
+  "codice": "germania-oberliga-nofv-sud",
+  "nazione": "Germania",
+  "nome": "Oberliga NOFV- Sud",
+  "short_name": "OBERLIGA NOFV- SUD"
+ },
+ {
+  "aliases": "GERMANIA: Oberliga NOFV-Nord",
+  "bandiera": "",
+  "codice": "germania-oberliga-nofv-nord",
+  "nazione": "Germania",
+  "nome": "Oberliga NOFV-Nord",
+  "short_name": "OBERLIGA NOFV-NORD"
+ },
+ {
+  "aliases": "GERMANIA: Oberliga Niederrhein",
+  "bandiera": "",
+  "codice": "germania-oberliga-niederrhein",
+  "nazione": "Germania",
+  "nome": "Oberliga Niederrhein",
+  "short_name": "OBERLIGA NIEDERRHEIN"
+ },
+ {
+  "aliases": "GERMANIA: Oberliga Niedersachsen",
+  "bandiera": "",
+  "codice": "germania-oberliga-niedersachsen",
+  "nazione": "Germania",
+  "nome": "Oberliga Niedersachsen",
+  "short_name": "OBERLIGA NIEDERSACHS"
+ },
+ {
+  "aliases": "GERMANIA: Oberliga Rheinland-Pfalz/Saar",
+  "bandiera": "",
+  "codice": "germania-oberliga-rheinland-pfalzsaar",
+  "nazione": "Germania",
+  "nome": "Oberliga Rheinland-Pfalz/Saar",
+  "short_name": "OBERLIGA RHEINLAND-P"
+ },
+ {
+  "aliases": "GERMANIA: Oberliga Schleswig-Holstein",
+  "bandiera": "",
+  "codice": "germania-oberliga-schleswig-holstein",
+  "nazione": "Germania",
+  "nome": "Oberliga Schleswig-Holstein",
+  "short_name": "OBERLIGA SCHLESWIG-H"
+ },
+ {
+  "aliases": "GERMANIA: Oberliga Westfalen",
+  "bandiera": "",
+  "codice": "germania-oberliga-westfalen",
+  "nazione": "Germania",
+  "nome": "Oberliga Westfalen",
+  "short_name": "OBERLIGA WESTFALEN"
+ },
+ {
+  "aliases": "GERMANIA: Regionalliga Bayern",
+  "bandiera": "",
+  "codice": "germania-regionalliga-bayern",
+  "nazione": "Germania",
+  "nome": "Regionalliga Bayern",
+  "short_name": "REGIONALLIGA BAYERN"
+ },
+ {
+  "aliases": "GERMANIA: Regionalliga Nord",
+  "bandiera": "",
+  "codice": "germania-regionalliga-nord",
+  "nazione": "Germania",
+  "nome": "Regionalliga Nord",
+  "short_name": "REGIONALLIGA NORD"
+ },
+ {
+  "aliases": "GERMANIA: Regionalliga Nordost",
+  "bandiera": "",
+  "codice": "germania-regionalliga-nordost",
+  "nazione": "Germania",
+  "nome": "Regionalliga Nordost",
+  "short_name": "REGIONALLIGA NORDOST"
+ },
+ {
+  "aliases": "GERMANIA: Regionalliga Ovest",
+  "bandiera": "",
+  "codice": "germania-regionalliga-ovest",
+  "nazione": "Germania",
+  "nome": "Regionalliga Ovest",
+  "short_name": "REGIONALLIGA OVEST"
+ },
+ {
+  "aliases": "GERMANIA: Regionalliga Sudwest",
+  "bandiera": "",
+  "codice": "germania-regionalliga-sudwest",
+  "nazione": "Germania",
+  "nome": "Regionalliga Sudwest",
+  "short_name": "REGIONALLIGA SUDWEST"
+ },
+ {
+  "aliases": "GHANA: Division One League",
+  "bandiera": "",
+  "codice": "ghana-division-one-league",
+  "nazione": "Ghana",
+  "nome": "Division One League",
+  "short_name": "DIVISION ONE LEAGUE"
+ },
+ {
+  "aliases": "GHANA: Premier League",
+  "bandiera": "",
+  "codice": "ghana-premier-league",
+  "nazione": "Ghana",
+  "nome": "Premier League",
+  "short_name": "PREMIER LEAGUE"
+ },
+ {
+  "aliases": "GIAMAICA: Premier League",
+  "bandiera": "",
+  "codice": "giamaica-premier-league",
+  "nazione": "Giamaica",
+  "nome": "Premier League",
+  "short_name": "PREMIER LEAGUE"
+ },
+ {
+  "aliases": "GIAPPONE: Coppa dell'Imperatore",
+  "bandiera": "",
+  "codice": "giappone-coppa-dellimperatore",
+  "nazione": "Giappone",
+  "nome": "Coppa dell'Imperatore",
+  "short_name": "COPPA DELL'IMPERATOR"
+ },
+ {
+  "aliases": "GIAPPONE: J.League Cup - Prima fase",
+  "bandiera": "",
+  "codice": "giappone-jleague-cup-prima-fase",
+  "nazione": "Giappone",
+  "nome": "J.League Cup - Prima fase",
+  "short_name": "J.LEAGUE CUP - PRIMA"
+ },
+ {
+  "aliases": "GIAPPONE: J2 League",
+  "bandiera": "",
+  "codice": "giappone-j2-league",
+  "nazione": "Giappone",
+  "nome": "J2 League",
+  "short_name": "J2 LEAGUE"
+ },
+ {
+  "aliases": "GIAPPONE: J3 League",
+  "bandiera": "",
+  "codice": "giappone-j3-league",
+  "nazione": "Giappone",
+  "nome": "J3 League",
+  "short_name": "J3 LEAGUE"
+ },
+ {
+  "aliases": "GRECIA: Gamma Ethniki - Group 10",
+  "bandiera": "",
+  "codice": "grecia-gamma-ethniki-group-10",
+  "nazione": "Grecia",
+  "nome": "Gamma Ethniki - Group 10",
+  "short_name": "GAMMA ETHNIKI - GROU"
+ },
+ {
+  "aliases": "GRECIA: Gamma Ethniki - Group 2",
+  "bandiera": "",
+  "codice": "grecia-gamma-ethniki-group-2",
+  "nazione": "Grecia",
+  "nome": "Gamma Ethniki - Group 2",
+  "short_name": "GAMMA ETHNIKI - GROU"
+ },
+ {
+  "aliases": "GRECIA: Gamma Ethniki - Group 3",
+  "bandiera": "",
+  "codice": "grecia-gamma-ethniki-group-3",
+  "nazione": "Grecia",
+  "nome": "Gamma Ethniki - Group 3",
+  "short_name": "GAMMA ETHNIKI - GROU"
+ },
+ {
+  "aliases": "GRECIA: Gamma Ethniki - Group 4",
+  "bandiera": "",
+  "codice": "grecia-gamma-ethniki-group-4",
+  "nazione": "Grecia",
+  "nome": "Gamma Ethniki - Group 4",
+  "short_name": "GAMMA ETHNIKI - GROU"
+ },
+ {
+  "aliases": "GRECIA: Gamma Ethniki - Group 5",
+  "bandiera": "",
+  "codice": "grecia-gamma-ethniki-group-5",
+  "nazione": "Grecia",
+  "nome": "Gamma Ethniki - Group 5",
+  "short_name": "GAMMA ETHNIKI - GROU"
+ },
+ {
+  "aliases": "GRECIA: Gamma Ethniki - Group 6",
+  "bandiera": "",
+  "codice": "grecia-gamma-ethniki-group-6",
+  "nazione": "Grecia",
+  "nome": "Gamma Ethniki - Group 6",
+  "short_name": "GAMMA ETHNIKI - GROU"
+ },
+ {
+  "aliases": "GRECIA: Gamma Ethniki - Group 7",
+  "bandiera": "",
+  "codice": "grecia-gamma-ethniki-group-7",
+  "nazione": "Grecia",
+  "nome": "Gamma Ethniki - Group 7",
+  "short_name": "GAMMA ETHNIKI - GROU"
+ },
+ {
+  "aliases": "GRECIA: Gamma Ethniki - Group 8",
+  "bandiera": "",
+  "codice": "grecia-gamma-ethniki-group-8",
+  "nazione": "Grecia",
+  "nome": "Gamma Ethniki - Group 8",
+  "short_name": "GAMMA ETHNIKI - GROU"
+ },
+ {
+  "aliases": "GRECIA: Gamma Ethniki - Group 9",
+  "bandiera": "",
+  "codice": "grecia-gamma-ethniki-group-9",
+  "nazione": "Grecia",
+  "nome": "Gamma Ethniki - Group 9",
+  "short_name": "GAMMA ETHNIKI - GROU"
+ },
+ {
+  "aliases": "GRECIA: Super League 2",
+  "bandiera": "",
+  "codice": "grecia-super-league-2",
+  "nazione": "Grecia",
+  "nome": "Super League 2",
+  "short_name": "SUPER LEAGUE 2"
+ },
+ {
+  "aliases": "GUATEMALA: Liga Nacional - Apertura",
+  "bandiera": "",
+  "codice": "guatemala-liga-nacional-apertura",
+  "nazione": "Guatemala",
+  "nome": "Liga Nacional - Apertura",
+  "short_name": "LIGA NACIONAL - APER"
+ },
+ {
+  "aliases": "HONDURAS: Liga Nacional - Apertura",
+  "bandiera": "",
+  "codice": "honduras-liga-nacional-apertura",
+  "nazione": "Honduras",
+  "nome": "Liga Nacional - Apertura",
+  "short_name": "LIGA NACIONAL - APER"
+ },
+ {
+  "aliases": "HONG KONG: League Cup",
+  "bandiera": "",
+  "codice": "hong-kong-league-cup",
+  "nazione": "Hong Kong",
+  "nome": "League Cup",
+  "short_name": "LEAGUE CUP"
+ },
+ {
+  "aliases": "INDIA: IFA Shield",
+  "bandiera": "",
+  "codice": "india-ifa-shield",
+  "nazione": "India",
+  "nome": "IFA Shield",
+  "short_name": "IFA SHIELD"
+ },
+ {
+  "aliases": "INDONESIA: Championship",
+  "bandiera": "",
+  "codice": "indonesia-championship",
+  "nazione": "Indonesia",
+  "nome": "Championship",
+  "short_name": "CHAMPIONSHIP"
+ },
+ {
+  "aliases": "INGHILTERRA: EFL Trophy",
+  "bandiera": "",
+  "codice": "inghilterra-efl-trophy",
+  "nazione": "Inghilterra",
+  "nome": "EFL Trophy",
+  "short_name": "EFL TROPHY"
+ },
+ {
+  "aliases": "INGHILTERRA: FA Cup - Qualificazione",
+  "bandiera": "",
+  "codice": "inghilterra-fa-cup-qualificazione",
+  "nazione": "Inghilterra",
+  "nome": "FA Cup - Qualificazione",
+  "short_name": "FA CUP - QUALIFICAZI"
+ },
+ {
+  "aliases": "INGHILTERRA: FA Trophy - Qualificazione",
+  "bandiera": "",
+  "codice": "inghilterra-fa-trophy-qualificazione",
+  "nazione": "Inghilterra",
+  "nome": "FA Trophy - Qualificazione",
+  "short_name": "FA TROPHY - QUALIFIC"
+ },
+ {
+  "aliases": "INGHILTERRA: Isthmian League Premier Division",
+  "bandiera": "",
+  "codice": "inghilterra-isthmian-league-premier-divi",
+  "nazione": "Inghilterra",
+  "nome": "Isthmian League Premier Division",
+  "short_name": "ISTHMIAN LEAGUE PREM"
+ },
+ {
+  "aliases": "INGHILTERRA: League One",
+  "bandiera": "",
+  "codice": "inghilterra-league-one",
+  "nazione": "Inghilterra",
+  "nome": "League One",
+  "short_name": "LEAGUE ONE"
+ },
+ {
+  "aliases": "INGHILTERRA: League Two",
+  "bandiera": "",
+  "codice": "inghilterra-league-two",
+  "nazione": "Inghilterra",
+  "nome": "League Two",
+  "short_name": "LEAGUE TWO"
+ },
+ {
+  "aliases": "INGHILTERRA: NPL Premier Division",
+  "bandiera": "",
+  "codice": "inghilterra-npl-premier-division",
+  "nazione": "Inghilterra",
+  "nome": "NPL Premier Division",
+  "short_name": "NPL PREMIER DIVISION"
+ },
+ {
+  "aliases": "INGHILTERRA: National League",
+  "bandiera": "",
+  "codice": "inghilterra-national-league",
+  "nazione": "Inghilterra",
+  "nome": "National League",
+  "short_name": "NATIONAL LEAGUE"
+ },
+ {
+  "aliases": "INGHILTERRA: National League Cup",
+  "bandiera": "",
+  "codice": "inghilterra-national-league-cup",
+  "nazione": "Inghilterra",
+  "nome": "National League Cup",
+  "short_name": "NATIONAL LEAGUE CUP"
+ },
+ {
+  "aliases": "INGHILTERRA: National League Nord",
+  "bandiera": "",
+  "codice": "inghilterra-national-league-nord",
+  "nazione": "Inghilterra",
+  "nome": "National League Nord",
+  "short_name": "NATIONAL LEAGUE NORD"
+ },
+ {
+  "aliases": "INGHILTERRA: National League Sud",
+  "bandiera": "",
+  "codice": "inghilterra-national-league-sud",
+  "nazione": "Inghilterra",
+  "nome": "National League Sud",
+  "short_name": "NATIONAL LEAGUE SUD"
+ },
+ {
+  "aliases": "INGHILTERRA: Premier League 2",
+  "bandiera": "",
+  "codice": "inghilterra-premier-league-2",
+  "nazione": "Inghilterra",
+  "nome": "Premier League 2",
+  "short_name": "PREMIER LEAGUE 2"
+ },
+ {
+  "aliases": "INGHILTERRA: Premier League Cup",
+  "bandiera": "",
+  "codice": "inghilterra-premier-league-cup",
+  "nazione": "Inghilterra",
+  "nome": "Premier League Cup",
+  "short_name": "PREMIER LEAGUE CUP"
+ },
+ {
+  "aliases": "INGHILTERRA: Professional Development League",
+  "bandiera": "",
+  "codice": "inghilterra-professional-development-lea",
+  "nazione": "Inghilterra",
+  "nome": "Professional Development League",
+  "short_name": "PROFESSIONAL DEVELOP"
+ },
+ {
+  "aliases": "INGHILTERRA: Southern League Premier Central",
+  "bandiera": "",
+  "codice": "inghilterra-southern-league-premier-cent",
+  "nazione": "Inghilterra",
+  "nome": "Southern League Premier Central",
+  "short_name": "SOUTHERN LEAGUE PREM"
+ },
+ {
+  "aliases": "INGHILTERRA: Southern League Premier South",
+  "bandiera": "",
+  "codice": "inghilterra-southern-league-premier-sout",
+  "nazione": "Inghilterra",
+  "nome": "Southern League Premier South",
+  "short_name": "SOUTHERN LEAGUE PREM"
+ },
+ {
+  "aliases": "INGHILTERRA: WSL",
+  "bandiera": "",
+  "codice": "inghilterra-wsl",
+  "nazione": "Inghilterra",
+  "nome": "WSL",
+  "short_name": "WSL"
+ },
+ {
+  "aliases": "INGHILTERRA: WSL 2",
+  "bandiera": "",
+  "codice": "inghilterra-wsl-2",
+  "nazione": "Inghilterra",
+  "nome": "WSL 2",
+  "short_name": "WSL 2"
+ },
+ {
+  "aliases": "IRAN: Azadegan League",
+  "bandiera": "",
+  "codice": "iran-azadegan-league",
+  "nazione": "Iran",
+  "nome": "Azadegan League",
+  "short_name": "AZADEGAN LEAGUE"
+ },
+ {
+  "aliases": "IRLANDA: Division 1",
+  "bandiera": "",
+  "codice": "irlanda-division-1",
+  "nazione": "Irlanda",
+  "nome": "Division 1",
+  "short_name": "DIVISION 1"
+ },
+ {
+  "aliases": "IRLANDA: National League",
+  "bandiera": "",
+  "codice": "irlanda-national-league",
+  "nazione": "Irlanda",
+  "nome": "National League",
+  "short_name": "NATIONAL LEAGUE"
+ },
+ {
+  "aliases": "IRLANDA: Premier Division",
+  "bandiera": "",
+  "codice": "irlanda-premier-division",
+  "nazione": "Irlanda",
+  "nome": "Premier Division",
+  "short_name": "PREMIER DIVISION"
+ },
+ {
+  "aliases": "IRLANDA DEL NORD: NIFL Championship",
+  "bandiera": "",
+  "codice": "irlanda-del-nord-nifl-championship",
+  "nazione": "Irlanda Del Nord",
+  "nome": "NIFL Championship",
+  "short_name": "NIFL CHAMPIONSHIP"
+ },
+ {
+  "aliases": "IRLANDA DEL NORD: NIFL Premiership",
+  "bandiera": "",
+  "codice": "irlanda-del-nord-nifl-premiership",
+  "nazione": "Irlanda Del Nord",
+  "nome": "NIFL Premiership",
+  "short_name": "NIFL PREMIERSHIP"
+ },
+ {
+  "aliases": "ISRAELE: Leumit League",
+  "bandiera": "",
+  "codice": "israele-leumit-league",
+  "nazione": "Israele",
+  "nome": "Leumit League",
+  "short_name": "LEUMIT LEAGUE"
+ },
+ {
+  "aliases": "ISRAELE: Liga Alef North",
+  "bandiera": "",
+  "codice": "israele-liga-alef-north",
+  "nazione": "Israele",
+  "nome": "Liga Alef North",
+  "short_name": "LIGA ALEF NORTH"
+ },
+ {
+  "aliases": "ISRAELE: Liga Alef South",
+  "bandiera": "",
+  "codice": "israele-liga-alef-south",
+  "nazione": "Israele",
+  "nome": "Liga Alef South",
+  "short_name": "LIGA ALEF SOUTH"
+ },
+ {
+  "aliases": "ITALIA: Serie C - Girone A",
+  "bandiera": "",
+  "codice": "italia-serie-c-girone-a",
+  "nazione": "Italia",
+  "nome": "Serie C - Girone A",
+  "short_name": "SERIE C - GIRONE A"
+ },
+ {
+  "aliases": "ITALIA: Serie C - Girone B",
+  "bandiera": "",
+  "codice": "italia-serie-c-girone-b",
+  "nazione": "Italia",
+  "nome": "Serie C - Girone B",
+  "short_name": "SERIE C - GIRONE B"
+ },
+ {
+  "aliases": "ITALIA: Serie C - Girone C",
+  "bandiera": "",
+  "codice": "italia-serie-c-girone-c",
+  "nazione": "Italia",
+  "nome": "Serie C - Girone C",
+  "short_name": "SERIE C - GIRONE C"
+ },
+ {
+  "aliases": "ITALIA: Serie D - Girone A",
+  "bandiera": "",
+  "codice": "italia-serie-d-girone-a",
+  "nazione": "Italia",
+  "nome": "Serie D - Girone A",
+  "short_name": "SERIE D - GIRONE A"
+ },
+ {
+  "aliases": "ITALIA: Serie D - Girone B",
+  "bandiera": "",
+  "codice": "italia-serie-d-girone-b",
+  "nazione": "Italia",
+  "nome": "Serie D - Girone B",
+  "short_name": "SERIE D - GIRONE B"
+ },
+ {
+  "aliases": "ITALIA: Serie D - Girone C",
+  "bandiera": "",
+  "codice": "italia-serie-d-girone-c",
+  "nazione": "Italia",
+  "nome": "Serie D - Girone C",
+  "short_name": "SERIE D - GIRONE C"
+ },
+ {
+  "aliases": "ITALIA: Serie D - Girone D",
+  "bandiera": "",
+  "codice": "italia-serie-d-girone-d",
+  "nazione": "Italia",
+  "nome": "Serie D - Girone D",
+  "short_name": "SERIE D - GIRONE D"
+ },
+ {
+  "aliases": "ITALIA: Serie D - Girone E",
+  "bandiera": "",
+  "codice": "italia-serie-d-girone-e",
+  "nazione": "Italia",
+  "nome": "Serie D - Girone E",
+  "short_name": "SERIE D - GIRONE E"
+ },
+ {
+  "aliases": "ITALIA: Serie D - Girone F",
+  "bandiera": "",
+  "codice": "italia-serie-d-girone-f",
+  "nazione": "Italia",
+  "nome": "Serie D - Girone F",
+  "short_name": "SERIE D - GIRONE F"
+ },
+ {
+  "aliases": "ITALIA: Serie D - Girone G",
+  "bandiera": "",
+  "codice": "italia-serie-d-girone-g",
+  "nazione": "Italia",
+  "nome": "Serie D - Girone G",
+  "short_name": "SERIE D - GIRONE G"
+ },
+ {
+  "aliases": "ITALIA: Serie D - Girone H",
+  "bandiera": "",
+  "codice": "italia-serie-d-girone-h",
+  "nazione": "Italia",
+  "nome": "Serie D - Girone H",
+  "short_name": "SERIE D - GIRONE H"
+ },
+ {
+  "aliases": "ITALIA: Serie D - Girone I",
+  "bandiera": "",
+  "codice": "italia-serie-d-girone-i",
+  "nazione": "Italia",
+  "nome": "Serie D - Girone I",
+  "short_name": "SERIE D - GIRONE I"
+ },
+ {
+  "aliases": "KOSOVO: Liga e Pare",
+  "bandiera": "",
+  "codice": "kosovo-liga-e-pare",
+  "nazione": "Kosovo",
+  "nome": "Liga e Pare",
+  "short_name": "LIGA E PARE"
+ },
+ {
+  "aliases": "LETTONIA: 1. Liga",
+  "bandiera": "",
+  "codice": "lettonia-1-liga",
+  "nazione": "Lettonia",
+  "nome": "1. Liga",
+  "short_name": "1. LIGA"
+ },
+ {
+  "aliases": "MACEDONIA DEL NORD: 1. MFL",
+  "bandiera": "",
+  "codice": "macedonia-del-nord-1-mfl",
+  "nazione": "Macedonia Del Nord",
+  "nome": "1. MFL",
+  "short_name": "1. MFL"
+ },
+ {
+  "aliases": "MACEDONIA DEL NORD: 2. MFL",
+  "bandiera": "",
+  "codice": "macedonia-del-nord-2-mfl",
+  "nazione": "Macedonia Del Nord",
+  "nome": "2. MFL",
+  "short_name": "2. MFL"
+ },
+ {
+  "aliases": "MACEDONIA DEL NORD: Coppa",
+  "bandiera": "",
+  "codice": "macedonia-del-nord-coppa",
+  "nazione": "Macedonia Del Nord",
+  "nome": "Coppa",
+  "short_name": "COPPA"
+ },
+ {
+  "aliases": "MAROCCO: Botola 2",
+  "bandiera": "",
+  "codice": "marocco-botola-2",
+  "nazione": "Marocco",
+  "nome": "Botola 2",
+  "short_name": "BOTOLA 2"
+ },
+ {
+  "aliases": "MAROCCO: Botola Pro",
+  "bandiera": "",
+  "codice": "marocco-botola-pro",
+  "nazione": "Marocco",
+  "nome": "Botola Pro",
+  "short_name": "BOTOLA PRO"
+ },
+ {
+  "aliases": "MESSICO: Liga MX - Apertura",
+  "bandiera": "",
+  "codice": "messico-liga-mx-apertura",
+  "nazione": "Messico",
+  "nome": "Liga MX - Apertura",
+  "short_name": "LIGA MX - APERTURA"
+ },
+ {
+  "aliases": "MESSICO: Liga Premier Serie A",
+  "bandiera": "",
+  "codice": "messico-liga-premier-serie-a",
+  "nazione": "Messico",
+  "nome": "Liga Premier Serie A",
+  "short_name": "LIGA PREMIER SERIE A"
+ },
+ {
+  "aliases": "MESSICO: Liga Premier Serie B",
+  "bandiera": "",
+  "codice": "messico-liga-premier-serie-b",
+  "nazione": "Messico",
+  "nome": "Liga Premier Serie B",
+  "short_name": "LIGA PREMIER SERIE B"
+ },
+ {
+  "aliases": "MESSICO: Liga de Expansion MX - Apertura",
+  "bandiera": "",
+  "codice": "messico-liga-de-expansion-mx-apertura",
+  "nazione": "Messico",
+  "nome": "Liga de Expansion MX - Apertura",
+  "short_name": "LIGA DE EXPANSION MX"
+ },
+ {
+  "aliases": "MESSICO: Primera Premier",
+  "bandiera": "",
+  "codice": "messico-primera-premier",
+  "nazione": "Messico",
+  "nome": "Primera Premier",
+  "short_name": "PRIMERA PREMIER"
+ },
+ {
+  "aliases": "MONDO: Amichevoli Nazionali",
+  "bandiera": "",
+  "codice": "mondo-amichevoli-nazionali",
+  "nazione": "Mondo",
+  "nome": "Amichevoli Nazionali",
+  "short_name": "AMICHEVOLI NAZIONALI"
+ },
+ {
+  "aliases": "MONDO: Amichevoli per Club",
+  "bandiera": "",
+  "codice": "mondo-amichevoli-per-club",
+  "nazione": "Mondo",
+  "nome": "Amichevoli per Club",
+  "short_name": "AMICHEVOLI PER CLUB"
+ },
+ {
+  "aliases": "MONDO: Jezek Cup",
+  "bandiera": "",
+  "codice": "mondo-jezek-cup",
+  "nazione": "Mondo",
+  "nome": "Jezek Cup",
+  "short_name": "JEZEK CUP"
+ },
+ {
+  "aliases": "MONGOLIA: Premier League",
+  "bandiera": "",
+  "codice": "mongolia-premier-league",
+  "nazione": "Mongolia",
+  "nome": "Premier League",
+  "short_name": "PREMIER LEAGUE"
+ },
+ {
+  "aliases": "MONTENEGRO: Druga Liga",
+  "bandiera": "",
+  "codice": "montenegro-druga-liga",
+  "nazione": "Montenegro",
+  "nome": "Druga Liga",
+  "short_name": "DRUGA LIGA"
+ },
+ {
+  "aliases": "MOZAMBICO: Mocambola",
+  "bandiera": "",
+  "codice": "mozambico-mocambola",
+  "nazione": "Mozambico",
+  "nome": "Mocambola",
+  "short_name": "MOCAMBOLA"
+ },
+ {
+  "aliases": "NIGER: Super Ligue",
+  "bandiera": "",
+  "codice": "niger-super-ligue",
+  "nazione": "Niger",
+  "nome": "Super Ligue",
+  "short_name": "SUPER LIGUE"
+ },
+ {
+  "aliases": "NIGERIA: NPFL",
+  "bandiera": "",
+  "codice": "nigeria-npfl",
+  "nazione": "Nigeria",
+  "nome": "NPFL",
+  "short_name": "NPFL"
+ },
+ {
+  "aliases": "NORD E CENTRO AMERICA: CONCACAF Nations League - League C",
+  "bandiera": "",
+  "codice": "nord-e-centro-america-concacaf-nations-l",
+  "nazione": "Nord E Centro America",
+  "nome": "CONCACAF Nations League - League C",
+  "short_name": "CONCACAF NATIONS LEA"
+ },
+ {
+  "aliases": "NORVEGIA: Division 2 - Gruppo 1",
+  "bandiera": "",
+  "codice": "norvegia-division-2-gruppo-1",
+  "nazione": "Norvegia",
+  "nome": "Division 2 - Gruppo 1",
+  "short_name": "DIVISION 2 - GRUPPO "
+ },
+ {
+  "aliases": "NORVEGIA: Division 2 - Gruppo 2",
+  "bandiera": "",
+  "codice": "norvegia-division-2-gruppo-2",
+  "nazione": "Norvegia",
+  "nome": "Division 2 - Gruppo 2",
+  "short_name": "DIVISION 2 - GRUPPO "
+ },
+ {
+  "aliases": "NORVEGIA: Division 3 - Group 1",
+  "bandiera": "",
+  "codice": "norvegia-division-3-group-1",
+  "nazione": "Norvegia",
+  "nome": "Division 3 - Group 1",
+  "short_name": "DIVISION 3 - GROUP 1"
+ },
+ {
+  "aliases": "NORVEGIA: Division 3 - Group 2",
+  "bandiera": "",
+  "codice": "norvegia-division-3-group-2",
+  "nazione": "Norvegia",
+  "nome": "Division 3 - Group 2",
+  "short_name": "DIVISION 3 - GROUP 2"
+ },
+ {
+  "aliases": "NORVEGIA: Division 3 - Group 3",
+  "bandiera": "",
+  "codice": "norvegia-division-3-group-3",
+  "nazione": "Norvegia",
+  "nome": "Division 3 - Group 3",
+  "short_name": "DIVISION 3 - GROUP 3"
+ },
+ {
+  "aliases": "NORVEGIA: Division 3 - Group 4",
+  "bandiera": "",
+  "codice": "norvegia-division-3-group-4",
+  "nazione": "Norvegia",
+  "nome": "Division 3 - Group 4",
+  "short_name": "DIVISION 3 - GROUP 4"
+ },
+ {
+  "aliases": "NORVEGIA: Division 3 - Group 5",
+  "bandiera": "",
+  "codice": "norvegia-division-3-group-5",
+  "nazione": "Norvegia",
+  "nome": "Division 3 - Group 5",
+  "short_name": "DIVISION 3 - GROUP 5"
+ },
+ {
+  "aliases": "NORVEGIA: Division 3 - Group 6",
+  "bandiera": "",
+  "codice": "norvegia-division-3-group-6",
+  "nazione": "Norvegia",
+  "nome": "Division 3 - Group 6",
+  "short_name": "DIVISION 3 - GROUP 6"
+ },
+ {
+  "aliases": "NORVEGIA: NM Cup",
+  "bandiera": "",
+  "codice": "norvegia-nm-cup",
+  "nazione": "Norvegia",
+  "nome": "NM Cup",
+  "short_name": "NM CUP"
+ },
+ {
+  "aliases": "NUOVA ZELANDA: National League - Play-Offs Championship",
+  "bandiera": "",
+  "codice": "nuova-zelanda-national-league-play-offs-",
+  "nazione": "Nuova Zelanda",
+  "nome": "National League - Play-Offs Championship",
+  "short_name": "NATIONAL LEAGUE - PL"
+ },
+ {
+  "aliases": "OLANDA: Derde Divisie",
+  "bandiera": "",
+  "codice": "olanda-derde-divisie",
+  "nazione": "Olanda",
+  "nome": "Derde Divisie",
+  "short_name": "DERDE DIVISIE"
+ },
+ {
+  "aliases": "OLANDA: Eerste Divisie",
+  "bandiera": "",
+  "codice": "olanda-eerste-divisie",
+  "nazione": "Olanda",
+  "nome": "Eerste Divisie",
+  "short_name": "EERSTE DIVISIE"
+ },
+ {
+  "aliases": "OLANDA: KNVB Beker",
+  "bandiera": "",
+  "codice": "olanda-knvb-beker",
+  "nazione": "Olanda",
+  "nome": "KNVB Beker",
+  "short_name": "KNVB BEKER"
+ },
+ {
+  "aliases": "OLANDA: Tweede Divisie",
+  "bandiera": "",
+  "codice": "olanda-tweede-divisie",
+  "nazione": "Olanda",
+  "nome": "Tweede Divisie",
+  "short_name": "TWEEDE DIVISIE"
+ },
+ {
+  "aliases": "OMAN: FA Cup",
+  "bandiera": "",
+  "codice": "oman-fa-cup",
+  "nazione": "Oman",
+  "nome": "FA Cup",
+  "short_name": "FA CUP"
+ },
+ {
+  "aliases": "PANAMA: LPF - Apertura",
+  "bandiera": "",
+  "codice": "panama-lpf-apertura",
+  "nazione": "Panama",
+  "nome": "LPF - Apertura",
+  "short_name": "LPF - APERTURA"
+ },
+ {
+  "aliases": "PARAGUAY: Copa Paraguay",
+  "bandiera": "",
+  "codice": "paraguay-copa-paraguay",
+  "nazione": "Paraguay",
+  "nome": "Copa Paraguay",
+  "short_name": "COPA PARAGUAY"
+ },
+ {
+  "aliases": "PARAGUAY: Copa de Primera - Clausura",
+  "bandiera": "",
+  "codice": "paraguay-copa-de-primera-clausura",
+  "nazione": "Paraguay",
+  "nome": "Copa de Primera - Clausura",
+  "short_name": "COPA DE PRIMERA - CL"
+ },
+ {
+  "aliases": "PARAGUAY: Division Intermedia",
+  "bandiera": "",
+  "codice": "paraguay-division-intermedia",
+  "nazione": "Paraguay",
+  "nome": "Division Intermedia",
+  "short_name": "DIVISION INTERMEDIA"
+ },
+ {
+  "aliases": "PERU: Copa de la Liga - Play Off",
+  "bandiera": "",
+  "codice": "peru-copa-de-la-liga-play-off",
+  "nazione": "Peru",
+  "nome": "Copa de la Liga - Play Off",
+  "short_name": "COPA DE LA LIGA - PL"
+ },
+ {
+  "aliases": "PERU: Liga 1 - Clausura",
+  "bandiera": "",
+  "codice": "peru-liga-1-clausura",
+  "nazione": "Peru",
+  "nome": "Liga 1 - Clausura",
+  "short_name": "LIGA 1 - CLAUSURA"
+ },
+ {
+  "aliases": "PERU: Liga 2 - Gruppo Promozione",
+  "bandiera": "",
+  "codice": "peru-liga-2-gruppo-promozione",
+  "nazione": "Peru",
+  "nome": "Liga 2 - Gruppo Promozione",
+  "short_name": "LIGA 2 - GRUPPO PROM"
+ },
+ {
+  "aliases": "PERU: Liga 2 - Gruppo Retrocessione",
+  "bandiera": "",
+  "codice": "peru-liga-2-gruppo-retrocessione",
+  "nazione": "Peru",
+  "nome": "Liga 2 - Gruppo Retrocessione",
+  "short_name": "LIGA 2 - GRUPPO RETR"
+ },
+ {
+  "aliases": "POLONIA: III Liga - Group I",
+  "bandiera": "",
+  "codice": "polonia-iii-liga-group-i",
+  "nazione": "Polonia",
+  "nome": "III Liga - Group I",
+  "short_name": "III LIGA - GROUP I"
+ },
+ {
+  "aliases": "POLONIA: III Liga - Group II",
+  "bandiera": "",
+  "codice": "polonia-iii-liga-group-ii",
+  "nazione": "Polonia",
+  "nome": "III Liga - Group II",
+  "short_name": "III LIGA - GROUP II"
+ },
+ {
+  "aliases": "POLONIA: III Liga - Group III",
+  "bandiera": "",
+  "codice": "polonia-iii-liga-group-iii",
+  "nazione": "Polonia",
+  "nome": "III Liga - Group III",
+  "short_name": "III LIGA - GROUP III"
+ },
+ {
+  "aliases": "POLONIA: III Liga - Group IV",
+  "bandiera": "",
+  "codice": "polonia-iii-liga-group-iv",
+  "nazione": "Polonia",
+  "nome": "III Liga - Group IV",
+  "short_name": "III LIGA - GROUP IV"
+ },
+ {
+  "aliases": "PORTOGALLO: Campeonato de Portugal - Group D",
+  "bandiera": "",
+  "codice": "portogallo-campeonato-de-portugal-group-",
+  "nazione": "Portogallo",
+  "nome": "Campeonato de Portugal - Group D",
+  "short_name": "CAMPEONATO DE PORTUG"
+ },
+ {
+  "aliases": "PORTOGALLO: Taça de Portugal",
+  "bandiera": "",
+  "codice": "portogallo-taca-de-portugal",
+  "nazione": "Portogallo",
+  "nome": "Taça de Portugal",
+  "short_name": "TAÇA DE PORTUGAL"
+ },
+ {
+  "aliases": "QATAR: QSL Cup",
+  "bandiera": "",
+  "codice": "qatar-qsl-cup",
+  "nazione": "Qatar",
+  "nome": "QSL Cup",
+  "short_name": "QSL CUP"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: 3. CFL - Group A",
+  "bandiera": "",
+  "codice": "repubblica-ceca-3-cfl-group-a",
+  "nazione": "Repubblica Ceca",
+  "nome": "3. CFL - Group A",
+  "short_name": "3. CFL - GROUP A"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: 3. CFL - Group B",
+  "bandiera": "",
+  "codice": "repubblica-ceca-3-cfl-group-b",
+  "nazione": "Repubblica Ceca",
+  "nome": "3. CFL - Group B",
+  "short_name": "3. CFL - GROUP B"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: 3. MSFL",
+  "bandiera": "",
+  "codice": "repubblica-ceca-3-msfl",
+  "nazione": "Repubblica Ceca",
+  "nome": "3. MSFL",
+  "short_name": "3. MSFL"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: 4. liga - Group A",
+  "bandiera": "",
+  "codice": "repubblica-ceca-4-liga-group-a",
+  "nazione": "Repubblica Ceca",
+  "nome": "4. liga - Group A",
+  "short_name": "4. LIGA - GROUP A"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: 4. liga - Group B",
+  "bandiera": "",
+  "codice": "repubblica-ceca-4-liga-group-b",
+  "nazione": "Repubblica Ceca",
+  "nome": "4. liga - Group B",
+  "short_name": "4. LIGA - GROUP B"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: 4. liga - Group C",
+  "bandiera": "",
+  "codice": "repubblica-ceca-4-liga-group-c",
+  "nazione": "Repubblica Ceca",
+  "nome": "4. liga - Group C",
+  "short_name": "4. LIGA - GROUP C"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: 4. liga - Group D",
+  "bandiera": "",
+  "codice": "repubblica-ceca-4-liga-group-d",
+  "nazione": "Repubblica Ceca",
+  "nome": "4. liga - Group D",
+  "short_name": "4. LIGA - GROUP D"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: 4. liga - Group E",
+  "bandiera": "",
+  "codice": "repubblica-ceca-4-liga-group-e",
+  "nazione": "Repubblica Ceca",
+  "nome": "4. liga - Group E",
+  "short_name": "4. LIGA - GROUP E"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: 4. liga - Group F",
+  "bandiera": "",
+  "codice": "repubblica-ceca-4-liga-group-f",
+  "nazione": "Repubblica Ceca",
+  "nome": "4. liga - Group F",
+  "short_name": "4. LIGA - GROUP F"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: Jihocesky KP",
+  "bandiera": "",
+  "codice": "repubblica-ceca-jihocesky-kp",
+  "nazione": "Repubblica Ceca",
+  "nome": "Jihocesky KP",
+  "short_name": "JIHOCESKY KP"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: Jihomoravsky KP",
+  "bandiera": "",
+  "codice": "repubblica-ceca-jihomoravsky-kp",
+  "nazione": "Repubblica Ceca",
+  "nome": "Jihomoravsky KP",
+  "short_name": "JIHOMORAVSKY KP"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: Karlovarsky KP",
+  "bandiera": "",
+  "codice": "repubblica-ceca-karlovarsky-kp",
+  "nazione": "Repubblica Ceca",
+  "nome": "Karlovarsky KP",
+  "short_name": "KARLOVARSKY KP"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: Kralovehradecky KP",
+  "bandiera": "",
+  "codice": "repubblica-ceca-kralovehradecky-kp",
+  "nazione": "Repubblica Ceca",
+  "nome": "Kralovehradecky KP",
+  "short_name": "KRALOVEHRADECKY KP"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: Liberecky KP",
+  "bandiera": "",
+  "codice": "repubblica-ceca-liberecky-kp",
+  "nazione": "Repubblica Ceca",
+  "nome": "Liberecky KP",
+  "short_name": "LIBERECKY KP"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: MOL Cup",
+  "bandiera": "",
+  "codice": "repubblica-ceca-mol-cup",
+  "nazione": "Repubblica Ceca",
+  "nome": "MOL Cup",
+  "short_name": "MOL CUP"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: Moravskoslezsky KP",
+  "bandiera": "",
+  "codice": "repubblica-ceca-moravskoslezsky-kp",
+  "nazione": "Repubblica Ceca",
+  "nome": "Moravskoslezsky KP",
+  "short_name": "MORAVSKOSLEZSKY KP"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: Olomoucky KP",
+  "bandiera": "",
+  "codice": "repubblica-ceca-olomoucky-kp",
+  "nazione": "Repubblica Ceca",
+  "nome": "Olomoucky KP",
+  "short_name": "OLOMOUCKY KP"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: Pardubicky KP",
+  "bandiera": "",
+  "codice": "repubblica-ceca-pardubicky-kp",
+  "nazione": "Repubblica Ceca",
+  "nome": "Pardubicky KP",
+  "short_name": "PARDUBICKY KP"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: Plzensky KP",
+  "bandiera": "",
+  "codice": "repubblica-ceca-plzensky-kp",
+  "nazione": "Repubblica Ceca",
+  "nome": "Plzensky KP",
+  "short_name": "PLZENSKY KP"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: Prazsky prebor",
+  "bandiera": "",
+  "codice": "repubblica-ceca-prazsky-prebor",
+  "nazione": "Repubblica Ceca",
+  "nome": "Prazsky prebor",
+  "short_name": "PRAZSKY PREBOR"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: Stredocesky KP",
+  "bandiera": "",
+  "codice": "repubblica-ceca-stredocesky-kp",
+  "nazione": "Repubblica Ceca",
+  "nome": "Stredocesky KP",
+  "short_name": "STREDOCESKY KP"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: Ustecky KP",
+  "bandiera": "",
+  "codice": "repubblica-ceca-ustecky-kp",
+  "nazione": "Repubblica Ceca",
+  "nome": "Ustecky KP",
+  "short_name": "USTECKY KP"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: Vysocina KP",
+  "bandiera": "",
+  "codice": "repubblica-ceca-vysocina-kp",
+  "nazione": "Repubblica Ceca",
+  "nome": "Vysocina KP",
+  "short_name": "VYSOCINA KP"
+ },
+ {
+  "aliases": "REPUBBLICA CECA: Zlinsky KP",
+  "bandiera": "",
+  "codice": "repubblica-ceca-zlinsky-kp",
+  "nazione": "Repubblica Ceca",
+  "nome": "Zlinsky KP",
+  "short_name": "ZLINSKY KP"
+ },
+ {
+  "aliases": "REPUBBLICA DOMINICANA: LDF",
+  "bandiera": "",
+  "codice": "repubblica-dominicana-ldf",
+  "nazione": "Repubblica Dominicana",
+  "nome": "LDF",
+  "short_name": "LDF"
+ },
+ {
+  "aliases": "ROMANIA: Liga 2",
+  "bandiera": "ro",
+  "codice": "romania-liga-2",
+  "nazione": "Romania",
+  "nome": "Liga 2",
+  "short_name": "LIGA 2"
+ },
+ {
+  "aliases": "ROMANIA: Liga 3 - Seria 1",
+  "bandiera": "ro",
+  "codice": "romania-liga-3-seria-1",
+  "nazione": "Romania",
+  "nome": "Liga 3 - Seria 1",
+  "short_name": "LIGA 3 - SERIA 1"
+ },
+ {
+  "aliases": "ROMANIA: Liga 3 - Seria 2",
+  "bandiera": "ro",
+  "codice": "romania-liga-3-seria-2",
+  "nazione": "Romania",
+  "nome": "Liga 3 - Seria 2",
+  "short_name": "LIGA 3 - SERIA 2"
+ },
+ {
+  "aliases": "ROMANIA: Liga 3 - Seria 3",
+  "bandiera": "ro",
+  "codice": "romania-liga-3-seria-3",
+  "nazione": "Romania",
+  "nome": "Liga 3 - Seria 3",
+  "short_name": "LIGA 3 - SERIA 3"
+ },
+ {
+  "aliases": "ROMANIA: Liga 3 - Seria 4",
+  "bandiera": "ro",
+  "codice": "romania-liga-3-seria-4",
+  "nazione": "Romania",
+  "nome": "Liga 3 - Seria 4",
+  "short_name": "LIGA 3 - SERIA 4"
+ },
+ {
+  "aliases": "ROMANIA: Liga 3 - Seria 5",
+  "bandiera": "ro",
+  "codice": "romania-liga-3-seria-5",
+  "nazione": "Romania",
+  "nome": "Liga 3 - Seria 5",
+  "short_name": "LIGA 3 - SERIA 5"
+ },
+ {
+  "aliases": "ROMANIA: Liga 3 - Seria 6",
+  "bandiera": "ro",
+  "codice": "romania-liga-3-seria-6",
+  "nazione": "Romania",
+  "nome": "Liga 3 - Seria 6",
+  "short_name": "LIGA 3 - SERIA 6"
+ },
+ {
+  "aliases": "ROMANIA: Liga 3 - Seria 7",
+  "bandiera": "ro",
+  "codice": "romania-liga-3-seria-7",
+  "nazione": "Romania",
+  "nome": "Liga 3 - Seria 7",
+  "short_name": "LIGA 3 - SERIA 7"
+ },
+ {
+  "aliases": "ROMANIA: Liga 3 - Seria 8",
+  "bandiera": "ro",
+  "codice": "romania-liga-3-seria-8",
+  "nazione": "Romania",
+  "nome": "Liga 3 - Seria 8",
+  "short_name": "LIGA 3 - SERIA 8"
+ },
+ {
+  "aliases": "ROMANIA: Superliga",
+  "bandiera": "ro",
+  "codice": "romania-superliga",
+  "nazione": "Romania",
+  "nome": "Superliga",
+  "short_name": "SUPERLIGA"
+ },
+ {
+  "aliases": "RUSSIA: FNL",
+  "bandiera": "ru",
+  "codice": "russia-fnl",
+  "nazione": "Russia",
+  "nome": "FNL",
+  "short_name": "FNL"
+ },
+ {
+  "aliases": "RUSSIA: FNL 2 - Division A Gold - Autunno",
+  "bandiera": "ru",
+  "codice": "russia-fnl-2-division-a-gold-autunno",
+  "nazione": "Russia",
+  "nome": "FNL 2 - Division A Gold - Autunno",
+  "short_name": "FNL 2 - DIVISION A G"
+ },
+ {
+  "aliases": "RUSSIA: FNL 2 - Division A Silver - Autunno",
+  "bandiera": "ru",
+  "codice": "russia-fnl-2-division-a-silver-autunno",
+  "nazione": "Russia",
+  "nome": "FNL 2 - Division A Silver - Autunno",
+  "short_name": "FNL 2 - DIVISION A S"
+ },
+ {
+  "aliases": "RUSSIA: FNL 2 - Division B - Group 1",
+  "bandiera": "ru",
+  "codice": "russia-fnl-2-division-b-group-1",
+  "nazione": "Russia",
+  "nome": "FNL 2 - Division B - Group 1",
+  "short_name": "FNL 2 - DIVISION B -"
+ },
+ {
+  "aliases": "RUSSIA: FNL 2 - Division B - Group 2",
+  "bandiera": "ru",
+  "codice": "russia-fnl-2-division-b-group-2",
+  "nazione": "Russia",
+  "nome": "FNL 2 - Division B - Group 2",
+  "short_name": "FNL 2 - DIVISION B -"
+ },
+ {
+  "aliases": "RUSSIA: FNL 2 - Division B - Group 3",
+  "bandiera": "ru",
+  "codice": "russia-fnl-2-division-b-group-3",
+  "nazione": "Russia",
+  "nome": "FNL 2 - Division B - Group 3",
+  "short_name": "FNL 2 - DIVISION B -"
+ },
+ {
+  "aliases": "RUSSIA: FNL 2 - Division B - Group 4 - Gruppo Retrocessione",
+  "bandiera": "ru",
+  "codice": "russia-fnl-2-division-b-group-4-gruppo-r",
+  "nazione": "Russia",
+  "nome": "FNL 2 - Division B - Group 4 - Gruppo Retrocessione",
+  "short_name": "FNL 2 - DIVISION B -"
+ },
+ {
+  "aliases": "RUSSIA: FNL 2 - Division B - Group 4 - Play-Offs Championship",
+  "bandiera": "ru",
+  "codice": "russia-fnl-2-division-b-group-4-play-off",
+  "nazione": "Russia",
+  "nome": "FNL 2 - Division B - Group 4 - Play-Offs Championship",
+  "short_name": "FNL 2 - DIVISION B -"
+ },
+ {
+  "aliases": "SCOZIA: Challenge Cup",
+  "bandiera": "",
+  "codice": "scozia-challenge-cup",
+  "nazione": "Scozia",
+  "nome": "Challenge Cup",
+  "short_name": "CHALLENGE CUP"
+ },
+ {
+  "aliases": "SCOZIA: Championship",
+  "bandiera": "",
+  "codice": "scozia-championship",
+  "nazione": "Scozia",
+  "nome": "Championship",
+  "short_name": "CHAMPIONSHIP"
+ },
+ {
+  "aliases": "SCOZIA: Highland League",
+  "bandiera": "",
+  "codice": "scozia-highland-league",
+  "nazione": "Scozia",
+  "nome": "Highland League",
+  "short_name": "HIGHLAND LEAGUE"
+ },
+ {
+  "aliases": "SCOZIA: Lowland League",
+  "bandiera": "",
+  "codice": "scozia-lowland-league",
+  "nazione": "Scozia",
+  "nome": "Lowland League",
+  "short_name": "LOWLAND LEAGUE"
+ },
+ {
+  "aliases": "SERBIA: Prva Liga",
+  "bandiera": "rs",
+  "codice": "serbia-prva-liga",
+  "nazione": "Serbia",
+  "nome": "Prva Liga",
+  "short_name": "PRVA LIGA"
+ },
+ {
+  "aliases": "SERBIA: Srpska Liga - Belgrade",
+  "bandiera": "rs",
+  "codice": "serbia-srpska-liga-belgrade",
+  "nazione": "Serbia",
+  "nome": "Srpska Liga - Belgrade",
+  "short_name": "SRPSKA LIGA - BELGRA"
+ },
+ {
+  "aliases": "SERBIA: Srpska Liga - East",
+  "bandiera": "rs",
+  "codice": "serbia-srpska-liga-east",
+  "nazione": "Serbia",
+  "nome": "Srpska Liga - East",
+  "short_name": "SRPSKA LIGA - EAST"
+ },
+ {
+  "aliases": "SERBIA: Srpska Liga - Vojvodina",
+  "bandiera": "rs",
+  "codice": "serbia-srpska-liga-vojvodina",
+  "nazione": "Serbia",
+  "nome": "Srpska Liga - Vojvodina",
+  "short_name": "SRPSKA LIGA - VOJVOD"
+ },
+ {
+  "aliases": "SERBIA: Srpska Liga - West",
+  "bandiera": "rs",
+  "codice": "serbia-srpska-liga-west",
+  "nazione": "Serbia",
+  "nome": "Srpska Liga - West",
+  "short_name": "SRPSKA LIGA - WEST"
+ },
+ {
+  "aliases": "SLOVACCHIA: 2. liga",
+  "bandiera": "",
+  "codice": "slovacchia-2-liga",
+  "nazione": "Slovacchia",
+  "nome": "2. liga",
+  "short_name": "2. LIGA"
+ },
+ {
+  "aliases": "SLOVACCHIA: 3. Liga - Central",
+  "bandiera": "",
+  "codice": "slovacchia-3-liga-central",
+  "nazione": "Slovacchia",
+  "nome": "3. Liga - Central",
+  "short_name": "3. LIGA - CENTRAL"
+ },
+ {
+  "aliases": "SLOVACCHIA: 3. Liga - East",
+  "bandiera": "",
+  "codice": "slovacchia-3-liga-east",
+  "nazione": "Slovacchia",
+  "nome": "3. Liga - East",
+  "short_name": "3. LIGA - EAST"
+ },
+ {
+  "aliases": "SLOVACCHIA: 3. Liga - West",
+  "bandiera": "",
+  "codice": "slovacchia-3-liga-west",
+  "nazione": "Slovacchia",
+  "nome": "3. Liga - West",
+  "short_name": "3. LIGA - WEST"
+ },
+ {
+  "aliases": "SLOVACCHIA: 4. liga - Bratislava",
+  "bandiera": "",
+  "codice": "slovacchia-4-liga-bratislava",
+  "nazione": "Slovacchia",
+  "nome": "4. liga - Bratislava",
+  "short_name": "4. LIGA - BRATISLAVA"
+ },
+ {
+  "aliases": "SLOVACCHIA: 4. liga - Central",
+  "bandiera": "",
+  "codice": "slovacchia-4-liga-central",
+  "nazione": "Slovacchia",
+  "nome": "4. liga - Central",
+  "short_name": "4. LIGA - CENTRAL"
+ },
+ {
+  "aliases": "SLOVACCHIA: 4. liga - East",
+  "bandiera": "",
+  "codice": "slovacchia-4-liga-east",
+  "nazione": "Slovacchia",
+  "nome": "4. liga - East",
+  "short_name": "4. LIGA - EAST"
+ },
+ {
+  "aliases": "SLOVACCHIA: 4. liga - West",
+  "bandiera": "",
+  "codice": "slovacchia-4-liga-west",
+  "nazione": "Slovacchia",
+  "nome": "4. liga - West",
+  "short_name": "4. LIGA - WEST"
+ },
+ {
+  "aliases": "SLOVACCHIA: Coppa di Slovacchia",
+  "bandiera": "",
+  "codice": "slovacchia-coppa-di-slovacchia",
+  "nazione": "Slovacchia",
+  "nome": "Coppa di Slovacchia",
+  "short_name": "COPPA DI SLOVACCHIA"
+ },
+ {
+  "aliases": "SLOVENIA: 2. SNL",
+  "bandiera": "",
+  "codice": "slovenia-2-snl",
+  "nazione": "Slovenia",
+  "nome": "2. SNL",
+  "short_name": "2. SNL"
+ },
+ {
+  "aliases": "SLOVENIA: 3. SNL - East",
+  "bandiera": "",
+  "codice": "slovenia-3-snl-east",
+  "nazione": "Slovenia",
+  "nome": "3. SNL - East",
+  "short_name": "3. SNL - EAST"
+ },
+ {
+  "aliases": "SLOVENIA: 3. SNL - West",
+  "bandiera": "",
+  "codice": "slovenia-3-snl-west",
+  "nazione": "Slovenia",
+  "nome": "3. SNL - West",
+  "short_name": "3. SNL - WEST"
+ },
+ {
+  "aliases": "SPAGNA: Copa Federacion",
+  "bandiera": "",
+  "codice": "spagna-copa-federacion",
+  "nazione": "Spagna",
+  "nome": "Copa Federacion",
+  "short_name": "COPA FEDERACION"
+ },
+ {
+  "aliases": "SPAGNA: Copa del Rey",
+  "bandiera": "",
+  "codice": "spagna-copa-del-rey",
+  "nazione": "Spagna",
+  "nome": "Copa del Rey",
+  "short_name": "COPA DEL REY"
+ },
+ {
+  "aliases": "SPAGNA: LaLiga2",
+  "bandiera": "",
+  "codice": "spagna-laliga2",
+  "nazione": "Spagna",
+  "nome": "LaLiga2",
+  "short_name": "LALIGA2"
+ },
+ {
+  "aliases": "SPAGNA: Primera RFEF - Group 1",
+  "bandiera": "",
+  "codice": "spagna-primera-rfef-group-1",
+  "nazione": "Spagna",
+  "nome": "Primera RFEF - Group 1",
+  "short_name": "PRIMERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Primera RFEF - Group 2",
+  "bandiera": "",
+  "codice": "spagna-primera-rfef-group-2",
+  "nazione": "Spagna",
+  "nome": "Primera RFEF - Group 2",
+  "short_name": "PRIMERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Segunda RFEF - Group 1",
+  "bandiera": "",
+  "codice": "spagna-segunda-rfef-group-1",
+  "nazione": "Spagna",
+  "nome": "Segunda RFEF - Group 1",
+  "short_name": "SEGUNDA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Segunda RFEF - Group 2",
+  "bandiera": "",
+  "codice": "spagna-segunda-rfef-group-2",
+  "nazione": "Spagna",
+  "nome": "Segunda RFEF - Group 2",
+  "short_name": "SEGUNDA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Segunda RFEF - Group 3",
+  "bandiera": "",
+  "codice": "spagna-segunda-rfef-group-3",
+  "nazione": "Spagna",
+  "nome": "Segunda RFEF - Group 3",
+  "short_name": "SEGUNDA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Segunda RFEF - Group 4",
+  "bandiera": "",
+  "codice": "spagna-segunda-rfef-group-4",
+  "nazione": "Spagna",
+  "nome": "Segunda RFEF - Group 4",
+  "short_name": "SEGUNDA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Segunda RFEF - Group 5",
+  "bandiera": "",
+  "codice": "spagna-segunda-rfef-group-5",
+  "nazione": "Spagna",
+  "nome": "Segunda RFEF - Group 5",
+  "short_name": "SEGUNDA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 1",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-1",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 1",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 10",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-10",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 10",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 11",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-11",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 11",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 12",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-12",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 12",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 13",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-13",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 13",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 14",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-14",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 14",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 15",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-15",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 15",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 16",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-16",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 16",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 17",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-17",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 17",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 18",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-18",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 18",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 2",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-2",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 2",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 3",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-3",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 3",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 4",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-4",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 4",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 5",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-5",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 5",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 6",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-6",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 6",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 7",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-7",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 7",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 8",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-8",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 8",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SPAGNA: Tercera RFEF - Group 9",
+  "bandiera": "",
+  "codice": "spagna-tercera-rfef-group-9",
+  "nazione": "Spagna",
+  "nome": "Tercera RFEF - Group 9",
+  "short_name": "TERCERA RFEF - GROUP"
+ },
+ {
+  "aliases": "SUD COREA: K League 1",
+  "bandiera": "",
+  "codice": "sud-corea-k-league-1",
+  "nazione": "Sud Corea",
+  "nome": "K League 1",
+  "short_name": "K LEAGUE 1"
+ },
+ {
+  "aliases": "SUDAFRICA: Diski Challenge",
+  "bandiera": "",
+  "codice": "sudafrica-diski-challenge",
+  "nazione": "Sudafrica",
+  "nome": "Diski Challenge",
+  "short_name": "DISKI CHALLENGE"
+ },
+ {
+  "aliases": "SVEZIA: Division 1, Norra",
+  "bandiera": "",
+  "codice": "svezia-division-1-norra",
+  "nazione": "Svezia",
+  "nome": "Division 1, Norra",
+  "short_name": "DIVISION 1, NORRA"
+ },
+ {
+  "aliases": "SVEZIA: Division 1, Södra",
+  "bandiera": "",
+  "codice": "svezia-division-1-sodra",
+  "nazione": "Svezia",
+  "nome": "Division 1, Södra",
+  "short_name": "DIVISION 1, SÖDRA"
+ },
+ {
+  "aliases": "SVEZIA: Division 2 - Norra Götaland",
+  "bandiera": "",
+  "codice": "svezia-division-2-norra-gotaland",
+  "nazione": "Svezia",
+  "nome": "Division 2 - Norra Götaland",
+  "short_name": "DIVISION 2 - NORRA G"
+ },
+ {
+  "aliases": "SVEZIA: Division 2 - Norra Svealand",
+  "bandiera": "",
+  "codice": "svezia-division-2-norra-svealand",
+  "nazione": "Svezia",
+  "nome": "Division 2 - Norra Svealand",
+  "short_name": "DIVISION 2 - NORRA S"
+ },
+ {
+  "aliases": "SVEZIA: Division 2 - Norrland - Gruppo Promozione",
+  "bandiera": "",
+  "codice": "svezia-division-2-norrland-gruppo-promoz",
+  "nazione": "Svezia",
+  "nome": "Division 2 - Norrland - Gruppo Promozione",
+  "short_name": "DIVISION 2 - NORRLAN"
+ },
+ {
+  "aliases": "SVEZIA: Division 2 - Norrland - Gruppo Retrocessione",
+  "bandiera": "",
+  "codice": "svezia-division-2-norrland-gruppo-retroc",
+  "nazione": "Svezia",
+  "nome": "Division 2 - Norrland - Gruppo Retrocessione",
+  "short_name": "DIVISION 2 - NORRLAN"
+ },
+ {
+  "aliases": "SVEZIA: Division 2 - Södra Götaland",
+  "bandiera": "",
+  "codice": "svezia-division-2-sodra-gotaland",
+  "nazione": "Svezia",
+  "nome": "Division 2 - Södra Götaland",
+  "short_name": "DIVISION 2 - SÖDRA G"
+ },
+ {
+  "aliases": "SVEZIA: Division 2 - Södra Svealand",
+  "bandiera": "",
+  "codice": "svezia-division-2-sodra-svealand",
+  "nazione": "Svezia",
+  "nome": "Division 2 - Södra Svealand",
+  "short_name": "DIVISION 2 - SÖDRA S"
+ },
+ {
+  "aliases": "SVEZIA: Division 2 - Västra Götaland",
+  "bandiera": "",
+  "codice": "svezia-division-2-vastra-gotaland",
+  "nazione": "Svezia",
+  "nome": "Division 2 - Västra Götaland",
+  "short_name": "DIVISION 2 - VÄSTRA "
+ },
+ {
+  "aliases": "SVIZZERA: 1.Liga Gruppo 1",
+  "bandiera": "",
+  "codice": "svizzera-1liga-gruppo-1",
+  "nazione": "Svizzera",
+  "nome": "1.Liga Gruppo 1",
+  "short_name": "1.LIGA GRUPPO 1"
+ },
+ {
+  "aliases": "SVIZZERA: 1.Liga Gruppo 2",
+  "bandiera": "",
+  "codice": "svizzera-1liga-gruppo-2",
+  "nazione": "Svizzera",
+  "nome": "1.Liga Gruppo 2",
+  "short_name": "1.LIGA GRUPPO 2"
+ },
+ {
+  "aliases": "SVIZZERA: 1.Liga Gruppo 3",
+  "bandiera": "",
+  "codice": "svizzera-1liga-gruppo-3",
+  "nazione": "Svizzera",
+  "nome": "1.Liga Gruppo 3",
+  "short_name": "1.LIGA GRUPPO 3"
+ },
+ {
+  "aliases": "SVIZZERA: Promotion League",
+  "bandiera": "",
+  "codice": "svizzera-promotion-league",
+  "nazione": "Svizzera",
+  "nome": "Promotion League",
+  "short_name": "PROMOTION LEAGUE"
+ },
+ {
+  "aliases": "TUNISIA: Ligue 2",
+  "bandiera": "",
+  "codice": "tunisia-ligue-2",
+  "nazione": "Tunisia",
+  "nome": "Ligue 2",
+  "short_name": "LIGUE 2"
+ },
+ {
+  "aliases": "TURCHIA: 2. Lig Red Group",
+  "bandiera": "",
+  "codice": "turchia-2-lig-red-group",
+  "nazione": "Turchia",
+  "nome": "2. Lig Red Group",
+  "short_name": "2. LIG RED GROUP"
+ },
+ {
+  "aliases": "TURCHIA: 2. Lig White Group",
+  "bandiera": "",
+  "codice": "turchia-2-lig-white-group",
+  "nazione": "Turchia",
+  "nome": "2. Lig White Group",
+  "short_name": "2. LIG WHITE GROUP"
+ },
+ {
+  "aliases": "TURCHIA: 3. Lig Group 1",
+  "bandiera": "",
+  "codice": "turchia-3-lig-group-1",
+  "nazione": "Turchia",
+  "nome": "3. Lig Group 1",
+  "short_name": "3. LIG GROUP 1"
+ },
+ {
+  "aliases": "TURCHIA: 3. Lig Group 2",
+  "bandiera": "",
+  "codice": "turchia-3-lig-group-2",
+  "nazione": "Turchia",
+  "nome": "3. Lig Group 2",
+  "short_name": "3. LIG GROUP 2"
+ },
+ {
+  "aliases": "TURCHIA: 3. Lig Group 3",
+  "bandiera": "",
+  "codice": "turchia-3-lig-group-3",
+  "nazione": "Turchia",
+  "nome": "3. Lig Group 3",
+  "short_name": "3. LIG GROUP 3"
+ },
+ {
+  "aliases": "UCRAINA: Druha Liga",
+  "bandiera": "",
+  "codice": "ucraina-druha-liga",
+  "nazione": "Ucraina",
+  "nome": "Druha Liga",
+  "short_name": "DRUHA LIGA"
+ },
+ {
+  "aliases": "UCRAINA: Persha Liga",
+  "bandiera": "",
+  "codice": "ucraina-persha-liga",
+  "nazione": "Ucraina",
+  "nome": "Persha Liga",
+  "short_name": "PERSHA LIGA"
+ },
+ {
+  "aliases": "UCRAINA: Premier League 2",
+  "bandiera": "",
+  "codice": "ucraina-premier-league-2",
+  "nazione": "Ucraina",
+  "nome": "Premier League 2",
+  "short_name": "PREMIER LEAGUE 2"
+ },
+ {
+  "aliases": "UNGHERIA: NB III - Northeast",
+  "bandiera": "",
+  "codice": "ungheria-nb-iii-northeast",
+  "nazione": "Ungheria",
+  "nome": "NB III - Northeast",
+  "short_name": "NB III - NORTHEAST"
+ },
+ {
+  "aliases": "UNGHERIA: NB III - Northwest",
+  "bandiera": "",
+  "codice": "ungheria-nb-iii-northwest",
+  "nazione": "Ungheria",
+  "nome": "NB III - Northwest",
+  "short_name": "NB III - NORTHWEST"
+ },
+ {
+  "aliases": "UNGHERIA: NB III - Southeast",
+  "bandiera": "",
+  "codice": "ungheria-nb-iii-southeast",
+  "nazione": "Ungheria",
+  "nome": "NB III - Southeast",
+  "short_name": "NB III - SOUTHEAST"
+ },
+ {
+  "aliases": "UNGHERIA: NB III - Southwest",
+  "bandiera": "",
+  "codice": "ungheria-nb-iii-southwest",
+  "nazione": "Ungheria",
+  "nome": "NB III - Southwest",
+  "short_name": "NB III - SOUTHWEST"
+ },
+ {
+  "aliases": "URUGUAY: Copa Uruguay",
+  "bandiera": "",
+  "codice": "uruguay-copa-uruguay",
+  "nazione": "Uruguay",
+  "nome": "Copa Uruguay",
+  "short_name": "COPA URUGUAY"
+ },
+ {
+  "aliases": "URUGUAY: Liga AUF Uruguaya - Clausura",
+  "bandiera": "",
+  "codice": "uruguay-liga-auf-uruguaya-clausura",
+  "nazione": "Uruguay",
+  "nome": "Liga AUF Uruguaya - Clausura",
+  "short_name": "LIGA AUF URUGUAYA - "
+ },
+ {
+  "aliases": "URUGUAY: Segunda Division",
+  "bandiera": "",
+  "codice": "uruguay-segunda-division",
+  "nazione": "Uruguay",
+  "nome": "Segunda Division",
+  "short_name": "SEGUNDA DIVISION"
+ },
+ {
+  "aliases": "USA: MLS",
+  "bandiera": "us",
+  "codice": "usa-mls",
+  "nazione": "Usa",
+  "nome": "MLS",
+  "short_name": "MLS"
+ },
+ {
+  "aliases": "USA: USL Championship",
+  "bandiera": "us",
+  "codice": "usa-usl-championship",
+  "nazione": "Usa",
+  "nome": "USL Championship",
+  "short_name": "USL CHAMPIONSHIP"
+ },
+ {
+  "aliases": "USA: USL League One",
+  "bandiera": "us",
+  "codice": "usa-usl-league-one",
+  "nazione": "Usa",
+  "nome": "USL League One",
+  "short_name": "USL LEAGUE ONE"
+ },
+ {
+  "aliases": "UZBEKISTAN: Pro Liga",
+  "bandiera": "",
+  "codice": "uzbekistan-pro-liga",
+  "nazione": "Uzbekistan",
+  "nome": "Pro Liga",
+  "short_name": "PRO LIGA"
+ },
+ {
+  "aliases": "UZBEKISTAN: Super League",
+  "bandiera": "",
+  "codice": "uzbekistan-super-league",
+  "nazione": "Uzbekistan",
+  "nome": "Super League",
+  "short_name": "SUPER LEAGUE"
+ },
+ {
+  "aliases": "VENEZUELA: Liga FUTVE 2",
+  "bandiera": "",
+  "codice": "venezuela-liga-futve-2",
+  "nazione": "Venezuela",
+  "nome": "Liga FUTVE 2",
+  "short_name": "LIGA FUTVE 2"
+ },
+ {
+  "aliases": "VIETNAM: V.League 2",
+  "bandiera": "",
+  "codice": "vietnam-vleague-2",
+  "nazione": "Vietnam",
+  "nome": "V.League 2",
+  "short_name": "V.LEAGUE 2"
+ }
+]

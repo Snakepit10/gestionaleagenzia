@@ -291,13 +291,15 @@ class PubblicitaLedwallAdmin(admin.ModelAdmin):
 
 @admin.register(CompetizioneLedwall)
 class CompetizioneLedwallAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'short_name', 'bandiera', 'modalita', 'ordine', 'attivo', 'contiene')
+    list_display = ('nome', 'nazione', 'short_name', 'bandiera', 'modalita', 'ordine', 'attivo', 'contiene')
     list_display_links = ('nome',)
-    list_editable = ('short_name', 'bandiera', 'modalita', 'ordine', 'attivo')
-    list_filter = ('attivo', 'modalita')
-    search_fields = ('nome', 'short_name', 'codice', 'aliases')
-    ordering = ('ordine', 'nome')
-    fields = ('codice', 'nome', 'short_name', 'bandiera', 'modalita', 'ordine', 'attivo', 'aliases', 'contiene')
+    list_editable = ('nazione', 'short_name', 'bandiera', 'modalita', 'ordine', 'attivo')
+    list_filter = ('attivo', 'nazione', 'modalita')
+    search_fields = ('nome', 'short_name', 'codice', 'aliases', 'nazione')
+    ordering = ('nazione', 'ordine', 'nome')
+    list_per_page = 50
+    fields = ('codice', 'nome', 'nazione', 'short_name', 'bandiera', 'modalita', 'ordine', 'attivo',
+              'aliases', 'contiene')
 
 
 @admin.register(ImpostazioniLedwall)

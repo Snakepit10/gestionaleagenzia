@@ -2044,6 +2044,8 @@ class CompetizioneLedwall(models.Model):
     'aliases' (nome esatto "PAESE: Torneo", uno per riga) o 'contiene' (sottostringa)."""
     codice = models.SlugField(max_length=40, unique=True)
     nome = models.CharField(max_length=80)
+    nazione = models.CharField(max_length=40, blank=True, default='',
+                               help_text="Nazione/area della competizione (per raggrupparle in elenco), es. 'Italia'")
     short_name = models.CharField(max_length=20, help_text="Etichetta gialla sul ledwall (es. SERIE A)")
     ordine = models.IntegerField(default=0, help_text="Priorità: numero più basso = più in alto")
     attivo = models.BooleanField(default=True, help_text="Se spento, non compare sul ledwall")

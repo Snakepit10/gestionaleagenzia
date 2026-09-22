@@ -17,9 +17,10 @@ passano a rotazione le immagini pubblicitarie caricate dall'admin (con transizio
 
 Dopo aver mostrato le singole partite di una competizione compare una **scheda riepilogo** in
 stile tabellone (righe a bande, casa a destra · punteggio/orario al centro · trasferta a sinistra)
-con tutte le sue partite, divise in tre sezioni in ordine cronologico — **Terminate**,
-**In corso** (rosso), **Prossime** (azzurro) — pensata per la lettura a distanza; il testo si
-ridimensiona da solo se le partite sono tante.
+con le sue partite, divise in tre sezioni in ordine cronologico — **Terminate**, **In corso**
+(rosso), **Prossime** (azzurro) — pensata per la lettura a distanza; il testo si ridimensiona da
+solo se le partite sono tante. Se ci sono partite di **giorni diversi**, il riepilogo si **divide
+per giorno**: accanto al nome della competizione compare l'etichetta **OGGI / DOMANI / data**.
 
 Per ogni competizione si sceglie **come mostrarla** (admin, campo *modalità*): **Schede + Riepilogo**
 (default: le schede singole e poi il riepilogo, che compare se ci sono almeno 2 partite), **Solo
@@ -70,10 +71,22 @@ Dal menu **"Ledwall"** (super-user):
 - **Ledwall - Competizioni** (`app.CompetizioneLedwall`): l'elenco dei campionati. Per ognuno
   **attivo** (on/off), **ordine** (priorità, le italiane per prime), **short_name** (etichetta
   gialla), **bandiera** (override del codice bandiera; vuoto = automatico dal paese di diretta.it),
-  **modalità** (Schede + Riepilogo / Solo schede / Solo riepilogo) e le regole di match col nome di
-  diretta.it (**aliases** esatti, uno per riga, oppure **contiene** una sottostringa). Le voci
-  iniziali (Serie A/B, Coppa Italia, Champions, Europa, Conference, Premier, LaLiga, Bundesliga,
-  Ligue 1, Nations, Mondiali, Europei) sono già presenti; puoi aggiungerne altre.
+  **modalità** (Schede + Riepilogo / Solo schede / Solo riepilogo), **nazione** (per raggruppare) e
+  le regole di match col nome di diretta.it (**aliases** esatti, uno per riga, oppure **contiene**
+  una sottostringa).
+
+  **Aggiungere una competizione a mano**: "Aggiungi" e compila **codice** (uno slug univoco, es.
+  `belgio-pro-league`), **nome**, **nazione**, **short_name** (etichetta gialla) e, come regola di
+  match, l'**alias** esatto di diretta.it nel formato `PAESE: Torneo` (es. `BELGIO: Jupiler Pro
+  League`); metti **attivo**. Per trovare l'alias esatto guarda l'intestazione della competizione su
+  diretta.it, oppure usa l'import qui sotto che li precompila.
+
+  **Import automatico di tutte le competizioni**: l'elenco arriva già pre-caricato (centinaia di
+  competizioni, **tutte disattivate**, raggruppate per **nazione**): basta filtrare per nazione,
+  accendere quelle che vuoi e impostare bandiera/modalità/ordine. Per aggiornare l'elenco (nuove
+  competizioni/stagioni) c'è il comando `python manage.py importa_competizioni_ledwall`
+  (scandisce il feed su più giorni, aggiunge solo le nuove, senza toccare quelle già configurate;
+  aggiorna anche il file `competizioni_catalogo.json` versionato che semina la produzione al deploy).
 - **Ledwall - Impostazioni → Filtri partite**: interruttori per **mostra_live** (risultati in
   corso), **mostra_oggi_in_programma** (partite di oggi non iniziate), **mostra_oggi_finite**
   (risultati finali di oggi), **mostra_domani** (anche le partite in programma domani, con la data).
