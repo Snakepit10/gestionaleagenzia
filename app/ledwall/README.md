@@ -15,9 +15,15 @@ competizione, **bandiera**, data, punteggio e stato LIVE/OGGI/FINALE) e, ogni N 
 **intermezzo pubblicitario**: i risultati scendono in una barra scorrevole in basso e sopra
 passano a rotazione le immagini pubblicitarie caricate dall'admin (con transizioni diverse).
 
-Dopo aver mostrato le singole partite di una competizione (se sono almeno 2) compare una
-**scheda riepilogo** con tutte le sue partite, divise in tre sezioni in ordine cronologico —
-**Terminate**, **In corso** (rosso), **Prossime** (azzurro) — pensata per la lettura a distanza.
+Dopo aver mostrato le singole partite di una competizione compare una **scheda riepilogo** in
+stile tabellone (righe a bande, casa a destra · punteggio/orario al centro · trasferta a sinistra)
+con tutte le sue partite, divise in tre sezioni in ordine cronologico — **Terminate**,
+**In corso** (rosso), **Prossime** (azzurro) — pensata per la lettura a distanza; il testo si
+ridimensiona da solo se le partite sono tante.
+
+Per ogni competizione si sceglie **come mostrarla** (admin, campo *modalità*): **Schede + Riepilogo**
+(default: le schede singole e poi il riepilogo, che compare se ci sono almeno 2 partite), **Solo
+schede** (nessun riepilogo) o **Solo riepilogo** (solo la tabella, niente schede singole).
 
 Accanto al nome della competizione (banner, riepilogo e barra scorrevole) c'è la **bandiera** del
 paese. Il paese viene letto **direttamente dal feed di diretta.it** (chiave `ZY`) e mappato a una
@@ -57,10 +63,11 @@ entro ~2 minuti (o al reload).
 Dal menu **"Ledwall"** (super-user):
 - **Ledwall - Competizioni** (`app.CompetizioneLedwall`): l'elenco dei campionati. Per ognuno
   **attivo** (on/off), **ordine** (priorità, le italiane per prime), **short_name** (etichetta
-  gialla) e le regole di match col nome di diretta.it (**aliases** esatti, uno per riga, oppure
-  **contiene** una sottostringa). Le voci iniziali (Serie A/B, Coppa Italia, Champions, Europa,
-  Conference, Premier, LaLiga, Bundesliga, Ligue 1, Nations, Mondiali, Europei) sono già presenti;
-  puoi aggiungerne altre.
+  gialla), **bandiera** (override del codice bandiera; vuoto = automatico dal paese di diretta.it),
+  **modalità** (Schede + Riepilogo / Solo schede / Solo riepilogo) e le regole di match col nome di
+  diretta.it (**aliases** esatti, uno per riga, oppure **contiene** una sottostringa). Le voci
+  iniziali (Serie A/B, Coppa Italia, Champions, Europa, Conference, Premier, LaLiga, Bundesliga,
+  Ligue 1, Nations, Mondiali, Europei) sono già presenti; puoi aggiungerne altre.
 - **Ledwall - Impostazioni → Filtri partite**: interruttori per **mostra_live** (risultati in
   corso), **mostra_oggi_in_programma** (partite di oggi non iniziate), **mostra_oggi_finite**
   (risultati finali di oggi), **mostra_domani** (anche le partite in programma domani, con la data).

@@ -69,28 +69,27 @@
              animation:blink 1s steps(2,start) infinite;}
   .mid .live.int{animation:none;}
 
-  /* ---- Scheda RIEPILOGO: partite di una competizione, divise per stato ---- */
-  /* Grande e leggibile a distanza. La font-size di .sumlist e' la BASE di scala:
-     righe e intestazioni sono in 'em', cosi' fitSummary le rimpicciolisce insieme
-     solo quando ci sono troppe partite per entrare. */
-  .card.sum{justify-content:flex-start;gap:calc(var(--h) * 0.018);
-            padding:calc(var(--h) * 0.045) 3% calc(var(--h) * 0.035);}
+  /* ---- Scheda RIEPILOGO: tabellone (orario | casa - trasferta), diviso per stato ---- */
+  /* Stile tabella TV: righe a tutta larghezza con bande alternate, orario a sinistra,
+     squadra di casa allineata a destra e trasferta a sinistra del punteggio centrale.
+     La font-size di .sumlist e' la BASE di scala (righe/intestazioni in 'em'): fitSummary
+     le rimpicciolisce insieme solo quando ci sono troppe partite per entrare. */
+  .card.sum{justify-content:flex-start;gap:0;padding:0;}
+  .card.sum .hdr{flex:0 0 auto;padding:calc(var(--h) * 0.04) 0 calc(var(--h) * 0.03);}
   .sumlist{flex:1;width:100%;display:flex;flex-direction:column;justify-content:center;
-           overflow:hidden;padding:0 2%;font-size:calc(var(--h) * 0.092);}
-  .sgrp{width:100%;margin:0.12em 0;}
-  .sgh{font-size:0.6em;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;
-       text-align:center;line-height:1;margin:0.18em 0 0.24em;
-       display:flex;align-items:center;justify-content:center;gap:0.5em;}
-  .sgh::before,.sgh::after{content:"";height:0.09em;flex:1;max-width:18%;border-radius:2px;background:currentColor;opacity:.55;}
-  .sgh.fin{color:#c3ced9;} .sgh.live{color:#ff5b66;} .sgh.sched{color:#9fc0ff;}
-  .sr{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:0.6em;
-      font-size:1em;font-weight:700;line-height:1.08;margin:0.1em 0;}
+           overflow:hidden;font-size:calc(var(--h) * 0.088);}
+  .sgh{font-size:0.58em;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;
+       text-align:left;line-height:1;padding:0.34em 4% 0.14em;}
+  .sgh.fin{color:#c3ced9;} .sgh.live{color:#ff6670;} .sgh.sched{color:#9fc0ff;}
+  .sr{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:0.55em;
+      font-weight:700;line-height:1.05;padding:0.22em 4%;}
+  .sr.alt{background:rgba(255,255,255,.06);}
   .sr .sh{text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .sr .sa{text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .sr .ss{font-weight:800;font-variant-numeric:tabular-nums;background:#0b1e2c;color:#fff;
-          padding:0.04em 0.42em;border-radius:0.2em;min-width:2.5em;text-align:center;}
-  .sr .ss.live{color:#ff5b66;box-shadow:0 0 0 1px rgba(255,91,102,.55);}
-  .sr .ss.sched{color:#9fc0ff;background:transparent;font-weight:800;}
+  .sr .sc{font-weight:800;font-variant-numeric:tabular-nums;min-width:2.5em;text-align:center;
+          background:#0b1e2c;color:#fff;padding:0.04em 0.4em;border-radius:0.16em;}
+  .sr .sc.live{color:#ff5b66;box-shadow:0 0 0 1px rgba(255,91,102,.55);}
+  .sr .sc.sched{background:transparent;color:#9fc0ff;box-shadow:none;font-weight:800;}
   .sr .win{color:#ffd200;}
 
   /* ---- Intermezzo pubblicitario: risultati in basso, immagine sopra ---- */
@@ -217,25 +216,29 @@
     var out = [];
     (data.competitions||[]).forEach(function(c){
       (c.matches||[]).slice().sort(function(a,b){return order(a.status)-order(b.status);})
-        .forEach(function(m){ out.push({c:c.shortName||c.name, flag:c.flag||null, m:m}); });
+        .forEach(function(m){ out.push({c:c.shortName||c.name, flag:c.flag||null, mode:c.mode||'entrambe', m:m}); });
     });
     return out;
   }
-  // Sequenza schede: le partite di ogni competizione, poi (se >= 2) una scheda RIEPILOGO
-  // con tutte le partite di quella competizione. LIST e' gia' raggruppata per competizione.
+  // Sequenza schede in base alla MODALITA' di ogni competizione (impostata dall'admin):
+  //  - 'entrambe' : le singole schede partita, poi (se >= 2 partite) la scheda RIEPILOGO;
+  //  - 'schede'   : solo le singole schede partita;
+  //  - 'riepilogo': solo la scheda RIEPILOGO (anche con 1 sola partita).
+  // LIST e' gia' raggruppata per competizione (nell'ordine del feed).
   function buildSequence(list){
-    var seq=[], group=[], gc=null, gflag=null;
-    function flush(){
-      if(group.length>=2){ seq.push({kind:'summary', c:gc, flag:gflag, matches:group.slice()}); }
-      group=[];
-    }
+    var groups=[], cur=null;
     for(var j=0;j<list.length;j++){
       var it=list[j];
-      if(it.c!==gc){ flush(); gc=it.c; gflag=it.flag; }
-      seq.push({kind:'match', c:it.c, flag:it.flag, m:it.m});
-      group.push(it.m);
+      if(!cur || it.c!==cur.c){ cur={c:it.c, flag:it.flag, mode:it.mode||'entrambe', matches:[]}; groups.push(cur); }
+      cur.matches.push(it.m);
     }
-    flush();
+    var seq=[];
+    groups.forEach(function(g){
+      var showCards   = (g.mode!=='riepilogo');
+      var showSummary = (g.mode==='riepilogo') || (g.mode==='entrambe' && g.matches.length>=2);
+      if(showCards){ g.matches.forEach(function(m){ seq.push({kind:'match', c:g.c, flag:g.flag, m:m}); }); }
+      if(showSummary){ seq.push({kind:'summary', c:g.c, flag:g.flag, matches:g.matches.slice()}); }
+    });
     return seq;
   }
   function initials(n){
@@ -286,19 +289,19 @@
       while(nm.scrollWidth>nm.clientWidth && n<12){ fs*=0.9; nm.style.fontSize=fs+'px'; n++; }
     });
   }
-  // Scheda RIEPILOGO: intestazione (bandiera + competizione) + elenco di tutte le partite.
-  function sumRow(m){
+  // Riga tabellone: [casa a destra] [punteggio/orario al centro] [trasferta a sinistra].
+  function sumRow(m, alt){
     var hw=(m.homeScore!=null&&m.awayScore!=null&&m.homeScore>m.awayScore);
     var aw=(m.homeScore!=null&&m.awayScore!=null&&m.awayScore>m.homeScore);
     var mid;
-    if(m.status==='scheduled'){ mid='<span class="ss sched">'+esc(m.time||'')+'</span>'; }
+    if(m.status==='scheduled'){ mid='<span class="sc sched">'+esc(m.time||'')+'</span>'; }
     else {
-      var cls='ss'+(m.status==='live'?' live':'');
+      var cls='sc'+(m.status==='live'?' live':'');
       var hs=(m.homeScore==null?(m.status==='live'?0:'-'):m.homeScore);
       var as=(m.awayScore==null?(m.status==='live'?0:'-'):m.awayScore);
       mid='<span class="'+cls+'">'+hs+'-'+as+'</span>';
     }
-    return '<div class="sr"><span class="sh'+(hw?' win':'')+'">'+esc(m.home)+'</span>'+mid+
+    return '<div class="sr'+(alt?' alt':'')+'"><span class="sh'+(hw?' win':'')+'">'+esc(m.home)+'</span>'+mid+
            '<span class="sa'+(aw?' win':'')+'">'+esc(m.away)+'</span></div>';
   }
   // Riepilogo diviso per stato, in ordine cronologico: Terminate -> In corso -> Prossime.
@@ -307,12 +310,12 @@
                     {k:'scheduled',cls:'sched',label:'Prossime'}];
   function summaryCard(it){
     var fl = it.flag ? '<img class="fl" src="'+esc(it.flag)+'" alt="" onerror="this.remove()">' : '';
-    var body='';
+    var body='', ri=0;
     SUM_SECTIONS.forEach(function(sec){
       var ms=it.matches.filter(function(m){return m.status===sec.k;});
       if(!ms.length) return;
       body+='<div class="sgrp"><div class="sgh '+sec.cls+'">'+sec.label+'</div>'+
-            ms.map(sumRow).join('')+'</div>';
+            ms.map(function(m){ return sumRow(m, (ri++)%2===1); }).join('')+'</div>';
     });
     var el=document.createElement('div'); el.className='card sum';
     el.innerHTML='<div class="hdr"><div class="clw">'+fl+'<span class="cl">'+esc(it.c)+'</span></div></div>'+

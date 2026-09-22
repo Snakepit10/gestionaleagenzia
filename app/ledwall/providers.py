@@ -98,13 +98,15 @@ def _load_competizioni():
                 out.append({'id': r.codice, 'name': r.nome, 'shortName': r.short_name,
                             'priority': r.ordine, 'aliases': aliases,
                             'contains': (r.contiene or '').strip().lower() or None,
-                            'flag': (r.bandiera or '').strip().lower()})
+                            'flag': (r.bandiera or '').strip().lower(),
+                            'mode': (r.modalita or 'entrambe')})
             return out
     except Exception:
         pass
     return [{'id': c['id'], 'name': c['name'], 'shortName': c['shortName'],
              'priority': c['priority'], 'aliases': c.get('aliases', []),
-             'contains': c.get('contains'), 'flag': c.get('flag', '')} for c in config.COMPETITIONS]
+             'contains': c.get('contains'), 'flag': c.get('flag', ''),
+             'mode': c.get('mode', 'entrambe')} for c in config.COMPETITIONS]
 
 
 def _load_impostazioni():
@@ -249,7 +251,8 @@ def _build_competitions(buckets):
         matches = sorted(b['matches'], key=lambda m: (_ORDER.get(m['status'], 3), m['time'] or ''))
         comps.append({
             'id': comp['id'], 'name': comp['name'], 'shortName': comp['shortName'],
-            'priority': comp['priority'], 'flag': _flag_url(b.get('flag', '')), 'matches': matches,
+            'priority': comp['priority'], 'flag': _flag_url(b.get('flag', '')),
+            'mode': comp.get('mode', 'entrambe'), 'matches': matches,
         })
     comps.sort(key=lambda c: c['priority'])
     return comps

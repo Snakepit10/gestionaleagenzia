@@ -2054,6 +2054,14 @@ class CompetizioneLedwall(models.Model):
     bandiera = models.CharField(max_length=12, blank=True, default='',
                                 help_text="Codice bandiera mostrata accanto al nome (ISO): es. 'it', 'es', 'de', "
                                           "'fr', 'gb-eng' (Inghilterra), 'eu' (competizioni europee). Vuoto = nessuna.")
+    MODALITA_CHOICES = [
+        ('entrambe', 'Schede + Riepilogo'),
+        ('schede', 'Solo schede'),
+        ('riepilogo', 'Solo riepilogo'),
+    ]
+    modalita = models.CharField(max_length=10, choices=MODALITA_CHOICES, default='entrambe',
+                                help_text="Come mostrare questa competizione: le singole schede partita e poi la "
+                                          "scheda riepilogo (default), solo le schede, oppure solo il riepilogo.")
 
     class Meta:
         verbose_name = "Ledwall - Competizione"
