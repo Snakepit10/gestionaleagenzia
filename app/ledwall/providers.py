@@ -97,13 +97,14 @@ def _load_competizioni():
                 aliases = [a.strip() for a in (r.aliases or '').splitlines() if a.strip()]
                 out.append({'id': r.codice, 'name': r.nome, 'shortName': r.short_name,
                             'priority': r.ordine, 'aliases': aliases,
-                            'contains': (r.contiene or '').strip().lower() or None})
+                            'contains': (r.contiene or '').strip().lower() or None,
+                            'flag': (r.bandiera or '').strip().lower()})
             return out
     except Exception:
         pass
     return [{'id': c['id'], 'name': c['name'], 'shortName': c['shortName'],
              'priority': c['priority'], 'aliases': c.get('aliases', []),
-             'contains': c.get('contains')} for c in config.COMPETITIONS]
+             'contains': c.get('contains'), 'flag': c.get('flag', '')} for c in config.COMPETITIONS]
 
 
 def _load_impostazioni():
@@ -139,6 +140,20 @@ def _match_competition(za_name, comps):
         if c and c in low:
             return comp
     return None
+
+
+def _resolve_flag(comp, zy):
+    """Codice bandiera per la competizione. Priorita': override esplicito (campo admin
+    'bandiera' o config 'flag'); altrimenti derivato dal PAESE del feed diretta (ZY, in
+    inglese) tramite config.COUNTRY_ISO. Vuoto se sconosciuto (nessuna bandiera mostrata)."""
+    f = (comp.get('flag') or '').strip().lower()
+    if f:
+        return f
+    return config.COUNTRY_ISO.get((zy or '').strip().lower(), '')
+
+
+def _flag_url(code):
+    return ('api/flag/' + code) if code else None
 
 
 def _minute(ev, now_ts):
@@ -208,16 +223,18 @@ def _event_to_match(ev, now_ts, with_date=False, hd=True):
 
 def _collect(text, now_ts, comps, with_date=False, hd=True):
     """Raggruppa gli eventi del feed per competizione configurata."""
-    buckets = {}  # comp id -> {comp, matches:[]}
+    buckets = {}  # comp id -> {comp, flag, matches:[]}
     current = None
+    current_flag = ''
     for rec in _parse_records(text):
         if 'ZA' in rec:
             current = _match_competition(rec['ZA'], comps)
+            current_flag = _resolve_flag(current, rec.get('ZY')) if current else ''
         elif 'AA' in rec and current is not None:
             m = _event_to_match(rec, now_ts, with_date=with_date, hd=hd)
             if m is None:
                 continue
-            b = buckets.setdefault(current['id'], {'comp': current, 'matches': []})
+            b = buckets.setdefault(current['id'], {'comp': current, 'flag': current_flag, 'matches': []})
             b['matches'].append(m)
     return buckets
 
@@ -232,7 +249,7 @@ def _build_competitions(buckets):
         matches = sorted(b['matches'], key=lambda m: (_ORDER.get(m['status'], 3), m['time'] or ''))
         comps.append({
             'id': comp['id'], 'name': comp['name'], 'shortName': comp['shortName'],
-            'priority': comp['priority'], 'matches': matches,
+            'priority': comp['priority'], 'flag': _flag_url(b.get('flag', '')), 'matches': matches,
         })
     comps.sort(key=lambda c: c['priority'])
     return comps
@@ -281,7 +298,7 @@ class DirettaProvider:
                 for cid, b in _collect(t1, now_ts, comps, with_date=True, hd=hd).items():
                     sched = [m for m in b['matches'] if m['status'] == 'scheduled']
                     if sched:
-                        buckets.setdefault(cid, {'comp': b['comp'], 'matches': []})['matches'].extend(sched)
+                        buckets.setdefault(cid, {'comp': b['comp'], 'flag': b.get('flag', ''), 'matches': []})['matches'].extend(sched)
             except Exception:
                 pass
 
@@ -297,7 +314,7 @@ class DirettaProvider:
             except Exception:
                 continue
             for cid, b in _collect(t, now_ts, comps, with_date=True, hd=hd).items():
-                fb.setdefault(cid, {'comp': b['comp'], 'matches': []})['matches'].extend(b['matches'])
+                fb.setdefault(cid, {'comp': b['comp'], 'flag': b.get('flag', ''), 'matches': []})['matches'].extend(b['matches'])
         return self._envelope(_build_competitions(fb))
 
     def _envelope(self, comps):
@@ -317,7 +334,8 @@ class DemoProvider:
             'updated': datetime.now(_tz.utc).isoformat(timespec='seconds'),
             'source': self.source,
             'competitions': [
-                {'id': 'serie-a', 'name': 'Serie A', 'shortName': 'SERIE A', 'priority': 10, 'matches': [
+                {'id': 'serie-a', 'name': 'Serie A', 'shortName': 'SERIE A', 'priority': 10,
+                 'flag': 'api/flag/it', 'matches': [
                     {'status': 'live', 'minute': '63', 'time': '20:45', 'home': 'Inter', 'away': 'Milan',
                      'homeScore': 2, 'awayScore': 1, 'date': None},
                     {'status': 'live', 'minute': '31', 'time': '20:45', 'home': 'Napoli', 'away': 'Roma',
@@ -327,19 +345,22 @@ class DemoProvider:
                     {'status': 'finished', 'minute': None, 'time': '18:00', 'home': 'Atalanta', 'away': 'Torino',
                      'homeScore': 3, 'awayScore': 0, 'date': None},
                 ]},
-                {'id': 'champions', 'name': 'Champions League', 'shortName': 'CHAMPIONS', 'priority': 40, 'matches': [
+                {'id': 'champions', 'name': 'Champions League', 'shortName': 'CHAMPIONS', 'priority': 40,
+                 'flag': 'api/flag/eu', 'matches': [
                     {'status': 'live', 'minute': '78', 'time': '21:00', 'home': 'Real Madrid', 'away': 'Man City',
                      'homeScore': 1, 'awayScore': 1, 'date': None},
                     {'status': 'scheduled', 'minute': None, 'time': '21:00', 'home': 'Bayern', 'away': 'PSG',
                      'homeScore': None, 'awayScore': None, 'date': None},
                 ]},
-                {'id': 'premier', 'name': 'Premier League', 'shortName': 'PREMIER', 'priority': 70, 'matches': [
+                {'id': 'premier', 'name': 'Premier League', 'shortName': 'PREMIER', 'priority': 70,
+                 'flag': 'api/flag/gb-eng', 'matches': [
                     {'status': 'finished', 'minute': None, 'time': '16:30', 'home': 'Arsenal', 'away': 'Chelsea',
                      'homeScore': 2, 'awayScore': 2, 'date': None},
                     {'status': 'scheduled', 'minute': None, 'time': '18:30', 'home': 'Liverpool', 'away': 'Man Utd',
                      'homeScore': None, 'awayScore': None, 'date': None},
                 ]},
-                {'id': 'laliga', 'name': 'LaLiga', 'shortName': 'LALIGA', 'priority': 80, 'matches': [
+                {'id': 'laliga', 'name': 'LaLiga', 'shortName': 'LALIGA', 'priority': 80,
+                 'flag': 'api/flag/es', 'matches': [
                     {'status': 'live', 'minute': 'LIVE', 'time': '19:00', 'home': 'Barcelona', 'away': 'Betis',
                      'homeScore': 4, 'awayScore': 0, 'date': None},
                     {'status': 'finished', 'minute': None, 'time': '14:00', 'home': 'Atletico', 'away': 'Sociedad',

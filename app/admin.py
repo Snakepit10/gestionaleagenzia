@@ -291,13 +291,13 @@ class PubblicitaLedwallAdmin(admin.ModelAdmin):
 
 @admin.register(CompetizioneLedwall)
 class CompetizioneLedwallAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'short_name', 'ordine', 'attivo', 'contiene')
+    list_display = ('nome', 'short_name', 'bandiera', 'ordine', 'attivo', 'contiene')
     list_display_links = ('nome',)
-    list_editable = ('short_name', 'ordine', 'attivo')
+    list_editable = ('short_name', 'bandiera', 'ordine', 'attivo')
     list_filter = ('attivo',)
     search_fields = ('nome', 'short_name', 'codice', 'aliases')
     ordering = ('ordine', 'nome')
-    fields = ('codice', 'nome', 'short_name', 'ordine', 'attivo', 'aliases', 'contiene')
+    fields = ('codice', 'nome', 'short_name', 'bandiera', 'ordine', 'attivo', 'aliases', 'contiene')
 
 
 @admin.register(ImpostazioniLedwall)

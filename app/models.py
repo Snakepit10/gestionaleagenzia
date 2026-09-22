@@ -2051,6 +2051,9 @@ class CompetizioneLedwall(models.Model):
                                help_text="Nomi esatti di diretta.it, uno per riga (es. 'ITALIA: Serie A')")
     contiene = models.CharField(max_length=80, blank=True, default='',
                                 help_text="In alternativa: sottostringa del nome (es. 'champions league')")
+    bandiera = models.CharField(max_length=12, blank=True, default='',
+                                help_text="Codice bandiera mostrata accanto al nome (ISO): es. 'it', 'es', 'de', "
+                                          "'fr', 'gb-eng' (Inghilterra), 'eu' (competizioni europee). Vuoto = nessuna.")
 
     class Meta:
         verbose_name = "Ledwall - Competizione"

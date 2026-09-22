@@ -28,7 +28,7 @@ def _settings_signature():
         from ..models import ImpostazioniLedwall, CompetizioneLedwall
         o = ImpostazioniLedwall.get_solo()
         comps = tuple(CompetizioneLedwall.objects.using('default').order_by('ordine', 'codice')
-                      .values_list('codice', 'attivo', 'ordine', 'short_name', 'aliases', 'contiene'))
+                      .values_list('codice', 'attivo', 'ordine', 'short_name', 'aliases', 'contiene', 'bandiera'))
         return hash((o.mostra_live, o.mostra_oggi_in_programma, o.mostra_oggi_finite,
                      o.mostra_domani, o.loghi_hd, comps))
     except Exception:

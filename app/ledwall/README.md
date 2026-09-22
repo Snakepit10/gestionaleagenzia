@@ -11,9 +11,20 @@ mai diretta.it.
 - Loghi (proxy): `https://<dominio>/ledwall/api/logo/<code>`
 
 La pagina mostra le **schede partita** stile tabellone (una alla volta, con loghi squadra,
-competizione, data, punteggio e stato LIVE/OGGI/FINALE) e, ogni N schede, un **intermezzo
-pubblicitario**: i risultati scendono in una barra scorrevole in basso e sopra passano a
-rotazione le immagini pubblicitarie caricate dall'admin (con transizioni diverse).
+competizione, **bandiera**, data, punteggio e stato LIVE/OGGI/FINALE) e, ogni N schede, un
+**intermezzo pubblicitario**: i risultati scendono in una barra scorrevole in basso e sopra
+passano a rotazione le immagini pubblicitarie caricate dall'admin (con transizioni diverse).
+
+Dopo aver mostrato le singole partite di una competizione (se sono almeno 2) compare una
+**scheda riepilogo** con tutte le sue partite, divise in tre sezioni in ordine cronologico —
+**Terminate**, **In corso** (rosso), **Prossime** (azzurro) — pensata per la lettura a distanza.
+
+Accanto al nome della competizione (banner, riepilogo e barra scorrevole) c'è la **bandiera** del
+paese. Il paese viene letto **direttamente dal feed di diretta.it** (chiave `ZY`) e mappato a una
+bandiera (`config.COUNTRY_ISO`); si può forzare un codice specifico dall'admin (campo `bandiera`
+della competizione, es. `it`, `es`, `gb-eng`, `eu`). Vuoto = nessuna bandiera. Le immagini
+bandiera sono servite dal **nostro proxy** con cache (`/ledwall/api/flag/<codice>`, fonte flagcdn.com,
+nessuna chiave), così il ledwall chiama solo il nostro server.
 
 La rotazione, i tempi e le transizioni si configurano **dal backend Django** (vedi sotto),
 non servono parametri nell'URL. Solo per test si possono forzare con `?hold=`, `?adEvery=`,

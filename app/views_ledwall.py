@@ -10,7 +10,9 @@ from .ledwall import config
 from .ledwall.service import get_payload
 
 _SAFE_CODE = re.compile(r'^[A-Za-z0-9._-]{1,80}$')
+_FLAG_CODE = re.compile(r'^[a-z]{2}(-[a-z]{2,3})?$')   # es. 'it', 'es', 'gb-eng', 'eu'
 _logo_cache = {}   # code -> (bytes, content_type)
+_flag_cache = {}   # code -> (bytes, content_type)
 
 # transizione (backend) -> classe CSS della pagina
 _FX = {'destra': 'fx-right', 'zoom': 'fx-zoom', 'alto': 'fx-up', 'dissolvenza': 'fx-fade'}
@@ -97,4 +99,27 @@ def ledwall_api_logo(request, src, code):
             return HttpResponseNotFound()
     resp = HttpResponse(cached[0], content_type=cached[1])
     resp['Cache-Control'] = 'public, max-age=86400'   # loghi statici: cache lunga
+    return resp
+
+
+def ledwall_api_flag(request, code):
+    """Proxy con cache delle bandiere (il ledwall chiama solo noi). code = codice ISO/flagcdn
+    (es. 'it', 'es', 'gb-eng', 'eu'); l'immagine viene da flagcdn.com (nessuna chiave)."""
+    code = (code or '').lower()
+    if not _FLAG_CODE.match(code):
+        return HttpResponseNotFound()
+    cached = _flag_cache.get(code)
+    if cached is None:
+        try:
+            r = requests.get('%sw80/%s.png' % (config.FLAG_BASE, code),
+                             headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+            if r.status_code != 200 or not r.content:
+                return HttpResponseNotFound()
+            cached = (r.content, r.headers.get('content-type', 'image/png'))
+            if len(_flag_cache) < 1000:
+                _flag_cache[code] = cached
+        except Exception:
+            return HttpResponseNotFound()
+    resp = HttpResponse(cached[0], content_type=cached[1])
+    resp['Cache-Control'] = 'public, max-age=604800'   # bandiere statiche: cache 7 giorni
     return resp
