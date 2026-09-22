@@ -48,6 +48,8 @@ def ledwall_api_ads(request):
             'adEvery': cfg.ogni_n_schede,
             'adSlide': cfg.secondi_pubblicita,
             'barDur': cfg.secondi_barra_risultati,
+            'sumMax': cfg.max_partite_riepilogo,
+            'sumLogos': bool(cfg.loghi_riepilogo),
         },
         'ads': [{
             'id': a.pk,

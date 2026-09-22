@@ -25,6 +25,12 @@ Per ogni competizione si sceglie **come mostrarla** (admin, campo *modalità*): 
 (default: le schede singole e poi il riepilogo, che compare se ci sono almeno 2 partite), **Solo
 schede** (nessun riepilogo) o **Solo riepilogo** (solo la tabella, niente schede singole).
 
+Il riepilogo si **divide su più schede** quando le partite superano il massimo configurato
+(**Ledwall - Impostazioni → Scheda riepilogo → max partite riepilogo**, default 6): così le righe
+restano grandi e leggibili anche con molte partite (in alto compare l'indicatore `1/2`, `2/2`, …).
+Opzionalmente si mostrano i **loghi delle squadre ai lati** delle righe (stesso pannello,
+interruttore *loghi riepilogo*). Per test si possono forzare da URL con `?sumMax=` e `?sumLogos=1`.
+
 Accanto al nome della competizione (banner, riepilogo e barra scorrevole) c'è la **bandiera** del
 paese. Il paese viene letto **direttamente dal feed di diretta.it** (chiave `ZY`) e mappato a una
 bandiera (`config.COUNTRY_ISO`); si può forzare un codice specifico dall'admin (campo `bandiera`

@@ -91,6 +91,13 @@
   .sr .sc.live{color:#ff5b66;box-shadow:0 0 0 1px rgba(255,91,102,.55);}
   .sr .sc.sched{background:transparent;color:#9fc0ff;box-shadow:none;font-weight:800;}
   .sr .win{color:#ffd200;}
+  /* Con loghi ai lati: colonne logo-casa-punteggio-trasferta-logo */
+  .sr.lg{grid-template-columns:1.5em 1fr auto 1fr 1.5em;gap:0.4em;}
+  .sr .slg{width:1.5em;height:1.5em;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .sr .slg img{max-width:100%;max-height:100%;object-fit:contain;}
+  /* Indicatore pagina (1/2) quando il riepilogo e' diviso su piu' schede */
+  .spage{font-size:calc(var(--h) * 0.075);font-weight:800;color:#0b1e2c;background:#ffd200;
+         border-radius:0.2em;padding:0.05em 0.35em;margin-left:0.3em;line-height:1;}
 
   /* ---- Intermezzo pubblicitario: risultati in basso, immagine sopra ---- */
   .ad{position:absolute;left:0;right:0;top:0;bottom:calc(var(--h) * 0.24);overflow:hidden;background:#000;
@@ -188,7 +195,9 @@
     hold:    parseFloat(qs.get('hold'))    || null,
     adEvery: parseInt(qs.get('adEvery'))   || null,
     adSlide: parseFloat(qs.get('adSlide')) || null,
-    barDur:  parseFloat(qs.get('barDur'))  || null
+    barDur:  parseFloat(qs.get('barDur'))  || null,
+    sumMax:  parseInt(qs.get('sumMax'))    || null,
+    sumLogos: qs.get('sumLogos')                            // '1'/'0' o null
   };
 
   var lane = document.getElementById('lane');
@@ -199,7 +208,7 @@
   var LIST = [];    // partite appiattite (per la barra risultati): {c, flag, m}
   var SEQ  = [];    // sequenza schede da mostrare: {kind:'match'|'summary', ...}
   var ADS  = [];    // {url, fx, seconds}
-  var CFG  = {hold:5, adEvery:4, adSlide:5, barDur:24};   // impostazioni dal backend (default di sicurezza)
+  var CFG  = {hold:5, adEvery:4, adSlide:5, barDur:24, sumMax:6, sumLogos:false};   // impostazioni dal backend (default di sicurezza)
   var i = 0, cur = null, shown = 0, started = false;
   var barOffset = 0;         // secondi di scorrimento risultati accumulati (per riprendere)
 
@@ -209,6 +218,9 @@
     CFG.adEvery = Q.adEvery || c.adEvery || 4;
     CFG.adSlide = Q.adSlide || c.adSlide || 5;
     CFG.barDur  = Q.barDur  || c.barDur  || 24;
+    CFG.sumMax  = Q.sumMax  || c.sumMax  || 6;
+    CFG.sumLogos = (Q.sumLogos!=null) ? (Q.sumLogos==='1'||Q.sumLogos==='true')
+                                      : !!c.sumLogos;
   }
 
   function order(st){ return st==='live'?0 : st==='scheduled'?1 : 2; }
@@ -237,7 +249,18 @@
       var showCards   = (g.mode!=='riepilogo');
       var showSummary = (g.mode==='riepilogo') || (g.mode==='entrambe' && g.matches.length>=2);
       if(showCards){ g.matches.forEach(function(m){ seq.push({kind:'match', c:g.c, flag:g.flag, m:m}); }); }
-      if(showSummary){ seq.push({kind:'summary', c:g.c, flag:g.flag, matches:g.matches.slice()}); }
+      if(showSummary){
+        // ordina per stato e spezza in piu' schede (max CFG.sumMax) per restare leggibile
+        var ordered=[];
+        SUM_SECTIONS.forEach(function(sec){
+          ordered=ordered.concat(g.matches.filter(function(m){return m.status===sec.k;}));
+        });
+        var per=Math.max(1, CFG.sumMax||6), pages=Math.ceil(ordered.length/per)||1;
+        for(var pi=0; pi<ordered.length; pi+=per){
+          seq.push({kind:'summary', c:g.c, flag:g.flag, matches:ordered.slice(pi, pi+per),
+                    page:(pi/per)+1, pages:pages});
+        }
+      }
     });
     return seq;
   }
@@ -289,8 +312,10 @@
       while(nm.scrollWidth>nm.clientWidth && n<12){ fs*=0.9; nm.style.fontSize=fs+'px'; n++; }
     });
   }
-  // Riga tabellone: [casa a destra] [punteggio/orario al centro] [trasferta a sinistra].
-  function sumRow(m, alt){
+  // Cella logo (mantiene lo spazio anche se manca il logo, per allineare la griglia).
+  function slg(url){ return '<span class="slg">'+(url?'<img src="'+esc(url)+'" alt="" onerror="this.remove()">':'')+'</span>'; }
+  // Riga tabellone: [logo] [casa a destra] [punteggio/orario] [trasferta a sinistra] [logo].
+  function sumRow(m, alt, logos){
     var hw=(m.homeScore!=null&&m.awayScore!=null&&m.homeScore>m.awayScore);
     var aw=(m.homeScore!=null&&m.awayScore!=null&&m.awayScore>m.homeScore);
     var mid;
@@ -301,8 +326,10 @@
       var as=(m.awayScore==null?(m.status==='live'?0:'-'):m.awayScore);
       mid='<span class="'+cls+'">'+hs+'-'+as+'</span>';
     }
-    return '<div class="sr'+(alt?' alt':'')+'"><span class="sh'+(hw?' win':'')+'">'+esc(m.home)+'</span>'+mid+
-           '<span class="sa'+(aw?' win':'')+'">'+esc(m.away)+'</span></div>';
+    var hl=logos?slg(m.homeLogo):'', al=logos?slg(m.awayLogo):'';
+    return '<div class="sr'+(logos?' lg':'')+(alt?' alt':'')+'">'+hl+
+           '<span class="sh'+(hw?' win':'')+'">'+esc(m.home)+'</span>'+mid+
+           '<span class="sa'+(aw?' win':'')+'">'+esc(m.away)+'</span>'+al+'</div>';
   }
   // Riepilogo diviso per stato, in ordine cronologico: Terminate -> In corso -> Prossime.
   var SUM_SECTIONS=[{k:'finished',cls:'fin',label:'Terminate'},
@@ -310,15 +337,16 @@
                     {k:'scheduled',cls:'sched',label:'Prossime'}];
   function summaryCard(it){
     var fl = it.flag ? '<img class="fl" src="'+esc(it.flag)+'" alt="" onerror="this.remove()">' : '';
-    var body='', ri=0;
+    var logos=!!CFG.sumLogos, body='', ri=0;
     SUM_SECTIONS.forEach(function(sec){
       var ms=it.matches.filter(function(m){return m.status===sec.k;});
       if(!ms.length) return;
       body+='<div class="sgrp"><div class="sgh '+sec.cls+'">'+sec.label+'</div>'+
-            ms.map(function(m){ return sumRow(m, (ri++)%2===1); }).join('')+'</div>';
+            ms.map(function(m){ return sumRow(m, (ri++)%2===1, logos); }).join('')+'</div>';
     });
+    var pg=(it.pages>1)?'<span class="spage">'+it.page+'/'+it.pages+'</span>':'';
     var el=document.createElement('div'); el.className='card sum';
-    el.innerHTML='<div class="hdr"><div class="clw">'+fl+'<span class="cl">'+esc(it.c)+'</span></div></div>'+
+    el.innerHTML='<div class="hdr"><div class="clw">'+fl+'<span class="cl">'+esc(it.c)+'</span>'+pg+'</div></div>'+
                  '<div class="sumlist">'+body+'</div>';
     return el;
   }

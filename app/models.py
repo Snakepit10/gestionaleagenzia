@@ -2096,6 +2096,13 @@ class ImpostazioniLedwall(models.Model):
     loghi_hd = models.BooleanField(default=True,
                                    help_text="Loghi HD (API-Football) per le squadre principali; "
                                              "per le altre usa i loghi di diretta.it")
+    # Scheda riepilogo
+    loghi_riepilogo = models.BooleanField(default=False,
+                                          help_text="Mostra i loghi delle squadre ai lati nelle schede riepilogo")
+    max_partite_riepilogo = models.IntegerField(default=6,
+                                                help_text="Massimo di partite per scheda riepilogo: se sono di più, "
+                                                          "il riepilogo si divide su più schede (righe più grandi e "
+                                                          "leggibili). Default 6.")
 
     class Meta:
         verbose_name = "Ledwall - Impostazioni"
