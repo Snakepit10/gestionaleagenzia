@@ -82,6 +82,18 @@ PRINCIPALI = [
     _P('usa-mls', 'Usa', 'MLS', 'MLS', 'us', 'USA: MLS'),
     _P('messico-liga-mx-apertura', 'Messico', 'Liga MX', 'LIGA MX', 'mx', '', 'messico: liga mx'),
     _P('arabia-saudita-pro-league', 'Arabia Saudita', 'Saudi Pro League', 'SAUDI', 'sa', '', 'arabia saudita: saudi'),
+    # Turchia
+    _P('turchia-super-lig', 'Turchia', 'Super Lig', 'SUPER LIG', 'tr', 'TURCHIA: Super Lig'),
+    _P('turchia-1-lig', 'Turchia', '1. Lig', '1. LIG', 'tr', 'TURCHIA: 1. Lig'),
+    _P('turchia-coppa', 'Turchia', 'Coppa di Turchia', 'COPPA TUR', 'tr', '', 'turchia: coppa'),
+    # Belgio
+    _P('belgio-jupiler', 'Belgio', 'Jupiler Pro League', 'JUPILER', 'be', 'BELGIO: Jupiler League'),
+    _P('belgio-challenger', 'Belgio', 'Challenger Pro League', 'CHALLENGER', 'be', 'BELGIO: Challenger Pro League'),
+    _P('belgio-coppa', 'Belgio', 'Coppa del Belgio', 'COPPA BEL', 'be', 'BELGIO: Coppa del Belgio'),
+    # Scozia
+    _P('scozia-premiership', 'Scozia', 'Premiership', 'PREMIERSHIP', 'gb-sct', 'SCOZIA: Premiership'),
+    _P('scozia-championship', 'Scozia', 'Championship', 'SCO CHAMP', 'gb-sct', 'SCOZIA: Championship'),
+    _P('scozia-coppa', 'Scozia', 'Coppa di Scozia', 'COPPA SCO', 'gb-sct', '', 'scozia: coppa'),
 ]
 
 

@@ -349,5 +349,86 @@
   "nazione": "Arabia Saudita",
   "nome": "Saudi Pro League",
   "short_name": "SAUDI"
+ },
+ {
+  "aliases": "TURCHIA: Super Lig",
+  "bandiera": "tr",
+  "codice": "turchia-super-lig",
+  "contiene": "",
+  "nazione": "Turchia",
+  "nome": "Super Lig",
+  "short_name": "SUPER LIG"
+ },
+ {
+  "aliases": "TURCHIA: 1. Lig",
+  "bandiera": "tr",
+  "codice": "turchia-1-lig",
+  "contiene": "",
+  "nazione": "Turchia",
+  "nome": "1. Lig",
+  "short_name": "1. LIG"
+ },
+ {
+  "aliases": "",
+  "bandiera": "tr",
+  "codice": "turchia-coppa",
+  "contiene": "turchia: coppa",
+  "nazione": "Turchia",
+  "nome": "Coppa di Turchia",
+  "short_name": "COPPA TUR"
+ },
+ {
+  "aliases": "BELGIO: Jupiler League",
+  "bandiera": "be",
+  "codice": "belgio-jupiler",
+  "contiene": "",
+  "nazione": "Belgio",
+  "nome": "Jupiler Pro League",
+  "short_name": "JUPILER"
+ },
+ {
+  "aliases": "BELGIO: Challenger Pro League",
+  "bandiera": "be",
+  "codice": "belgio-challenger",
+  "contiene": "",
+  "nazione": "Belgio",
+  "nome": "Challenger Pro League",
+  "short_name": "CHALLENGER"
+ },
+ {
+  "aliases": "BELGIO: Coppa del Belgio",
+  "bandiera": "be",
+  "codice": "belgio-coppa",
+  "contiene": "",
+  "nazione": "Belgio",
+  "nome": "Coppa del Belgio",
+  "short_name": "COPPA BEL"
+ },
+ {
+  "aliases": "SCOZIA: Premiership",
+  "bandiera": "gb-sct",
+  "codice": "scozia-premiership",
+  "contiene": "",
+  "nazione": "Scozia",
+  "nome": "Premiership",
+  "short_name": "PREMIERSHIP"
+ },
+ {
+  "aliases": "SCOZIA: Championship",
+  "bandiera": "gb-sct",
+  "codice": "scozia-championship",
+  "contiene": "",
+  "nazione": "Scozia",
+  "nome": "Championship",
+  "short_name": "SCO CHAMP"
+ },
+ {
+  "aliases": "",
+  "bandiera": "gb-sct",
+  "codice": "scozia-coppa",
+  "contiene": "scozia: coppa",
+  "nazione": "Scozia",
+  "nome": "Coppa di Scozia",
+  "short_name": "COPPA SCO"
  }
 ]
