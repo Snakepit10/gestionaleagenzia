@@ -2,19 +2,25 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=320, height=200, initial-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>Ledwall Calcio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@500&display=swap" rel="stylesheet">
 <style>
-  /* Dimensioni del ledwall. Per un formato diverso (es. 384x960) cambiare SOLO --w/--h. */
-  :root{--w:320px; --h:200px;}
+  /* Auto-adattamento a QUALSIASI risoluzione del ledwall (una pagina sola, nessuna config).
+     --w / --ph = larghezza / altezza REALI del dispositivo: riempiono lo schermo.
+     --h        = base di SCALA per testi ed elementi. Usa vmin:
+                  in orizzontale (320x200, 320x160, ...) vmin == altezza => resa IDENTICA a prima;
+                  in verticale (es. 384x960) vmin == lato corto => i testi non escono di lato.
+     Anteprima da PC/telefono o player che non riporta la risoluzione: aggiungere ?w=320&h=200
+     all'URL (gestito nello <script>); sul ledwall reale, senza parametri, riempie lo schermo. */
+  :root{--w:100vw; --ph:100vh; --h:100vmin;}
   *{margin:0;padding:0;box-sizing:border-box;}
-  html,body{width:var(--w);height:var(--h);overflow:hidden;background:#000;}
+  html,body{width:var(--w);height:var(--ph);overflow:hidden;background:#000;}
   body{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;color:#fff;
        -webkit-font-smoothing:none;text-rendering:optimizeSpeed;}
-  #tk{width:var(--w);height:var(--h);display:flex;flex-direction:column;overflow:hidden;position:relative;
+  #tk{width:var(--w);height:var(--ph);display:flex;flex-direction:column;overflow:hidden;position:relative;
       background:linear-gradient(160deg,#123a5a 0%,#0b2236 45%,#06121d 100%);}
   .lane{flex:1;position:relative;overflow:hidden;display:block;}
 
@@ -47,7 +53,7 @@
             overflow:hidden;text-overflow:ellipsis;text-align:center;}
   .team .nm.win{color:#ffd200;}
   .mid{display:flex;flex-direction:column;align-items:center;gap:0.02em;text-align:center;}
-  .mid .big{font-size:calc(var(--h) * 0.34);font-weight:800;line-height:0.95;
+  .mid .big{font-size:calc(var(--h) * 0.34);font-weight:800;line-height:0.95;white-space:nowrap;
             font-variant-numeric:tabular-nums;letter-spacing:0.02em;}
   .mid .big.time{font-size:calc(var(--h) * 0.24);color:#2b7bff;}
   .mid .stat{font-size:calc(var(--h) * 0.11);font-weight:800;color:#e5202f;letter-spacing:0.05em;}
@@ -95,6 +101,22 @@
 
   @keyframes blink{to{opacity:0.45;}}
 
+  /* Ledwall VERTICALE (la classe .portrait la mette lo <script> quando il box e' piu' alto che
+     largo, sia sul device reale sia in anteprima con ?w=&h=). La riga orizzontale
+     logo-punteggio-logo sarebbe troppo stretta: sfruttiamo l'altezza IMPILANDO in verticale
+     (squadra casa / punteggio / squadra ospite), ognuno a tutta larghezza (niente sforamenti,
+     punteggi e orari sempre leggibili). Alziamo anche pubblicita' + barra (restano allineate). */
+  .portrait .card{gap:calc(var(--h) * 0.05);}
+  .portrait .row{display:flex;flex-direction:column;align-items:center;gap:calc(var(--h) * 0.045);}
+  .portrait .team{flex-direction:row;justify-content:center;gap:0.5em;max-width:92%;}
+  .portrait .badge{width:calc(var(--h) * 0.24);height:calc(var(--h) * 0.24);}
+  .portrait .badge img{width:calc(var(--h) * 0.15);height:calc(var(--h) * 0.15);}
+  .portrait .team .nm{font-size:calc(var(--h) * 0.12);}
+  .portrait .mid .big{font-size:calc(var(--h) * 0.34);}
+  .portrait .mid .big.time{font-size:calc(var(--h) * 0.26);}
+  .portrait .ad{bottom:calc(var(--h) * 0.22);}
+  .portrait .bar{height:calc(var(--h) * 0.22);}
+
   /* Meta: ora ultimo aggiornamento */
   #foot{position:absolute;right:3px;bottom:1px;z-index:6;font-size:12px;color:#3a4a55;font-weight:600;}
   #foot.stale{color:#e5202f;}
@@ -108,6 +130,31 @@
   "use strict";
   var qs = new URLSearchParams(location.search);
   var DEMO = qs.get('demo') ? ('?demo=' + qs.get('demo')) : '';
+
+  // Override risoluzione: ?w=320&h=200 forza un riquadro di quelle dimensioni (anteprima da PC/
+  // telefono, o player che non riporta la risoluzione nativa). Senza parametri riempie lo schermo.
+  var FORCE_W = parseInt(qs.get('w'), 10), FORCE_H = parseInt(qs.get('h'), 10);
+  var FORCED = (FORCE_W>0 && FORCE_H>0);
+  if(FORCED){
+    var r = document.documentElement.style;
+    r.setProperty('--w',  FORCE_W + 'px');
+    r.setProperty('--ph', FORCE_H + 'px');
+    r.setProperty('--h',  Math.min(FORCE_W, FORCE_H) + 'px');   // base di scala = lato corto
+    var b = document.body.style;                                 // centra il riquadro nella finestra
+    b.width='100vw'; b.height='100vh'; b.display='flex';
+    b.alignItems='center'; b.justifyContent='center';
+  }
+  // Layout verticale quando il box e' piu' alto che largo. Basato sull'aspect ratio EFFETTIVO
+  // del box (device reale via viewport, o override), non sull'orientamento della finestra:
+  // cosi' funziona sia sul ledwall sia in anteprima. Rivalutato a ogni resize/rotazione.
+  function applyOrientation(){
+    var w = FORCED ? FORCE_W : window.innerWidth;
+    var h = FORCED ? FORCE_H : window.innerHeight;
+    document.documentElement.classList.toggle('portrait', h > w);
+  }
+  applyOrientation();
+  window.addEventListener('resize', applyOrientation);
+  window.addEventListener('orientationchange', applyOrientation);
   // Override facoltativi via query (per test); la configurazione vera sta nel backend admin.
   var Q = {
     hold:    parseFloat(qs.get('hold'))    || null,

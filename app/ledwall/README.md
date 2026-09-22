@@ -27,8 +27,12 @@ Voce di menu **"Ledwall"** (solo super-user) → apre la gestione. Due sezioni:
   **immagine** (upload), **attivo**, **ordine**, **transizione** d'entrata
   (Scorrimento da destra / Zoom / Dal basso / Dissolvenza) e **secondi** di permanenza
   (0 = usa il default globale). I byte dell'immagine sono salvati **nel database** (non su
-  filesystem), così sopravvivono ai redeploy senza configurare lo storage media. Consigliata
-  un'immagine orizzontale (es. ~320×140).
+  filesystem), così sopravvivono ai redeploy senza configurare lo storage media.
+  **Dimensione consigliata: 2–3× la risoluzione dell'area pubblicitaria del LED**, stesso rapporto
+  d'aspetto (es. per un LED 320×200 → immagine ~640×280 o ~960×420). Il browser la rimpicciolisce
+  per adattarla: caricarla a risoluzione maggiore **migliora** la nitidezza (fa da antialiasing su
+  scritte e bordi), non peggiora; l'unico costo è un file un po' più pesante. Da evitare invece
+  immagini **sotto** la risoluzione nativa, che verrebbero ingrandite e apparirebbero sgranate.
 - **Ledwall - Impostazioni** (riga unica): **secondi per scheda** (durata di ogni scheda
   partita), **ogni N schede** (dopo quante schede parte la pubblicità), **secondi pubblicità**
   di default e **secondi barra risultati** (velocità dello scorrimento risultati, **costante** in
@@ -129,14 +133,24 @@ escluse da `EXCLUDE`. Le abbreviazioni squadra sono in `TEAM_ABBREVIATIONS`.
 - L'endpoint invia `Cache-Control: public, max-age=30` (utile se davanti c'è una CDN/proxy).
 - Requisiti: `requests` e `tzdata` (già in `requirements.txt`).
 
-## Se cambia il formato del ledwall (es. 384×960 verticale)
-Le dimensioni dei testi sono già espresse in `calc(100vh * …)`, quindi **scalano da sole con
-l'altezza**. Per un formato diverso agire solo su `templates/ledwall/calcio.html`:
-- **Dimensioni**: `html,body{width:…;height:…}` e `<meta viewport width=… height=…>` col nuovo
-  formato (es. 384×960). Le schede (grid a 3 colonne, centrata) e l'intermezzo pubblicitario si
-  adattano; su schermi molto più alti valutare di ridurre i moltiplicatori `100vh*…` per non
-  ingigantire troppo il testo.
-- **Formato verticale (384×960)**: c'è molto spazio verticale. Opzioni: aumentare l'area
-  pubblicitaria (alzare `.ad{bottom:…}` e la barra `.bar{height:…}`), o impilare i loghi/nomi;
-  la logica dati/JS resta identica.
-- **Colori e contrasti** restano validi su qualsiasi formato.
+## Diverse risoluzioni di LED: la pagina si auto-adatta (nessuna configurazione)
+**Una sola pagina** (`/ledwall/calcio`) va bene per tutti i LED, di qualsiasi risoluzione: ogni
+player carica lo stesso URL e la pagina si dimensiona da sola sulla risoluzione reale del
+dispositivo. Non servono pagine separate né parametri.
+
+Come funziona (in `templates/ledwall/calcio.html`):
+- `--w`/`--ph` = larghezza/altezza **reali** del dispositivo (`100vw`/`100vh`): riempiono lo schermo.
+- `--h` = base di **scala** dei testi/elementi = `100vmin` (lato corto). In orizzontale `vmin` è
+  l'altezza, quindi 320×200, 320×160, ecc. si ricompongono da soli; in verticale è la larghezza,
+  così i testi non escono di lato.
+- **Formato verticale**: lo `<script>` mette la classe `.portrait` sul `<html>` quando il box è più
+  alto che largo (device reale o anteprima) e la scheda passa a layout **impilato**
+  (squadra casa / punteggio / squadra ospite), sfruttando l'altezza. Nessuna modifica al codice.
+
+**Anteprima da PC/telefono** (o per un player che non riporta la risoluzione nativa): aggiungere
+`?w=<larghezza>&h=<altezza>` all'URL, es. `/ledwall/calcio?w=320&h=200` o `?w=384&h=960`. Forza un
+riquadro di quelle dimensioni, centrato nella finestra. Sul ledwall reale, senza parametri, riempie
+lo schermo. Si combina con `?demo=1` e con gli override tempi (`?hold=`, `?adEvery=`, `?adSlide=`,
+`?barDur=`).
+
+**Colori e contrasti** restano validi su qualsiasi formato.
