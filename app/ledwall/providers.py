@@ -346,7 +346,7 @@ class DemoProvider:
                      'homeScore': 0, 'awayScore': 0, 'date': None,
                      'homeLogo': 'api/logo/af/492.png', 'awayLogo': 'api/logo/af/497.png'},
                     {'status': 'scheduled', 'minute': None, 'time': '22:00', 'home': 'Juventus', 'away': 'Lazio',
-                     'homeScore': None, 'awayScore': None, 'date': None,
+                     'homeScore': None, 'awayScore': None, 'date': '23/09',
                      'homeLogo': 'api/logo/af/496.png', 'awayLogo': 'api/logo/af/487.png'},
                     {'status': 'finished', 'minute': None, 'time': '18:00', 'home': 'Atalanta', 'away': 'Torino',
                      'homeScore': 3, 'awayScore': 0, 'date': None,
