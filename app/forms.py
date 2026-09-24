@@ -149,7 +149,8 @@ class ChiusuraDistintaForm(forms.ModelForm):
             'cassa_finale': forms.NumberInput(attrs={'min': '0', 'step': '0.01'}),
             # Saldo 2 (Bevande): ammette anche valori negativi (nessun min)
             'totale_bevande': forms.NumberInput(attrs={'step': '0.01'}),
-            'saldo_terminale': forms.NumberInput(attrs={'min': '0', 'step': '0.01'}),
+            # Saldo terminale: ammette anche valori negativi (nessun min)
+            'saldo_terminale': forms.NumberInput(attrs={'step': '0.01'}),
             'differenza_cassa': forms.NumberInput(attrs={'readonly': 'readonly', 'step': '0.01'}),
             'note_distinta': forms.Textarea(attrs={'rows': 4}),
         }
