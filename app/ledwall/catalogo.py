@@ -38,7 +38,7 @@ PRINCIPALI = [
     _P('champions', 'Europa', 'Champions League', 'CHAMPIONS', 'eu', 'EUROPA: Champions League', 'champions league'),
     _P('europa', 'Europa', 'Europa League', 'EUROPA LG', 'eu', 'EUROPA: Europa League', 'europa league'),
     _P('conference', 'Europa', 'Conference League', 'CONFERENCE', 'eu', 'EUROPA: Conference League', 'conference league'),
-    _P('nations', 'Europa', 'Nations League', 'NATIONS', 'eu', 'EUROPA: UEFA Nations League', 'nations league'),
+    _P('nations', 'Europa', 'Nations League', 'NATIONS', 'eu', 'EUROPA: UEFA Nations League', 'uefa nations league'),
     _P('europei', 'Europa', 'Europei', 'EUROPEI', 'eu', '', 'campionato europeo'),
     _P('mondiali', 'Mondo', 'Mondiali', 'MONDIALI', '', '', 'coppa del mondo'),
     # Italia
