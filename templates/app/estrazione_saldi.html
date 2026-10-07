@@ -150,8 +150,9 @@
               + "body.dataDa=iso(ini)+'T00:00:00';body.dataA=iso(o)+'T23:59:59';try{if(window.crypto&&crypto.randomUUID){body.codiceTransazione=crypto.randomUUID();}}catch(e){}"
               + "var r=await fetch(tpl.url,{method:tpl.method||'POST',headers:tpl.headers,body:JSON.stringify(body),credentials:'include'});var j=await r.json();"
               + "var mov=j.EstrattoContoCassa||[];var best={};"
-              + "for(var i=0;i<mov.length;i++){var v=mov[i];var day=(v.DataMovimento||'').slice(0,10);if(!day)continue;var dt=new Date(v.DataMovimento);"
-              + "if(!best[day]||dt>best[day].dt){best[day]={dt:dt,saldo:v.Saldo/100};}}"
+              + "for(var i=0;i<mov.length;i++){var v=mov[i];var day=(v.DataMovimento||'').slice(0,10);if(!day)continue;var sv=Number(v.Saldo);if(!isFinite(sv))continue;var dt=new Date(v.DataMovimento);"
+              + "if(!best[day]||dt>best[day].dt){best[day]={dt:dt,saldo:sv/100};}}"
+              // Giorno CON movimento: usa il suo saldo (anche se e' 0, resta 0). Giorno SENZA movimento: riporta il saldo del precedente.
               + "var so={},cur=null;for(var dd=new Date(ini);dd<=o;dd.setDate(dd.getDate()+1)){var k=iso(dd);if(best[k]){cur=Math.round(best[k].saldo*100)/100;so[k]=cur;}else if(cur!==null){so[k]=cur;}}dati.saldo_online=so;"
               + "}else{alert('Apri il portale CAST (cast-agent...) oppure PV Online (pvonline...) e clicca il preferito su quella pagina.');return;}"
               + "var pr=await fetch(GEST+'/api/cast/saldi/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:TOKEN,dati:dati,conto_cast:contoCast})});"
