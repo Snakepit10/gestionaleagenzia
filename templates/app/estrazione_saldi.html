@@ -76,7 +76,7 @@
                         </a>
                     </li>
                     <li class="mb-2"><strong>Saldo CAST + Giroconti:</strong> apri <a href="https://cast-agent.goldbet.it/balanceaccount" target="_blank" rel="noopener">il portale CAST</a>, fai login, vai su <strong>Estratto Conto</strong> (pagina "balanceaccount") e attendi il caricamento della tabella; poi clicca il preferito su quella pagina.</li>
-                    <li class="mb-2"><strong>Saldo Online:</strong> apri il tuo portale <strong>PV Online</strong> (pvonline.lottomatica.it / goldbet.it / planetwin365.it), fai login, vai su <strong>Estratto Conto</strong> e clicca il preferito: fa tutto da solo (preme "Cerca" e invia i saldi). Se compare l'avviso di premere <strong>Cerca a mano</strong>, premilo tu sulla pagina e <strong>ri-clicca</strong> il preferito.</li>
+                    <li class="mb-2"><strong>Saldo Online:</strong> apri il tuo portale <strong>PV Online</strong> (pvonline.lottomatica.it / goldbet.it / planetwin365.it), fai login, vai su <strong>Estratto Conto</strong> e clicca il preferito: fa tutto da solo (preme "Cerca" e invia i saldi). Se compare l'avviso di premere <strong>Cerca a mano</strong>, premilo tu sulla pagina e <strong>ri-clicca</strong> il preferito. <em>Nota:</em> nei giorni senza movimenti (nessun saldo in estratto conto) viene riportato automaticamente il saldo del giorno precedente.</li>
                     <li>Il bookmarklet capisce da solo su quale portale sei e invia i valori corrispondenti al gestionale.</li>
                 </ol>
                 <div class="alert alert-light border small mb-2">
@@ -152,7 +152,7 @@
               + "var mov=j.EstrattoContoCassa||[];var best={};"
               + "for(var i=0;i<mov.length;i++){var v=mov[i];var day=(v.DataMovimento||'').slice(0,10);if(!day)continue;var dt=new Date(v.DataMovimento);"
               + "if(!best[day]||dt>best[day].dt){best[day]={dt:dt,saldo:v.Saldo/100};}}"
-              + "var so={};for(var d in best){so[d]=Math.round(best[d].saldo*100)/100;}dati.saldo_online=so;"
+              + "var so={},cur=null;for(var dd=new Date(ini);dd<=o;dd.setDate(dd.getDate()+1)){var k=iso(dd);if(best[k]){cur=Math.round(best[k].saldo*100)/100;so[k]=cur;}else if(cur!==null){so[k]=cur;}}dati.saldo_online=so;"
               + "}else{alert('Apri il portale CAST (cast-agent...) oppure PV Online (pvonline...) e clicca il preferito su quella pagina.');return;}"
               + "var pr=await fetch(GEST+'/api/cast/saldi/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:TOKEN,dati:dati,conto_cast:contoCast})});"
               + "var pj=await pr.json();if(pj&&pj.errore){alert('ESTRAZIONE RIFIUTATA\\n'+pj.errore);return;}"
