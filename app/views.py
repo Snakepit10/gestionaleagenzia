@@ -2301,6 +2301,20 @@ def calcola_righe_riepilogo(db):
         crediti_map[giorno] = corr
         servizio_map[giorno] = corr_serv
 
+    # Riporto: crediti e conti servizio sono saldi CUMULATIVI, registrati solo nei giorni con
+    # movimenti. Nei giorni senza movimenti il saldo resta invariato, quindi si riporta quello
+    # del giorno precedente (un saldo di quel giorno, anche 0, resta com'e': non si riporta).
+    import bisect
+    _cred_days = sorted(crediti_map)
+    _serv_days = sorted(servizio_map)
+
+    def _saldo_riportato(mapp, days, giorno):
+        v = mapp.get(giorno)
+        if v is not None:
+            return v
+        i = bisect.bisect_right(days, giorno) - 1
+        return mapp[days[i]] if i >= 0 else None
+
     # 2b) Valori esterni per giorno e per tipo, dal DB default per l'agenzia corrente
     from .models import SaldoEsterno, Agenzia
     esterni = {}  # tipo -> {data: valore}
@@ -2321,8 +2335,8 @@ def calcola_righe_riepilogo(db):
     for giorno, info in sorted(per_giorno.items(), reverse=True):
         r = {
             'data': giorno,
-            'crediti': crediti_map.get(giorno),
-            'conti_servizio': servizio_map.get(giorno),
+            'crediti': _saldo_riportato(crediti_map, _cred_days, giorno),
+            'conti_servizio': _saldo_riportato(servizio_map, _serv_days, giorno),
             'cassa_finale': info['cassa_finale'],
             'saldo_bevande': info['bevande'],
             'differenza_distinta': info['diff'],
