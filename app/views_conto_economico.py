@@ -8,6 +8,7 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.db.models import Sum
@@ -265,40 +266,61 @@ def _fmt_perc(v):
 
 
 def _rigenera_voci_da_riga(src_db, mb, anno, mese, allocazioni, user):
-    """Rigenera le voci (costo o ricavo) generate da una riga bancaria ripartita.
+    """Rigenera le voci (costo o ricavo) generate da una riga bancaria ripartita/scomposta.
 
     Elimina prima le voci precedenti (in tutti i DB agenzia) identificate da
-    (origine_db, origine_mb_id), poi crea una voce per ogni fetta della ripartizione nel
-    database dell'agenzia relativa, per il mese indicato. Una riga con importo negativo
-    genera VoceCosto (categoria), una positiva genera VoceRicavo (prodotto).
+    (origine_db, origine_mb_id), poi crea una voce per ogni quota nel database dell'agenzia
+    relativa, per il mese indicato.
+
+    Ogni quota (voce di `allocazioni`) può avere:
+      - db:               database agenzia di destinazione (obbligatorio);
+      - importo:          importo € della quota (ha priorità); oppure perc = % sul totale;
+      - categoria_codice: conto di costo della quota (scomposizione); altrimenti quello della riga;
+      - prodotto_codice:  prodotto della quota (per i ricavi); altrimenti quello della riga;
+      - tipo:             'diretto'|'comune' override della quota; altrimenti quello della riga.
+    Una riga con importo negativo genera VoceCosto, una positiva VoceRicavo.
     """
     for dbn in set(AGENZIA_DATABASE_MAP.values()):
         VoceCosto.objects.using(dbn).filter(origine_db=src_db, origine_mb_id=mb.pk).delete()
         VoceRicavo.objects.using(dbn).filter(origine_db=src_db, origine_mb_id=mb.pk).delete()
     is_costo = mb.importo < 0
-    codice = (mb.categoria_codice if is_costo else mb.prodotto_codice)
-    if not codice:
-        return
     base = abs(mb.importo)
+    mb_ovr = getattr(mb, 'tipo_costo_override', '') or ''
     for a in allocazioni or []:
         dbn = a.get('db')
-        try:
-            perc = Decimal(str(a.get('perc') or 0))
-        except Exception:
-            perc = Decimal('0')
-        if not dbn or perc <= 0:
+        if not dbn:
             continue
-        importo = (base * perc / Decimal('100')).quantize(Decimal('0.01'))
+        # Importo della quota: esplicito se presente, altrimenti dalla percentuale.
+        if a.get('importo') not in (None, ''):
+            try:
+                importo = Decimal(str(a.get('importo'))).quantize(Decimal('0.01'))
+            except Exception:
+                continue
+        else:
+            try:
+                perc = Decimal(str(a.get('perc') or 0))
+            except Exception:
+                perc = Decimal('0')
+            importo = (base * perc / Decimal('100')).quantize(Decimal('0.01'))
+        if importo <= 0:
+            continue
         # user=None: chi ripartisce può non esistere nel DB dell'agenzia di destinazione
         # (FK creato_da), quindi il contenitore mensile viene creato senza autore.
         conto_m = _get_conto(dbn, anno, mese, None, crea=True)
         if is_costo:
-            v = VoceCosto(conto_economico=conto_m, categoria_codice=codice,
-                          tipo_costo_override=getattr(mb, 'tipo_costo_override', '') or '',
+            cat = a.get('categoria_codice') or mb.categoria_codice
+            if not cat:
+                continue
+            ovr = a.get('tipo') if a.get('tipo') in ('diretto', 'comune') else mb_ovr
+            v = VoceCosto(conto_economico=conto_m, categoria_codice=cat,
+                          tipo_costo_override=ovr or '',
                           descrizione=mb.descrizione[:200], importo=importo, data=mb.data,
                           fonte='csv', origine_db=src_db, origine_mb_id=mb.pk)
         else:
-            v = VoceRicavo(conto_economico=conto_m, prodotto_codice=codice,
+            prod = a.get('prodotto_codice') or mb.prodotto_codice
+            if not prod:
+                continue
+            v = VoceRicavo(conto_economico=conto_m, prodotto_codice=prod,
                            descrizione=mb.descrizione[:200], importo=importo,
                            fonte='csv', origine_db=src_db, origine_mb_id=mb.pk)
         v.save(using=dbn)
@@ -894,6 +916,7 @@ def classifica_estratto(request, anno, mese):
     righe_escl = [r for r in righe if r.stato == 'ignorato']
     context = {
         'conto': conto, 'anno': anno, 'mese': mese, 'mese_nome': MESI_DICT.get(mese, mese),
+        'dbname': dbname,
         'costi_da': costi_da, 'entrate_da': entrate_da,
         'righe_class': righe_class, 'righe_escl': righe_escl,
         'n_costi_da': len(costi_da), 'n_entrate_da': len(entrate_da),
@@ -1128,7 +1151,6 @@ def riclassifica_costi(request):
     tutti_db_agenzia = set(AGENZIA_DATABASE_MAP.values())
 
     if request.method == 'POST' and request.POST.get('azione') == 'salva' and sel_ok:
-        from django.urls import reverse
         conto = ContoEconomico.objects.using(dbn).filter(anno=anno, mese=mese).first()
         cat_valide = {c.codice for c in _categorie_attive()}
         ovr_valide = {'', 'diretto', 'comune'}
@@ -1219,7 +1241,7 @@ def riclassifica_costi(request):
                     ov = (v.tipo_costo_override or '').strip()
                     ov = ov if ov in ('diretto', 'comune') else ''
                     voci.append({
-                        'is_grp': False, 'gid': '',
+                        'is_grp': False, 'gid': '', 'scomposto': False, 'linee': [], 'scomponi_url': '',
                         'cat_field': f'cat_{v.pk}', 'ovr_field': f'ovr_{v.pk}',
                         'data': v.data, 'descrizione': v.descrizione,
                         'importo': v.importo, 'cat_codice': v.categoria_codice or '',
@@ -1229,7 +1251,7 @@ def riclassifica_costi(request):
                         '_sort': (v.categoria_codice or '~', v.data or date.min, v.id),
                     })
                     continue
-                # Voce ripartita: una sola riga per gruppo, con importo INTERO.
+                # Voce da estratto conto: una sola riga per transazione, con importo INTERO.
                 key = (v.origine_db, v.origine_mb_id)
                 if key in gruppi:
                     continue
@@ -1238,27 +1260,60 @@ def riclassifica_costi(request):
                 cat_codice = (mb.categoria_codice if mb else v.categoria_codice) or ''
                 ov = ((mb.tipo_costo_override if mb else v.tipo_costo_override) or '').strip()
                 ov = ov if ov in ('diretto', 'comune') else ''
-                # Importo intero e agenzie su cui è ripartito
-                if mb:
-                    importo = abs(mb.importo)
-                    dbs = [a.get('db') for a in (mb.allocazioni or []) if a.get('db')]
+                allocs = (mb.allocazioni if mb else None) or []
+                importo_tot = abs(mb.importo) if mb else v.importo
+                dbs = [a.get('db') for a in allocs if a.get('db')] or [dbn]
+                scomponi_url = (reverse('scomponi_transazione') +
+                                f'?db={od}&mb={omb}&ret=riclassifica&rdb={dbn}&ranno={anno}&rmese={mese}')
+
+                # Scomposta = quote con conto/tipo diversi fra loro
+                classi = set()
+                for a in allocs:
+                    classi.add(((a.get('categoria_codice') or cat_codice),
+                                (a.get('tipo') if a.get('tipo') in ('diretto', 'comune') else ov)))
+                scomposto = len(classi) > 1
+
+                if scomposto:
+                    linee = []
+                    for a in allocs:
+                        imp = a.get('importo')
+                        if imp in (None, ''):
+                            try:
+                                imp = (importo_tot * Decimal(str(a.get('perc') or 0)) / Decimal('100'))
+                            except Exception:
+                                imp = Decimal('0')
+                        lc = a.get('categoria_codice') or cat_codice
+                        lt = a.get('tipo') if a.get('tipo') in ('diretto', 'comune') else ov
+                        linee.append({
+                            'agenzia': db_nome.get(a.get('db'), a.get('db')),
+                            'conto_nome': map_cat.get(lc or '', lc or '—'),
+                            'eff': _eff(lc, lt),
+                            'importo': Decimal(str(imp)),
+                        })
+                    voci.append({
+                        'is_grp': True, 'gid': f'{omb}|{od}', 'scomposto': True, 'linee': linee,
+                        'scomponi_url': scomponi_url,
+                        'data': (mb.data if mb else v.data), 'descrizione': v.descrizione,
+                        'importo': importo_tot, 'cat_codice': '', 'override': '',
+                        'eff': '', 'da_conto': False, 'nonclass': False,
+                        'ripartito': len(dbs) > 1,
+                        'split_label': ' + '.join(db_nome.get(d, d) for d in dbs),
+                        '_sort': ('~~', (mb.data if mb else v.data) or date.min, omb),
+                    })
                 else:
-                    importo = v.importo
-                    dbs = [dbn]
-                if not dbs:
-                    dbs = [dbn]
-                gid = f'{omb}|{od}'
-                voci.append({
-                    'is_grp': True, 'gid': gid,
-                    'cat_field': f'catg_{gid}', 'ovr_field': f'ovrg_{gid}',
-                    'data': (mb.data if mb else v.data), 'descrizione': v.descrizione,
-                    'importo': importo, 'cat_codice': cat_codice,
-                    'override': ov, 'eff': _eff(cat_codice, ov),
-                    'da_conto': ov == '', 'nonclass': not cat_codice,
-                    'ripartito': len(dbs) > 1,
-                    'split_label': ' + '.join(db_nome.get(d, d) for d in dbs),
-                    '_sort': (cat_codice or '~', (mb.data if mb else v.data) or date.min, omb),
-                })
+                    gid = f'{omb}|{od}'
+                    voci.append({
+                        'is_grp': True, 'gid': gid, 'scomposto': False, 'linee': [],
+                        'cat_field': f'catg_{gid}', 'ovr_field': f'ovrg_{gid}',
+                        'scomponi_url': scomponi_url,
+                        'data': (mb.data if mb else v.data), 'descrizione': v.descrizione,
+                        'importo': importo_tot, 'cat_codice': cat_codice,
+                        'override': ov, 'eff': _eff(cat_codice, ov),
+                        'da_conto': ov == '', 'nonclass': not cat_codice,
+                        'ripartito': len(dbs) > 1,
+                        'split_label': ' + '.join(db_nome.get(d, d) for d in dbs),
+                        '_sort': (cat_codice or '~', (mb.data if mb else v.data) or date.min, omb),
+                    })
                 gruppi[key] = True
             voci.sort(key=lambda it: it['_sort'])
 
@@ -1271,6 +1326,105 @@ def riclassifica_costi(request):
         'categorie': _categorie_attive(),
     }
     return render(request, 'app/riclassifica_costi.html', context)
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def scomponi_transazione(request):
+    """Scompone una transazione bancaria (costo) in più quote eterogenee: ogni quota ha
+    agenzia + conto di costo + diretto/comune + importo. Raggiungibile dalla classificazione
+    estratto conto e dalla pagina Riclassifica."""
+    agenzie = _agenzie_db()
+    dbs_validi = {a['db'] for a in agenzie}
+
+    od = request.POST.get('db') or request.GET.get('db') or ''
+    try:
+        omb = int(request.POST.get('mb') or request.GET.get('mb') or 0)
+    except (TypeError, ValueError):
+        omb = 0
+    ret = request.POST.get('ret') or request.GET.get('ret') or 'riclassifica'
+    rdb = request.POST.get('rdb') or request.GET.get('rdb') or od
+    ranno = request.POST.get('ranno') or request.GET.get('ranno') or ''
+    rmese = request.POST.get('rmese') or request.GET.get('rmese') or ''
+
+    def _torna():
+        if ret == 'estratto' and ranno and rmese:
+            return redirect('classifica_estratto', anno=int(ranno), mese=int(rmese))
+        q = f'?db={rdb}&anno={ranno}&mese={rmese}' if (rdb and ranno and rmese) else ''
+        return redirect(reverse('riclassifica_costi') + q)
+
+    if od not in dbs_validi or not omb:
+        messages.error(request, 'Transazione non valida.')
+        return _torna()
+    mb = MovimentoBancario.objects.using(od).filter(pk=omb).first()
+    if not mb:
+        messages.error(request, 'Transazione non trovata.')
+        return _torna()
+    if mb.importo >= 0:
+        messages.error(request, 'La scomposizione è disponibile solo per i costi (uscite).')
+        return _torna()
+
+    anno_t = mb.data.year if mb.data else (int(ranno) if ranno else timezone.localdate().year)
+    mese_t = mb.data.month if mb.data else (int(rmese) if rmese else timezone.localdate().month)
+    base = abs(mb.importo)
+
+    if request.method == 'POST' and request.POST.get('azione') == 'salva':
+        cat_valide = {c.codice for c in _categorie_attive()}
+        linee = []
+        for i in request.POST.getlist('riga'):
+            db_l = request.POST.get(f'db_{i}', '')
+            if db_l not in dbs_validi:
+                continue
+            imp_l = _parse_importo(request.POST.get(f'imp_{i}', ''))
+            if imp_l is None or imp_l <= 0:
+                continue
+            cat_l = request.POST.get(f'cat_{i}', '')
+            cat_l = cat_l if cat_l in cat_valide else ''
+            tipo_l = request.POST.get(f'tipo_{i}', '')
+            tipo_l = tipo_l if tipo_l in ('diretto', 'comune') else ''
+            riga = {'db': db_l, 'importo': float(imp_l), 'categoria_codice': cat_l}
+            if tipo_l:
+                riga['tipo'] = tipo_l
+            linee.append(riga)
+        mb.allocazioni = linee
+        mb.stato = 'classificato' if linee else 'da_classificare'
+        mb.save(using=od, update_fields=['allocazioni', 'stato'])
+        _rigenera_voci_da_riga(od, mb, anno_t, mese_t, linee, request.user)
+        somma = sum((Decimal(str(l['importo'])) for l in linee), Decimal('0'))
+        extra = ''
+        if abs(somma - base) > Decimal('0.01'):
+            extra = f' Attenzione: la somma delle quote ({somma:.2f}) non coincide col totale ({base:.2f}).'
+        messages.success(request, f'Scomposizione salvata: {len(linee)} quote.' + extra)
+        return _torna()
+
+    # Righe correnti dalla ripartizione esistente (o una riga di default sul DB d'origine)
+    db_nome = {a['db']: a['nome'] for a in agenzie}
+    righe = []
+    for idx, a in enumerate(mb.allocazioni or []):
+        imp = a.get('importo')
+        if imp in (None, ''):
+            try:
+                imp = (base * Decimal(str(a.get('perc') or 0)) / Decimal('100')).quantize(Decimal('0.01'))
+            except Exception:
+                imp = Decimal('0')
+        righe.append({
+            'i': idx, 'db': a.get('db') or od,
+            'categoria_codice': a.get('categoria_codice') or (mb.categoria_codice or ''),
+            'tipo': a.get('tipo') if a.get('tipo') in ('diretto', 'comune') else '',
+            'importo': Decimal(str(imp)),
+        })
+    if not righe:
+        righe = [{'i': 0, 'db': od, 'categoria_codice': mb.categoria_codice or '',
+                  'tipo': mb.tipo_costo_override or '', 'importo': base}]
+
+    context = {
+        'mb': mb, 'od': od, 'omb': omb, 'base': base,
+        'agenzie': agenzie, 'db_nome': db_nome,
+        'categorie': _categorie_attive(), 'righe': righe,
+        'ret': ret, 'rdb': rdb, 'ranno': ranno, 'rmese': rmese,
+        'nome_agenzia_origine': db_nome.get(od, od),
+    }
+    return render(request, 'app/scomponi_transazione.html', context)
 
 
 # ---------------------------------------------------------------------------

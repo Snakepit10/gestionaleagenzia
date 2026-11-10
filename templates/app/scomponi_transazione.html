@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Scomponi transazione - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<style>
+    .sc-tbl th, .sc-tbl td { vertical-align: middle; }
+    .sc-tbl td.n { text-align: right; }
+    .sc-imp { max-width: 130px; text-align: right; }
+    .sc-tot-ok { color: #198754; font-weight: 700; }
+    .sc-tot-ko { color: #dc3545; font-weight: 700; }
+</style>
+
+<div class="row mb-3 align-items-center">
+    <div class="col">
+        <h1 class="h4 mb-0"><i class="fas fa-sitemap me-2"></i>Scomponi transazione</h1>
+        <small class="text-muted">Spezza una transazione in più quote: ogni quota ha agenzia, conto di costo, diretto/comune e importo.</small>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-7"><strong>Descrizione:</strong> {{ mb.descrizione }}</div>
+            <div class="col-md-2"><strong>Data:</strong> {{ mb.data|date:"d/m/Y"|default:"—" }}</div>
+            <div class="col-md-3 text-md-end"><strong>Totale:</strong> <span class="fs-5">{{ base|floatformat:2 }} €</span></div>
+        </div>
+        <div class="small text-muted mt-1">Pagata da: {{ nome_agenzia_origine }}. Una quota <strong>Comune</strong> va nel blocco struttura del consolidato (non attribuita al punto vendita).</div>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="azione" value="salva">
+    <input type="hidden" name="db" value="{{ od }}">
+    <input type="hidden" name="mb" value="{{ omb }}">
+    <input type="hidden" name="ret" value="{{ ret }}">
+    <input type="hidden" name="rdb" value="{{ rdb }}">
+    <input type="hidden" name="ranno" value="{{ ranno }}">
+    <input type="hidden" name="rmese" value="{{ rmese }}">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-list me-2"></i>Quote</span>
+            <button type="button" class="btn btn-outline-primary btn-sm" id="add-riga"><i class="fas fa-plus me-1"></i>Aggiungi quota</button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0 align-middle sc-tbl">
+                    <thead>
+                        <tr>
+                            <th style="min-width:160px">Destinazione (agenzia)</th>
+                            <th style="min-width:200px">Conto di costo</th>
+                            <th style="min-width:150px">Tipo</th>
+                            <th class="text-end" style="min-width:130px">Importo €</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="righe-body">
+                        {% for r in righe %}
+                        <tr>
+                            <input type="hidden" name="riga" value="{{ r.i }}">
+                            <td>
+                                <select name="db_{{ r.i }}" class="form-select form-select-sm">
+                                    {% for a in agenzie %}<option value="{{ a.db }}" {% if a.db == r.db %}selected{% endif %}>{{ a.nome }}</option>{% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <select name="cat_{{ r.i }}" class="form-select form-select-sm">
+                                    <option value="">— Da classificare —</option>
+                                    {% for c in categorie %}<option value="{{ c.codice }}" {% if c.codice == r.categoria_codice %}selected{% endif %}>{{ c.nome }}</option>{% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <select name="tipo_{{ r.i }}" class="form-select form-select-sm">
+                                    <option value="" {% if r.tipo == '' %}selected{% endif %}>Come il conto</option>
+                                    <option value="diretto" {% if r.tipo == 'diretto' %}selected{% endif %}>Diretto (punto vendita)</option>
+                                    <option value="comune" {% if r.tipo == 'comune' %}selected{% endif %}>Comune (struttura)</option>
+                                </select>
+                            </td>
+                            <td class="n"><input type="text" name="imp_{{ r.i }}" value="{{ r.importo|floatformat:2 }}" class="form-control form-control-sm sc-imp imp-field" inputmode="decimal"></td>
+                            <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger del-riga"><i class="fas fa-trash"></i></button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-end"><strong>Somma quote</strong></td>
+                            <td class="n"><span id="somma">0,00</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" class="text-end text-muted">Totale transazione</td>
+                            <td class="n text-muted" id="totale" data-base="{{ base|floatformat:2 }}">{{ base|floatformat:2 }}</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center">
+            <span class="small"><span id="diff-msg"></span></span>
+            <div>
+                <a href="{% if ret == 'estratto' %}{% url 'classifica_estratto' ranno rmese %}{% else %}{% url 'riclassifica_costi' %}?db={{ rdb }}&anno={{ ranno }}&mese={{ rmese }}{% endif %}" class="btn btn-outline-secondary me-2">Annulla</a>
+                <button type="submit" class="btn btn-success"><i class="fas fa-save me-1"></i>Salva scomposizione</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<template id="riga-tpl">
+    <tr>
+        <input type="hidden" name="riga" value="__I__">
+        <td>
+            <select name="db___I__" class="form-select form-select-sm">
+                {% for a in agenzie %}<option value="{{ a.db }}">{{ a.nome }}</option>{% endfor %}
+            </select>
+        </td>
+        <td>
+            <select name="cat___I__" class="form-select form-select-sm">
+                <option value="">— Da classificare —</option>
+                {% for c in categorie %}<option value="{{ c.codice }}">{{ c.nome }}</option>{% endfor %}
+            </select>
+        </td>
+        <td>
+            <select name="tipo___I__" class="form-select form-select-sm">
+                <option value="">Come il conto</option>
+                <option value="diretto">Diretto (punto vendita)</option>
+                <option value="comune">Comune (struttura)</option>
+            </select>
+        </td>
+        <td class="n"><input type="text" name="imp___I__" value="" class="form-control form-control-sm sc-imp imp-field" inputmode="decimal"></td>
+        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger del-riga"><i class="fas fa-trash"></i></button></td>
+    </tr>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var body = document.getElementById('righe-body');
+    var tpl = document.getElementById('riga-tpl').innerHTML;
+    var counter = {{ righe|length }};
+
+    function parseNum(s) {
+        s = (s || '').toString().trim().replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+        var n = parseFloat(s);
+        return isNaN(n) ? 0 : n;
+    }
+    function fmt(n) { return n.toFixed(2).replace('.', ','); }
+
+    function recalc() {
+        var tot = 0;
+        body.querySelectorAll('.imp-field').forEach(function (f) { tot += parseNum(f.value); });
+        document.getElementById('somma').textContent = fmt(tot);
+        var base = parseNum(document.getElementById('totale').dataset.base);
+        var sommaEl = document.getElementById('somma');
+        var diff = Math.round((tot - base) * 100) / 100;
+        var msg = document.getElementById('diff-msg');
+        if (Math.abs(diff) < 0.005) {
+            sommaEl.className = 'sc-tot-ok';
+            msg.textContent = 'Le quote coincidono col totale.';
+            msg.className = 'sc-tot-ok';
+        } else {
+            sommaEl.className = 'sc-tot-ko';
+            msg.textContent = (diff > 0 ? 'Eccesso di ' : 'Mancano ') + fmt(Math.abs(diff)) + ' € rispetto al totale.';
+            msg.className = 'sc-tot-ko';
+        }
+    }
+
+    body.addEventListener('input', function (e) { if (e.target.classList.contains('imp-field')) recalc(); });
+    body.addEventListener('click', function (e) {
+        var btn = e.target.closest('.del-riga');
+        if (btn) { btn.closest('tr').remove(); recalc(); }
+    });
+    document.getElementById('add-riga').addEventListener('click', function () {
+        var html = tpl.replace(/__I__/g, counter++);
+        var tr = document.createElement('tbody');
+        tr.innerHTML = html.trim();
+        body.appendChild(tr.firstChild);
+        recalc();
+    });
+
+    recalc();
+})();
+</script>
+{% endblock %}

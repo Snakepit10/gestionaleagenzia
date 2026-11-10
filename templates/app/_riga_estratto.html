@@ -10,6 +10,7 @@
             <option value="{{ c.codice }}" {% if c.codice == r.categoria_codice %}selected{% endif %}>{{ c.nome }}</option>
             {% endfor %}
         </select>
+        {% if is_super %}<a href="{% url 'scomponi_transazione' %}?db={{ dbname }}&mb={{ r.pk }}&ret=estratto&rdb={{ dbname }}&ranno={{ anno }}&rmese={{ mese }}" class="small d-inline-block mt-1" title="Spezza in più quote (agenzia/conto/diretto-comune)"><i class="fas fa-sitemap me-1"></i>Scomponi</a>{% endif %}
         {% else %}
         <select name="prod_{{ r.pk }}" class="form-select form-select-sm">
             <option value="">— Prodotto ricavo —</option>

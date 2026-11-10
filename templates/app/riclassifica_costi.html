@@ -77,10 +77,29 @@
                                 <th>Conto di costo</th>
                                 <th>Tipo (diretto/comune)</th>
                                 <th class="text-center">Effettivo</th>
+                                <th class="text-end">Azioni</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for r in voci %}
+                            {% if r.scomposto %}
+                            <tr>
+                                <td class="small text-nowrap">{{ r.data|date:"d/m/Y"|default:"—" }}</td>
+                                <td class="small">
+                                    {{ r.descrizione|default:"(senza descrizione)" }}
+                                    <span class="badge bg-primary ms-1"><i class="fas fa-sitemap me-1"></i>scomposta in {{ r.linee|length }} quote</span>
+                                </td>
+                                <td class="n fw-bold">{{ r.importo|floatformat:2 }}</td>
+                                <td colspan="3" class="small text-muted">
+                                    {% for l in r.linee %}
+                                    <div>{{ l.agenzia }} · {{ l.conto_nome }} ·
+                                        {% if l.eff == 'diretto' %}<span class="badge bg-info text-dark">Diretto</span>{% else %}<span class="badge bg-secondary">Comune</span>{% endif %}
+                                        · <strong>{{ l.importo|floatformat:2 }}</strong></div>
+                                    {% endfor %}
+                                </td>
+                                <td class="text-end"><a href="{{ r.scomponi_url }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-sitemap me-1"></i>Modifica</a></td>
+                            </tr>
+                            {% else %}
                             <tr {% if r.nonclass %}class="table-warning"{% endif %}>
                                 {% if r.is_grp %}<input type="hidden" name="grp" value="{{ r.gid }}">{% endif %}
                                 <td class="small text-nowrap">{{ r.data|date:"d/m/Y"|default:"—" }}</td>
@@ -114,7 +133,11 @@
                                     {% endif %}
                                     {% if r.da_conto and not r.nonclass %}<span class="text-muted small d-block">da conto</span>{% endif %}
                                 </td>
+                                <td class="text-end">
+                                    {% if r.is_grp %}<a href="{{ r.scomponi_url }}" class="btn btn-sm btn-outline-secondary" title="Spezza in più quote (agenzia/conto/diretto-comune)"><i class="fas fa-sitemap me-1"></i>Scomponi</a>{% endif %}
+                                </td>
                             </tr>
+                            {% endif %}
                             {% endfor %}
                         </tbody>
                     </table>
