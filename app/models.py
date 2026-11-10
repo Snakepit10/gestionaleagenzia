@@ -1723,8 +1723,12 @@ class CategoriaCosto(models.Model):
     """Macro-categoria per organizzare i conti di costo (es. sezioni del piano dei conti:
     personale, servizi, godimento beni di terzi, oneri diversi...). Tassonomia GLOBALE su
     database 'default'."""
+    TIPO_CHOICES = [('diretto', 'Diretto (variabile)'), ('indiretto', 'Indiretto (struttura)')]
     codice = models.SlugField(max_length=40, unique=True)
     nome = models.CharField(max_length=100)
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='indiretto',
+                            help_text="Diretto = costo variabile legato ai ricavi (entra nel margine di "
+                                      "contribuzione). Indiretto = costo fisso/di struttura.")
     ordine = models.PositiveIntegerField(default=0)
     attivo = models.BooleanField(default=True)
 

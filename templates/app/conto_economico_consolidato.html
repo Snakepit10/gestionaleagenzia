@@ -15,6 +15,7 @@
     .ce-mtx .ce-tot td { background: rgba(255,255,255,.05); font-weight: 700; }
     .ce-mtx .ce-diff td { background: rgba(32,201,151,.20); font-weight: 700; }
     .ce-mtx .ce-diff .liq { font-weight: 400; font-size: .85em; color: #63e6be; }
+    .ce-mtx .ce-marg td { background: rgba(255,193,7,.20); font-weight: 700; }
     .ce-mtx .ce-ris td { background: rgba(13,110,253,.16); font-weight: 700; }
     .ce-mtx .muted td:first-child { color: #9aa4ad; font-style: italic; }
     /* checkbox multipli in linea (mesi / agenzie) */
@@ -68,8 +69,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- A) VALORE DELLA PRODUZIONE (per categoria prodotto) -->
-                    <tr class="ce-sez"><td colspan="{{ dati.n_cols }}">A) VALORE DELLA PRODUZIONE</td></tr>
+                    <!-- A) RICAVI (per categoria prodotto) -->
+                    <tr class="ce-sez"><td colspan="{{ dati.n_cols }}">A) RICAVI</td></tr>
                     {% for g in dati.prod_catlist %}
                     <tr class="ce-voce ce-exp" data-target="pc{{ forloop.counter }}" role="button">
                         <td><i class="fas fa-chevron-right ce-caret me-1"></i>{{ g.nome }} <span class="text-muted small">· {{ g.prodotti|length }}</span></td>
@@ -92,35 +93,66 @@
                     {% if not dati.prod_catlist and not dati.ha_manuali %}
                     <tr class="ce-voce muted"><td>Nessun ricavo</td>{% for c in dati.cols %}<td class="n">0,00</td>{% endfor %}<td class="n col-tot">0,00</td></tr>
                     {% endif %}
-                    <tr class="ce-tot"><td>Totale valore della produzione (A)</td>
+                    <tr class="ce-tot"><td>Totale ricavi (A)</td>
                         {% for v in dati.totA_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
                         <td class="n col-tot">{{ dati.g_ric|floatformat:2 }}</td></tr>
 
-                    <!-- B) COSTI DELLA PRODUZIONE (per macro-categoria costo) -->
-                    <tr class="ce-sez"><td colspan="{{ dati.n_cols }}">B) COSTI DELLA PRODUZIONE</td></tr>
-                    {% for g in dati.cost_catlist %}
-                    <tr class="ce-voce ce-exp" data-target="cc{{ forloop.counter }}" role="button">
+                    <!-- B) COSTI DIRETTI (variabili) -->
+                    <tr class="ce-sez"><td colspan="{{ dati.n_cols }}">B) COSTI DIRETTI (variabili)</td></tr>
+                    {% for g in dati.cost_dir_list %}
+                    <tr class="ce-voce ce-exp" data-target="cd{{ forloop.counter }}" role="button">
                         <td><i class="fas fa-chevron-right ce-caret me-1"></i>{{ g.nome }} <span class="text-muted small">· {{ g.costi|length }}</span></td>
                         {% for v in g.celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
                         <td class="n col-tot">{{ g.totale|floatformat:2 }}</td>
                     </tr>
                     {% for cc in g.costi %}
-                    <tr class="ce-sub cc{{ forloop.parentloop.counter }} d-none">
+                    <tr class="ce-sub cd{{ forloop.parentloop.counter }} d-none">
                         <td>{{ cc.nome }}</td>
                         {% for v in cc.celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
                         <td class="n col-tot">{{ cc.totale|floatformat:2 }}</td>
                     </tr>
                     {% endfor %}
                     {% endfor %}
-                    {% if not dati.cost_catlist %}
-                    <tr class="ce-voce muted"><td>Nessun costo classificato</td>{% for c in dati.cols %}<td class="n">0,00</td>{% endfor %}<td class="n col-tot">0,00</td></tr>
+                    {% if not dati.cost_dir_list %}
+                    <tr class="ce-voce muted"><td>Nessun costo diretto</td>{% for c in dati.cols %}<td class="n">0,00</td>{% endfor %}<td class="n col-tot">0,00</td></tr>
                     {% endif %}
-                    <tr class="ce-tot"><td>Totale costi della produzione (B)</td>
-                        {% for v in dati.totB_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
-                        <td class="n col-tot">{{ dati.g_cos|floatformat:2 }}</td></tr>
+                    <tr class="ce-tot"><td>Totale costi diretti (B)</td>
+                        {% for v in dati.costdir_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ dati.g_dir|floatformat:2 }}</td></tr>
 
-                    <!-- DIFFERENZA + IMPOSTE + RISULTATO -->
-                    <tr class="ce-diff"><td>DIFFERENZA (A − B) <span class="liq">— liquidità generata</span></td>
+                    <!-- MARGINE DI CONTRIBUZIONE (A − B) -->
+                    <tr class="ce-marg"><td>MARGINE DI CONTRIBUZIONE (A − B)</td>
+                        {% for v in dati.margine_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ dati.g_margine|floatformat:2 }}</td></tr>
+                    <tr class="ce-voce muted"><td>% margine sui ricavi</td>
+                        {% for v in dati.margine_perc_celle %}<td class="n">{{ v|floatformat:1 }}%</td>{% endfor %}
+                        <td class="n col-tot">{{ dati.g_margine_perc|floatformat:1 }}%</td></tr>
+
+                    <!-- C) COSTI INDIRETTI (struttura) -->
+                    <tr class="ce-sez"><td colspan="{{ dati.n_cols }}">C) COSTI INDIRETTI (struttura)</td></tr>
+                    {% for g in dati.cost_ind_list %}
+                    <tr class="ce-voce ce-exp" data-target="ci{{ forloop.counter }}" role="button">
+                        <td><i class="fas fa-chevron-right ce-caret me-1"></i>{{ g.nome }} <span class="text-muted small">· {{ g.costi|length }}</span></td>
+                        {% for v in g.celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ g.totale|floatformat:2 }}</td>
+                    </tr>
+                    {% for cc in g.costi %}
+                    <tr class="ce-sub ci{{ forloop.parentloop.counter }} d-none">
+                        <td>{{ cc.nome }}</td>
+                        {% for v in cc.celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ cc.totale|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% endfor %}
+                    {% if not dati.cost_ind_list %}
+                    <tr class="ce-voce muted"><td>Nessun costo indiretto</td>{% for c in dati.cols %}<td class="n">0,00</td>{% endfor %}<td class="n col-tot">0,00</td></tr>
+                    {% endif %}
+                    <tr class="ce-tot"><td>Totale costi indiretti (C)</td>
+                        {% for v in dati.costind_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        <td class="n col-tot">{{ dati.g_ind|floatformat:2 }}</td></tr>
+
+                    <!-- RISULTATO OPERATIVO + IMPOSTE -->
+                    <tr class="ce-diff"><td>RISULTATO OPERATIVO (Margine − C)</td>
                         {% for v in dati.diff_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
                         <td class="n col-tot">{{ dati.g_utile|floatformat:2 }}</td></tr>
                     <tr class="ce-voce"><td>Reddito imponibile stimato</td>
@@ -129,7 +161,7 @@
                     <tr class="ce-voce"><td>Imposte (stima 24%)</td>
                         {% for v in dati.imposte_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
                         <td class="n col-tot">{{ dati.g_imposte|floatformat:2 }}</td></tr>
-                    <tr class="ce-ris"><td>UTILE (O PERDITA) DELL'ESERCIZIO</td>
+                    <tr class="ce-ris"><td>UTILE (O PERDITA) NETTO</td>
                         {% for v in dati.netto_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
                         <td class="n col-tot">{{ dati.g_netto|floatformat:2 }}</td></tr>
                 </tbody>

@@ -147,6 +147,18 @@ def _mappa_cat_costo():
     return {c.codice: c.nome for c in CategoriaCosto.objects.using('default')}
 
 
+def _tipo_macro_costo():
+    """Mappa codice macro-categoria costo -> 'diretto' | 'indiretto'."""
+    return {c.codice: c.tipo for c in CategoriaCosto.objects.using('default')}
+
+
+def _spesa_tipo_of():
+    """Mappa codice conto-spesa -> 'diretto' | 'indiretto' (via macro-categoria; default indiretto)."""
+    tipo_macro = _tipo_macro_costo()
+    return {c.codice: tipo_macro.get(c.categoria_costo_codice or '', 'indiretto')
+            for c in CategoriaSpesa.objects.using('default')}
+
+
 def _spesa_categoria_of():
     """Mappa codice conto-spesa -> codice macro-categoria costo (vuoto se assente)."""
     return {c.codice: (c.categoria_costo_codice or '') for c in CategoriaSpesa.objects.using('default')}
@@ -902,11 +914,14 @@ def conto_economico_consolidato(request):
         map_prod = _mappa_prodotti()
         map_cat = _mappa_categorie()
         cat_deducibili = {c.codice for c in CategoriaSpesa.objects.using('default').filter(deducibile=True)}
+        spesa_cat = _spesa_categoria_of()     # conto-spesa -> macro-categoria
+        tipo_macro = _tipo_macro_costo()      # macro-categoria -> diretto/indiretto
 
         cols = []                 # [{db, nome}] una per agenzia selezionata
         prod_rows, cat_rows = {}, {}
         manuali = {}              # db -> ricavi manuali
         tot_ric, tot_cos = {}, {}
+        cos_dir, cos_ind = {}, {}  # db -> costi diretti / indiretti
         imponibile_col, imposte_col = {}, {}
 
         for ag in agenzie_sel:
@@ -914,7 +929,7 @@ def conto_economico_consolidato(request):
             if not dbn:
                 continue
             cols.append({'db': dbn, 'nome': ag.nome})
-            tr = tc = ded = man = Decimal('0')
+            tr = tc = ded = man = cd = ci = Decimal('0')
             # somma su tutti i mesi selezionati
             conti = ContoEconomico.objects.using(dbn).filter(anno=anno, mese__in=mesi)
             for conto in conti:
@@ -937,9 +952,16 @@ def conto_economico_consolidato(request):
                     row['totale'] += v.importo
                     if v.categoria_codice in cat_deducibili:
                         ded += v.importo
+                    # Diretto/indiretto (via macro-categoria del conto-spesa; default indiretto)
+                    if tipo_macro.get(spesa_cat.get(v.categoria_codice, ''), 'indiretto') == 'diretto':
+                        cd += v.importo
+                    else:
+                        ci += v.importo
             manuali[dbn] = man
             tot_ric[dbn] = tr
             tot_cos[dbn] = tc
+            cos_dir[dbn] = cd
+            cos_ind[dbn] = ci
             imponibile_col[dbn] = tr - ded
             imposte_col[dbn] = max(Decimal('0'), ((tr - ded) * Decimal('0.24')).quantize(Decimal('0.01')))
 
@@ -972,8 +994,7 @@ def conto_economico_consolidato(request):
             g['prodotti'].sort(key=lambda x: x['nome'].lower())
         prod_catlist = [g for g in sorted(prod_catgroups.values(), key=lambda g: (g['ord'], g['nome'].lower())) if g['totale']]
 
-        # Costi: righe conto raggruppate per macro-categoria costo (subtotale per colonna)
-        spesa_cat = _spesa_categoria_of()
+        # Costi: righe conto raggruppate per macro-categoria costo, poi separate diretti/indiretti
         catc = _categorie_costo()
         ordine_cc = {c.codice: i for i, c in enumerate(catc)}
         map_catc = _mappa_cat_costo()
@@ -984,7 +1005,7 @@ def conto_economico_consolidato(request):
                 cc = ''
             g = cost_catgroups.setdefault(cc, {
                 'nome': (map_catc.get(cc) if cc else 'Senza macro-categoria') or 'Senza macro-categoria',
-                'ord': ordine_cc.get(cc, 9999), 'costi': [],
+                'ord': ordine_cc.get(cc, 9999), 'tipo': tipo_macro.get(cc, 'indiretto'), 'costi': [],
                 'celle': [Decimal('0')] * len(cols), 'totale': Decimal('0')})
             pcelle = [row['valori'].get(c['db'], Decimal('0')) for c in cols]
             g['costi'].append({'nome': row['nome'], 'celle': pcelle, 'totale': row['totale']})
@@ -992,14 +1013,24 @@ def conto_economico_consolidato(request):
             g['totale'] += row['totale']
         for g in cost_catgroups.values():
             g['costi'].sort(key=lambda x: x['nome'].lower())
-        cost_catlist = [g for g in sorted(cost_catgroups.values(), key=lambda g: (g['ord'], g['nome'].lower())) if g['totale']]
+        _ordered = [g for g in sorted(cost_catgroups.values(), key=lambda g: (g['ord'], g['nome'].lower())) if g['totale']]
+        cost_dir_list = [g for g in _ordered if g['tipo'] == 'diretto']
+        cost_ind_list = [g for g in _ordered if g['tipo'] != 'diretto']
 
-        utile_col = {c['db']: tot_ric[c['db']] - tot_cos[c['db']] for c in cols}
+        # Margine di contribuzione = Ricavi - Costi diretti ; Risultato = Margine - Costi indiretti
+        margine_col = {c['db']: tot_ric[c['db']] - cos_dir[c['db']] for c in cols}
+        utile_col = {c['db']: margine_col[c['db']] - cos_ind[c['db']] for c in cols}
         netto_col = {c['db']: utile_col[c['db']] - imposte_col[c['db']] for c in cols}
         g_ric = sum(tot_ric.values(), Decimal('0'))
         g_cos = sum(tot_cos.values(), Decimal('0'))
+        g_dir = sum(cos_dir.values(), Decimal('0'))
+        g_ind = sum(cos_ind.values(), Decimal('0'))
         g_man = sum(manuali.values(), Decimal('0'))
         g_imposte = sum(imposte_col.values(), Decimal('0'))
+        g_margine = g_ric - g_dir
+
+        def perc(margine, ric):
+            return (margine / ric * Decimal('100')).quantize(Decimal('0.1')) if ric else Decimal('0')
 
         if len(mesi) == 12:
             periodo = 'Anno intero'
@@ -1011,10 +1042,15 @@ def conto_economico_consolidato(request):
         dati = {
             'anno': anno, 'periodo': periodo,
             'cols': cols,
-            'prod_catlist': prod_catlist, 'cost_catlist': cost_catlist,
+            'prod_catlist': prod_catlist,
+            'cost_dir_list': cost_dir_list, 'cost_ind_list': cost_ind_list,
             'manuali_celle': celle(manuali), 'g_man': g_man, 'ha_manuali': g_man != 0,
             'totA_celle': celle(tot_ric), 'g_ric': g_ric,
-            'totB_celle': celle(tot_cos), 'g_cos': g_cos,
+            'costdir_celle': celle(cos_dir), 'g_dir': g_dir,
+            'margine_celle': celle(margine_col), 'g_margine': g_margine,
+            'margine_perc_celle': [perc(margine_col[c['db']], tot_ric[c['db']]) for c in cols],
+            'g_margine_perc': perc(g_margine, g_ric),
+            'costind_celle': celle(cos_ind), 'g_ind': g_ind,
             'diff_celle': celle(utile_col), 'g_utile': g_ric - g_cos,
             'imponibile_celle': celle(imponibile_col), 'g_imponibile': sum(imponibile_col.values(), Decimal('0')),
             'imposte_celle': celle(imposte_col), 'g_imposte': g_imposte,

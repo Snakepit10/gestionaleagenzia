@@ -363,8 +363,12 @@ class ProdottoRicavoForm(forms.ModelForm):
 class CategoriaCostoForm(forms.ModelForm):
     class Meta:
         model = CategoriaCosto
-        fields = ['nome', 'codice', 'ordine', 'attivo']
-        help_texts = {'codice': 'Lascia vuoto per generarlo automaticamente dal nome.'}
+        fields = ['nome', 'codice', 'tipo', 'ordine', 'attivo']
+        help_texts = {
+            'codice': 'Lascia vuoto per generarlo automaticamente dal nome.',
+            'tipo': 'Diretto = costo variabile legato ai ricavi (margine di contribuzione); '
+                    'Indiretto = costo fisso/di struttura.',
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
