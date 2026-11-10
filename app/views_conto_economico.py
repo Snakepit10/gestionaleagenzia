@@ -153,10 +153,20 @@ def _tipo_macro_costo():
 
 
 def _spesa_tipo_of():
-    """Mappa codice conto-spesa -> 'diretto' | 'indiretto' (via macro-categoria; default indiretto)."""
+    """Mappa codice conto-spesa -> 'diretto' | 'comune'.
+
+    Override esplicito sul conto di costo (campo tipo_costo); in mancanza eredita dalla
+    macro-categoria ('diretto' -> diretto, altrimenti comune). Default: comune.
+    """
     tipo_macro = _tipo_macro_costo()
-    return {c.codice: tipo_macro.get(c.categoria_costo_codice or '', 'indiretto')
-            for c in CategoriaSpesa.objects.using('default')}
+    res = {}
+    for c in CategoriaSpesa.objects.using('default'):
+        ov = (getattr(c, 'tipo_costo', '') or '').strip()
+        if ov in ('diretto', 'comune'):
+            res[c.codice] = ov
+        else:
+            res[c.codice] = 'diretto' if tipo_macro.get(c.categoria_costo_codice or '', 'indiretto') == 'diretto' else 'comune'
+    return res
 
 
 def _spesa_categoria_of():
@@ -916,6 +926,7 @@ def conto_economico_consolidato(request):
         cat_deducibili = {c.codice for c in CategoriaSpesa.objects.using('default').filter(deducibile=True)}
         spesa_cat = _spesa_categoria_of()     # conto-spesa -> macro-categoria
         tipo_macro = _tipo_macro_costo()      # macro-categoria -> diretto/indiretto
+        tipo_spesa = _spesa_tipo_of()         # conto-spesa -> diretto/comune (override + eredità)
 
         cols = []                 # [{db, nome}] una per agenzia selezionata
         prod_rows, cat_rows = {}, {}
@@ -952,8 +963,8 @@ def conto_economico_consolidato(request):
                     row['totale'] += v.importo
                     if v.categoria_codice in cat_deducibili:
                         ded += v.importo
-                    # Diretto/indiretto (via macro-categoria del conto-spesa; default indiretto)
-                    if tipo_macro.get(spesa_cat.get(v.categoria_codice, ''), 'indiretto') == 'diretto':
+                    # Diretto (imputato al PV) vs comune (struttura), a livello di conto di costo
+                    if tipo_spesa.get(v.categoria_codice, 'comune') == 'diretto':
                         cd += v.importo
                     else:
                         ci += v.importo
@@ -994,40 +1005,52 @@ def conto_economico_consolidato(request):
             g['prodotti'].sort(key=lambda x: x['nome'].lower())
         prod_catlist = [g for g in sorted(prod_catgroups.values(), key=lambda g: (g['ord'], g['nome'].lower())) if g['totale']]
 
-        # Costi: righe conto raggruppate per macro-categoria costo, poi separate diretti/indiretti
+        # Costi raggruppati per macro-categoria costo. La classificazione diretto/comune è
+        # a livello di CONTO di costo (override + eredità), quindi uno stesso macro-gruppo può
+        # avere conti diretti e conti comuni: si separano i conti PRIMA, poi si raggruppa.
         catc = _categorie_costo()
         ordine_cc = {c.codice: i for i, c in enumerate(catc)}
         map_catc = _mappa_cat_costo()
-        cost_catgroups = {}
-        for code, row in cat_rows.items():
-            cc = spesa_cat.get(code, '') or ''
-            if cc not in ordine_cc:
-                cc = ''
-            g = cost_catgroups.setdefault(cc, {
-                'nome': (map_catc.get(cc) if cc else 'Senza macro-categoria') or 'Senza macro-categoria',
-                'ord': ordine_cc.get(cc, 9999), 'tipo': tipo_macro.get(cc, 'indiretto'), 'costi': [],
-                'celle': [Decimal('0')] * len(cols), 'totale': Decimal('0')})
-            pcelle = [row['valori'].get(c['db'], Decimal('0')) for c in cols]
-            g['costi'].append({'nome': row['nome'], 'celle': pcelle, 'totale': row['totale']})
-            g['celle'] = [a + b for a, b in zip(g['celle'], pcelle)]
-            g['totale'] += row['totale']
-        for g in cost_catgroups.values():
-            g['costi'].sort(key=lambda x: x['nome'].lower())
-        _ordered = [g for g in sorted(cost_catgroups.values(), key=lambda g: (g['ord'], g['nome'].lower())) if g['totale']]
-        cost_dir_list = [g for g in _ordered if g['tipo'] == 'diretto']
-        cost_ind_list = [g for g in _ordered if g['tipo'] != 'diretto']
 
-        # Margine di contribuzione = Ricavi - Costi diretti ; Risultato = Margine - Costi indiretti
+        def _gruppi_costo(codici, con_celle):
+            """Raggruppa i conti indicati per macro-categoria. con_celle=False -> solo totali
+            (celle per PV azzerate: i costi comuni non si imputano al singolo punto vendita)."""
+            groups = {}
+            for code in codici:
+                row = cat_rows[code]
+                cc = spesa_cat.get(code, '') or ''
+                if cc not in ordine_cc:
+                    cc = ''
+                g = groups.setdefault(cc, {
+                    'nome': (map_catc.get(cc) if cc else 'Senza macro-categoria') or 'Senza macro-categoria',
+                    'ord': ordine_cc.get(cc, 9999), 'costi': [],
+                    'celle': [Decimal('0')] * len(cols), 'totale': Decimal('0')})
+                pcelle = [row['valori'].get(c['db'], Decimal('0')) for c in cols] if con_celle else [Decimal('0')] * len(cols)
+                g['costi'].append({'nome': row['nome'], 'celle': pcelle, 'totale': row['totale']})
+                g['celle'] = [a + b for a, b in zip(g['celle'], pcelle)]
+                g['totale'] += row['totale']
+            for g in groups.values():
+                g['costi'].sort(key=lambda x: x['nome'].lower())
+            return [g for g in sorted(groups.values(), key=lambda g: (g['ord'], g['nome'].lower())) if g['totale']]
+
+        codici_dir = [code for code in cat_rows if tipo_spesa.get(code, 'comune') == 'diretto']
+        codici_com = [code for code in cat_rows if tipo_spesa.get(code, 'comune') != 'diretto']
+        cost_dir_list = _gruppi_costo(codici_dir, con_celle=True)   # imputati ai PV
+        cost_com_list = _gruppi_costo(codici_com, con_celle=False)  # struttura, solo totale
+
+        # Margine di contribuzione per PV = Ricavi - Costi diretti del PV.
+        # I costi comuni NON si imputano ai PV: si sottraggono una sola volta dal totale.
         margine_col = {c['db']: tot_ric[c['db']] - cos_dir[c['db']] for c in cols}
-        utile_col = {c['db']: margine_col[c['db']] - cos_ind[c['db']] for c in cols}
-        netto_col = {c['db']: utile_col[c['db']] - imposte_col[c['db']] for c in cols}
         g_ric = sum(tot_ric.values(), Decimal('0'))
         g_cos = sum(tot_cos.values(), Decimal('0'))
         g_dir = sum(cos_dir.values(), Decimal('0'))
-        g_ind = sum(cos_ind.values(), Decimal('0'))
+        g_com = sum(cos_ind.values(), Decimal('0'))   # costi comuni (struttura)
         g_man = sum(manuali.values(), Decimal('0'))
-        g_imposte = sum(imposte_col.values(), Decimal('0'))
         g_margine = g_ric - g_dir
+        g_risultato = g_margine - g_com               # = g_ric - g_cos
+        g_imponibile = sum(imponibile_col.values(), Decimal('0'))   # = ricavi - costi deducibili
+        g_imposte = max(Decimal('0'), (g_imponibile * Decimal('0.24')).quantize(Decimal('0.01')))
+        g_netto = g_risultato - g_imposte
 
         def perc(margine, ric):
             return (margine / ric * Decimal('100')).quantize(Decimal('0.1')) if ric else Decimal('0')
@@ -1043,18 +1066,18 @@ def conto_economico_consolidato(request):
             'anno': anno, 'periodo': periodo,
             'cols': cols,
             'prod_catlist': prod_catlist,
-            'cost_dir_list': cost_dir_list, 'cost_ind_list': cost_ind_list,
+            'cost_dir_list': cost_dir_list, 'cost_com_list': cost_com_list,
             'manuali_celle': celle(manuali), 'g_man': g_man, 'ha_manuali': g_man != 0,
             'totA_celle': celle(tot_ric), 'g_ric': g_ric,
             'costdir_celle': celle(cos_dir), 'g_dir': g_dir,
             'margine_celle': celle(margine_col), 'g_margine': g_margine,
             'margine_perc_celle': [perc(margine_col[c['db']], tot_ric[c['db']]) for c in cols],
             'g_margine_perc': perc(g_margine, g_ric),
-            'costind_celle': celle(cos_ind), 'g_ind': g_ind,
-            'diff_celle': celle(utile_col), 'g_utile': g_ric - g_cos,
-            'imponibile_celle': celle(imponibile_col), 'g_imponibile': sum(imponibile_col.values(), Decimal('0')),
-            'imposte_celle': celle(imposte_col), 'g_imposte': g_imposte,
-            'netto_celle': celle(netto_col), 'g_netto': (g_ric - g_cos) - g_imposte,
+            'g_com': g_com,
+            'g_risultato': g_risultato,
+            'g_imponibile': g_imponibile,
+            'g_imposte': g_imposte,
+            'g_netto': g_netto,
             'n_cols': len(cols) + 2,
         }
 
@@ -1068,8 +1091,12 @@ def conto_economico_consolidato(request):
 @login_required
 @user_passes_test(is_superadmin)
 def categorie_spesa(request):
-    categorie = CategoriaSpesa.objects.using('default').all()
-    return render(request, 'app/lista_categorie_spesa.html', {'categorie': categorie})
+    categorie = list(CategoriaSpesa.objects.using('default').all())
+    tipo_eff = _spesa_tipo_of()   # codice -> diretto/comune (override + eredità)
+    righe = [{'c': c, 'tipo': tipo_eff.get(c.codice, 'comune'),
+              'ereditato': not ((getattr(c, 'tipo_costo', '') or '').strip() in ('diretto', 'comune'))}
+             for c in categorie]
+    return render(request, 'app/lista_categorie_spesa.html', {'righe': righe})
 
 
 @login_required

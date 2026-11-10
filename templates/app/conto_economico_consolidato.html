@@ -28,6 +28,9 @@
     .ce-mtx .ce-exp.open .ce-caret { transform: rotate(90deg); }
     .ce-mtx .ce-sub td { background: rgba(255,255,255,.02); }
     .ce-mtx .ce-sub td:first-child { padding-left: 2.2rem; color: #aeb6bd; font-weight: 400; }
+    .ce-mtx td.na { color: #5b636b; text-align: center; }
+    .ce-mtx .ce-comuni-h td { background: rgba(255,255,255,.07); font-weight: 700; letter-spacing: .02em; }
+    .ce-mtx .ce-comuni-h .hint { font-weight: 400; font-style: italic; color: #9aa4ad; font-size: .85em; }
 </style>
 
 <div class="row mb-4 align-items-center">
@@ -128,47 +131,47 @@
                         {% for v in dati.margine_perc_celle %}<td class="n">{{ v|floatformat:1 }}%</td>{% endfor %}
                         <td class="n col-tot">{{ dati.g_margine_perc|floatformat:1 }}%</td></tr>
 
-                    <!-- C) COSTI INDIRETTI (struttura) -->
-                    <tr class="ce-sez"><td colspan="{{ dati.n_cols }}">C) COSTI INDIRETTI (struttura)</td></tr>
-                    {% for g in dati.cost_ind_list %}
+                    <!-- C) COSTI COMUNI (struttura) — non ripartiti per PV: solo totale -->
+                    <tr class="ce-comuni-h"><td colspan="{{ dati.n_cols }}">C) COSTI COMUNI (struttura) <span class="hint">· non imputati ai singoli punti vendita</span></td></tr>
+                    {% for g in dati.cost_com_list %}
                     <tr class="ce-voce ce-exp" data-target="ci{{ forloop.counter }}" role="button">
                         <td><i class="fas fa-chevron-right ce-caret me-1"></i>{{ g.nome }} <span class="text-muted small">· {{ g.costi|length }}</span></td>
-                        {% for v in g.celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        {% for c in dati.cols %}<td class="n na">–</td>{% endfor %}
                         <td class="n col-tot">{{ g.totale|floatformat:2 }}</td>
                     </tr>
                     {% for cc in g.costi %}
                     <tr class="ce-sub ci{{ forloop.parentloop.counter }} d-none">
                         <td>{{ cc.nome }}</td>
-                        {% for v in cc.celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        {% for c in dati.cols %}<td class="n na">–</td>{% endfor %}
                         <td class="n col-tot">{{ cc.totale|floatformat:2 }}</td>
                     </tr>
                     {% endfor %}
                     {% endfor %}
-                    {% if not dati.cost_ind_list %}
-                    <tr class="ce-voce muted"><td>Nessun costo indiretto</td>{% for c in dati.cols %}<td class="n">0,00</td>{% endfor %}<td class="n col-tot">0,00</td></tr>
+                    {% if not dati.cost_com_list %}
+                    <tr class="ce-voce muted"><td>Nessun costo comune</td>{% for c in dati.cols %}<td class="n na">–</td>{% endfor %}<td class="n col-tot">0,00</td></tr>
                     {% endif %}
-                    <tr class="ce-tot"><td>Totale costi indiretti (C)</td>
-                        {% for v in dati.costind_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
-                        <td class="n col-tot">{{ dati.g_ind|floatformat:2 }}</td></tr>
+                    <tr class="ce-tot"><td>Totale costi comuni (C)</td>
+                        {% for c in dati.cols %}<td class="n na">–</td>{% endfor %}
+                        <td class="n col-tot">{{ dati.g_com|floatformat:2 }}</td></tr>
 
-                    <!-- RISULTATO OPERATIVO + IMPOSTE -->
-                    <tr class="ce-diff"><td>RISULTATO OPERATIVO (Margine − C)</td>
-                        {% for v in dati.diff_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
-                        <td class="n col-tot">{{ dati.g_utile|floatformat:2 }}</td></tr>
+                    <!-- RISULTATO OPERATIVO + IMPOSTE (consolidato) -->
+                    <tr class="ce-diff"><td>RISULTATO OPERATIVO (Margine totale − C)</td>
+                        {% for c in dati.cols %}<td class="n na">–</td>{% endfor %}
+                        <td class="n col-tot">{{ dati.g_risultato|floatformat:2 }}</td></tr>
                     <tr class="ce-voce"><td>Reddito imponibile stimato</td>
-                        {% for v in dati.imponibile_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        {% for c in dati.cols %}<td class="n na">–</td>{% endfor %}
                         <td class="n col-tot">{{ dati.g_imponibile|floatformat:2 }}</td></tr>
                     <tr class="ce-voce"><td>Imposte (stima 24%)</td>
-                        {% for v in dati.imposte_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        {% for c in dati.cols %}<td class="n na">–</td>{% endfor %}
                         <td class="n col-tot">{{ dati.g_imposte|floatformat:2 }}</td></tr>
                     <tr class="ce-ris"><td>UTILE (O PERDITA) NETTO</td>
-                        {% for v in dati.netto_celle %}<td class="n">{{ v|floatformat:2 }}</td>{% endfor %}
+                        {% for c in dati.cols %}<td class="n na">–</td>{% endfor %}
                         <td class="n col-tot">{{ dati.g_netto|floatformat:2 }}</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
-    <div class="card-footer text-muted small">Importi in €. Colonna "Totale" = somma delle agenzie selezionate.</div>
+    <div class="card-footer text-muted small">Importi in €. Ogni punto vendita arriva al <strong>margine di contribuzione</strong> (ricavi − costi diretti suoi). I <strong>costi comuni</strong> (struttura: amministrazione, ecc.) non sono imputati ai singoli punti vendita e si sottraggono una sola volta dal totale per arrivare al risultato consolidato.</div>
 </div>
 {% elif form.is_bound %}
 <div class="alert alert-warning">Correggi i campi del filtro per generare il consolidato.</div>

@@ -18,22 +18,26 @@
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0 align-middle">
-                <thead><tr><th>Nome</th><th>Codice</th><th class="text-center">Ordine</th><th class="text-center">Deducibile</th><th class="text-center">Attivo</th><th class="text-end">Azioni</th></tr></thead>
+                <thead><tr><th>Nome</th><th>Codice</th><th class="text-center">Tipo</th><th class="text-center">Ordine</th><th class="text-center">Deducibile</th><th class="text-center">Attivo</th><th class="text-end">Azioni</th></tr></thead>
                 <tbody>
-                    {% for c in categorie %}
+                    {% for r in righe %}
                     <tr>
-                        <td>{{ c.nome }}</td>
-                        <td><code>{{ c.codice }}</code></td>
-                        <td class="text-center">{{ c.ordine }}</td>
-                        <td class="text-center">{% if c.deducibile %}<span class="badge bg-success">Sì</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
-                        <td class="text-center">{% if c.attivo %}<span class="badge bg-success">Sì</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                        <td>{{ r.c.nome }}</td>
+                        <td><code>{{ r.c.codice }}</code></td>
+                        <td class="text-center">
+                            {% if r.tipo == 'diretto' %}<span class="badge bg-info text-dark">Diretto</span>{% else %}<span class="badge bg-secondary">Comune</span>{% endif %}
+                            {% if r.ereditato %}<span class="text-muted small d-block">da macro</span>{% endif %}
+                        </td>
+                        <td class="text-center">{{ r.c.ordine }}</td>
+                        <td class="text-center">{% if r.c.deducibile %}<span class="badge bg-success">Sì</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                        <td class="text-center">{% if r.c.attivo %}<span class="badge bg-success">Sì</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
                         <td class="text-end">
-                            <a href="{% url 'modifica_categoria_spesa' c.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
-                            <a href="{% url 'elimina_categoria_spesa' c.pk %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                            <a href="{% url 'modifica_categoria_spesa' r.c.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+                            <a href="{% url 'elimina_categoria_spesa' r.c.pk %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="6" class="text-center text-muted py-4">Nessuna categoria. Creane una con "Nuova categoria".</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted py-4">Nessuna categoria. Creane una con "Nuova categoria".</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

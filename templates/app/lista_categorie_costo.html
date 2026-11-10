@@ -24,7 +24,7 @@
                     <tr>
                         <td>{{ r.cat.nome }}</td>
                         <td><code>{{ r.cat.codice }}</code></td>
-                        <td class="text-center">{% if r.cat.tipo == 'diretto' %}<span class="badge bg-info text-dark">Diretto</span>{% else %}<span class="badge bg-secondary">Indiretto</span>{% endif %}</td>
+                        <td class="text-center">{% if r.cat.tipo == 'diretto' %}<span class="badge bg-info text-dark">Diretto</span>{% else %}<span class="badge bg-secondary">Comune</span>{% endif %}</td>
                         <td class="text-center">{{ r.cat.ordine }}</td>
                         <td class="text-center">{{ r.n_conti }}</td>
                         <td class="text-center">{% if r.cat.attivo %}<span class="badge bg-success">Sì</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>

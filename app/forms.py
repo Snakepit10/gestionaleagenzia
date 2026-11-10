@@ -385,12 +385,15 @@ class CategoriaCostoForm(forms.ModelForm):
 class CategoriaSpesaForm(forms.ModelForm):
     class Meta:
         model = CategoriaSpesa
-        fields = ['nome', 'codice', 'categoria_costo_codice', 'ordine', 'deducibile', 'attivo']
+        fields = ['nome', 'codice', 'categoria_costo_codice', 'tipo_costo', 'ordine', 'deducibile', 'attivo']
         help_texts = {
             'codice': 'Lascia vuoto per generarlo automaticamente dal nome.',
             'deducibile': 'Se attivo, concorre alla stima delle imposte.',
+            'tipo_costo': 'Diretto = imputabile al punto vendita (margine di contribuzione). '
+                          'Comune = struttura condivisa. Vuoto = come la macro-categoria.',
         }
-        labels = {'categoria_costo_codice': 'Macro-categoria costo'}
+        labels = {'categoria_costo_codice': 'Macro-categoria costo',
+                  'tipo_costo': 'Tipo (diretto / comune)'}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

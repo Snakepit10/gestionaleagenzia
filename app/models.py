@@ -1723,12 +1723,14 @@ class CategoriaCosto(models.Model):
     """Macro-categoria per organizzare i conti di costo (es. sezioni del piano dei conti:
     personale, servizi, godimento beni di terzi, oneri diversi...). Tassonomia GLOBALE su
     database 'default'."""
-    TIPO_CHOICES = [('diretto', 'Diretto (variabile)'), ('indiretto', 'Indiretto (struttura)')]
+    TIPO_CHOICES = [('diretto', 'Diretto (al punto vendita)'), ('indiretto', 'Comune (struttura)')]
     codice = models.SlugField(max_length=40, unique=True)
     nome = models.CharField(max_length=100)
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='indiretto',
-                            help_text="Diretto = costo variabile legato ai ricavi (entra nel margine di "
-                                      "contribuzione). Indiretto = costo fisso/di struttura.")
+                            help_text="Classificazione di default dei conti di costo del gruppo. "
+                                      "Diretto = imputabile al singolo punto vendita (entra nel margine di "
+                                      "contribuzione). Comune = costo di struttura condiviso. "
+                                      "Si può forzare sul singolo conto di costo.")
     ordine = models.PositiveIntegerField(default=0)
     attivo = models.BooleanField(default=True)
 
@@ -1749,6 +1751,16 @@ class CategoriaSpesa(models.Model):
     nome = models.CharField(max_length=100)
     categoria_costo_codice = models.SlugField(max_length=40, blank=True, null=True,
                                               help_text="Macro-categoria costo (raggruppamento)")
+    TIPO_COSTO_CHOICES = [
+        ('', 'Eredita dalla macro-categoria'),
+        ('diretto', 'Diretto (imputabile al punto vendita)'),
+        ('comune', 'Comune (struttura, condiviso)'),
+    ]
+    tipo_costo = models.CharField(
+        max_length=10, choices=TIPO_COSTO_CHOICES, blank=True, default='',
+        help_text="Diretto = costo del singolo punto vendita (entra nel margine di contribuzione). "
+                  "Comune = costo di struttura condiviso (amministrazione, ecc.). "
+                  "Vuoto = eredita la classificazione dalla macro-categoria.")
     ordine = models.PositiveIntegerField(default=0)
     attivo = models.BooleanField(default=True)
     deducibile = models.BooleanField(default=True, help_text="Concorre alla stima delle imposte")
