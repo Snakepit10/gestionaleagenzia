@@ -1884,6 +1884,10 @@ class MovimentoBancario(MultiDatabaseMixin, models.Model):
     importo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     hash_riga = models.CharField(max_length=40, db_index=True)
     categoria_codice = models.SlugField(max_length=40, blank=True, null=True)
+    # Override diretto/comune propagato a tutte le porzioni ripartite (vedi VoceCosto).
+    tipo_costo_override = models.CharField(
+        max_length=10, choices=VoceCosto.TIPO_OVERRIDE_CHOICES, blank=True, default='',
+        help_text="Forza diretto/comune sull'intera voce ripartita. Vuoto = segue il conto di costo.")
     # Per le righe positive (entrate) classificate come ricavo: codice ProdottoRicavo.
     prodotto_codice = models.SlugField(max_length=40, blank=True, null=True)
     # Ripartizione della riga tra le agenzie: [{"db": "goldbet_db", "perc": 50}, ...].

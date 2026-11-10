@@ -82,19 +82,23 @@
                         <tbody>
                             {% for r in voci %}
                             <tr {% if r.nonclass %}class="table-warning"{% endif %}>
-                                <td class="small text-nowrap">{{ r.v.data|date:"d/m/Y"|default:"—" }}</td>
-                                <td class="small">{{ r.v.descrizione|default:"(senza descrizione)" }}</td>
-                                <td class="n">{{ r.v.importo|floatformat:2 }}</td>
+                                {% if r.is_grp %}<input type="hidden" name="grp" value="{{ r.gid }}">{% endif %}
+                                <td class="small text-nowrap">{{ r.data|date:"d/m/Y"|default:"—" }}</td>
+                                <td class="small">
+                                    {{ r.descrizione|default:"(senza descrizione)" }}
+                                    {% if r.ripartito %}<span class="badge bg-warning text-dark ms-1" title="Importo intero; la modifica vale per tutte le agenzie"><i class="fas fa-code-branch me-1"></i>ripartito: {{ r.split_label }}</span>{% endif %}
+                                </td>
+                                <td class="n">{{ r.importo|floatformat:2 }}</td>
                                 <td>
-                                    <select name="cat_{{ r.v.pk }}" class="form-select form-select-sm rc-sel">
+                                    <select name="{{ r.cat_field }}" class="form-select form-select-sm rc-sel">
                                         <option value="">— Da classificare —</option>
                                         {% for c in categorie %}
-                                        <option value="{{ c.codice }}" {% if c.codice == r.v.categoria_codice %}selected{% endif %}>{{ c.nome }}</option>
+                                        <option value="{{ c.codice }}" {% if c.codice == r.cat_codice %}selected{% endif %}>{{ c.nome }}</option>
                                         {% endfor %}
                                     </select>
                                 </td>
                                 <td>
-                                    <select name="ovr_{{ r.v.pk }}" class="form-select form-select-sm rc-ovr">
+                                    <select name="{{ r.ovr_field }}" class="form-select form-select-sm rc-ovr">
                                         <option value="" {% if r.override == '' %}selected{% endif %}>Come il conto</option>
                                         <option value="diretto" {% if r.override == 'diretto' %}selected{% endif %}>Diretto (punto vendita)</option>
                                         <option value="comune" {% if r.override == 'comune' %}selected{% endif %}>Comune (struttura)</option>
@@ -117,7 +121,7 @@
                 </div>
             </div>
             <div class="card-footer d-flex justify-content-between align-items-center">
-                <span class="text-muted small">"Effettivo" = tipo usato nel consolidato: l'override di riga vince sul conto di costo. Le righe gialle sono ancora da classificare.</span>
+                <span class="text-muted small">"Effettivo" = tipo usato nel consolidato: l'override di riga vince sul conto di costo. Le righe gialle sono ancora da classificare. Le voci <strong>ripartite</strong> mostrano l'importo intero: la modifica vale per tutte le agenzie su cui sono divise.</span>
                 <button type="submit" class="btn btn-success"><i class="fas fa-save me-1"></i>Salva modifiche</button>
             </div>
         </div>

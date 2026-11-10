@@ -294,6 +294,7 @@ def _rigenera_voci_da_riga(src_db, mb, anno, mese, allocazioni, user):
         conto_m = _get_conto(dbn, anno, mese, None, crea=True)
         if is_costo:
             v = VoceCosto(conto_economico=conto_m, categoria_codice=codice,
+                          tipo_costo_override=getattr(mb, 'tipo_costo_override', '') or '',
                           descrizione=mb.descrizione[:200], importo=importo, data=mb.data,
                           fonte='csv', origine_db=src_db, origine_mb_id=mb.pk)
         else:
@@ -1120,30 +1121,83 @@ def riclassifica_costi(request):
     mese = _int(request.POST.get('mese'), request.GET.get('mese'))
     sel_ok = bool(dbn and anno and 1 <= mese <= 12)
 
+    # Nome agenzia per ogni database (per le etichette "ripartito su ...")
+    db_nome = {a['db']: a['nome'] for a in agenzie}
+    for k, v in AGENZIA_DATABASE_MAP.items():
+        db_nome.setdefault(v, k.title())
+    tutti_db_agenzia = set(AGENZIA_DATABASE_MAP.values())
+
     if request.method == 'POST' and request.POST.get('azione') == 'salva' and sel_ok:
         from django.urls import reverse
         conto = ContoEconomico.objects.using(dbn).filter(anno=anno, mese=mese).first()
         cat_valide = {c.codice for c in _categorie_attive()}
         ovr_valide = {'', 'diretto', 'comune'}
         n = 0
+
+        def _nuovo(prefix, key, valide):
+            raw = request.POST.get(f'{prefix}_{key}', None)
+            if raw is None:
+                return None
+            return raw if raw in valide else ''
+
+        # Voci singole (manuali / conto spese / csv senza origine): aggiorno la sola voce.
         if conto:
-            for v in VoceCosto.objects.using(dbn).filter(conto_economico=conto):
+            for v in VoceCosto.objects.using(dbn).filter(conto_economico=conto, origine_mb_id__isnull=True):
                 campi = []
-                nuovo_cat = request.POST.get(f'cat_{v.pk}', None)
-                if nuovo_cat is not None:
-                    nc = nuovo_cat if nuovo_cat in cat_valide else ''
-                    if nc != (v.categoria_codice or ''):
-                        v.categoria_codice = nc or None
-                        campi.append('categoria_codice')
-                nuovo_ovr = request.POST.get(f'ovr_{v.pk}', None)
-                if nuovo_ovr is not None:
-                    no = nuovo_ovr if nuovo_ovr in ovr_valide else ''
-                    if no != (v.tipo_costo_override or ''):
-                        v.tipo_costo_override = no
-                        campi.append('tipo_costo_override')
+                nc = _nuovo('cat', v.pk, cat_valide)
+                if nc is not None and nc != (v.categoria_codice or ''):
+                    v.categoria_codice = nc or None
+                    campi.append('categoria_codice')
+                no = _nuovo('ovr', v.pk, ovr_valide)
+                if no is not None and no != (v.tipo_costo_override or ''):
+                    v.tipo_costo_override = no
+                    campi.append('tipo_costo_override')
                 if campi:
                     v.save(using=dbn, update_fields=campi)
                     n += 1
+
+        # Voci ripartite (da estratto conto): la modifica vale per l'INTERA voce, quindi
+        # aggiorno la riga bancaria d'origine e tutte le porzioni in ogni DB agenzia.
+        for gid in request.POST.getlist('grp'):
+            try:
+                omb_s, od = gid.split('|', 1)
+                omb = int(omb_s)
+            except (ValueError, TypeError):
+                continue
+            if od not in tutti_db_agenzia:
+                continue
+            nc = _nuovo('catg', gid, cat_valide)
+            no = _nuovo('ovrg', gid, ovr_valide)
+            if nc is None and no is None:
+                continue
+            cambiato = False
+            mb = MovimentoBancario.objects.using(od).filter(pk=omb).first()
+            if mb:
+                mcampi = []
+                if nc is not None and nc != (mb.categoria_codice or ''):
+                    mb.categoria_codice = nc or None
+                    mcampi.append('categoria_codice')
+                if no is not None and no != (mb.tipo_costo_override or ''):
+                    mb.tipo_costo_override = no
+                    mcampi.append('tipo_costo_override')
+                if mcampi:
+                    mb.save(using=od, update_fields=mcampi)
+                    cambiato = True
+            for sdb in tutti_db_agenzia:
+                for sib in VoceCosto.objects.using(sdb).filter(origine_db=od, origine_mb_id=omb):
+                    scampi = []
+                    if nc is not None and nc != (sib.categoria_codice or ''):
+                        sib.categoria_codice = nc or None
+                        scampi.append('categoria_codice')
+                    if no is not None and no != (sib.tipo_costo_override or ''):
+                        sib.tipo_costo_override = no
+                        scampi.append('tipo_costo_override')
+                    if scampi:
+                        sib.save(using=sdb, update_fields=scampi)
+                        cambiato = True
+            if cambiato:
+                n += 1
+
         messages.success(request, f'{n} voci aggiornate.')
         return redirect(f"{reverse('riclassifica_costi')}?db={dbn}&anno={anno}&mese={mese}")
 
@@ -1155,22 +1209,62 @@ def riclassifica_costi(request):
         tipo_spesa = _spesa_tipo_of()
         map_cat = _mappa_categorie()
         if conto:
-            qs = VoceCosto.objects.using(dbn).filter(conto_economico=conto)
-            for v in sorted(qs, key=lambda x: ((x.categoria_codice or '~'), x.data or date.min, x.id)):
-                ov = (v.tipo_costo_override or '').strip()
-                eff = ov if ov in ('diretto', 'comune') else tipo_spesa.get(v.categoria_codice or '', 'comune')
+            def _eff(cat, ov):
+                return ov if ov in ('diretto', 'comune') else tipo_spesa.get(cat or '', 'comune')
+
+            gruppi = {}   # (origine_db, origine_mb_id) -> item già costruito
+            for v in VoceCosto.objects.using(dbn).filter(conto_economico=conto):
+                if v.origine_mb_id is None:
+                    # Voce singola: chiave sul pk della voce
+                    ov = (v.tipo_costo_override or '').strip()
+                    ov = ov if ov in ('diretto', 'comune') else ''
+                    voci.append({
+                        'is_grp': False, 'gid': '',
+                        'cat_field': f'cat_{v.pk}', 'ovr_field': f'ovr_{v.pk}',
+                        'data': v.data, 'descrizione': v.descrizione,
+                        'importo': v.importo, 'cat_codice': v.categoria_codice or '',
+                        'override': ov, 'eff': _eff(v.categoria_codice, ov),
+                        'da_conto': ov == '', 'nonclass': not v.categoria_codice,
+                        'ripartito': False, 'split_label': '',
+                        '_sort': (v.categoria_codice or '~', v.data or date.min, v.id),
+                    })
+                    continue
+                # Voce ripartita: una sola riga per gruppo, con importo INTERO.
+                key = (v.origine_db, v.origine_mb_id)
+                if key in gruppi:
+                    continue
+                od, omb = v.origine_db, v.origine_mb_id
+                mb = MovimentoBancario.objects.using(od).filter(pk=omb).first() if od else None
+                cat_codice = (mb.categoria_codice if mb else v.categoria_codice) or ''
+                ov = ((mb.tipo_costo_override if mb else v.tipo_costo_override) or '').strip()
+                ov = ov if ov in ('diretto', 'comune') else ''
+                # Importo intero e agenzie su cui è ripartito
+                if mb:
+                    importo = abs(mb.importo)
+                    dbs = [a.get('db') for a in (mb.allocazioni or []) if a.get('db')]
+                else:
+                    importo = v.importo
+                    dbs = [dbn]
+                if not dbs:
+                    dbs = [dbn]
+                gid = f'{omb}|{od}'
                 voci.append({
-                    'v': v,
-                    'cat_nome': map_cat.get(v.categoria_codice or '', '') if v.categoria_codice else '',
-                    'override': ov if ov in ('diretto', 'comune') else '',
-                    'eff': eff,
-                    'da_conto': ov not in ('diretto', 'comune'),
-                    'nonclass': not v.categoria_codice,
+                    'is_grp': True, 'gid': gid,
+                    'cat_field': f'catg_{gid}', 'ovr_field': f'ovrg_{gid}',
+                    'data': (mb.data if mb else v.data), 'descrizione': v.descrizione,
+                    'importo': importo, 'cat_codice': cat_codice,
+                    'override': ov, 'eff': _eff(cat_codice, ov),
+                    'da_conto': ov == '', 'nonclass': not cat_codice,
+                    'ripartito': len(dbs) > 1,
+                    'split_label': ' + '.join(db_nome.get(d, d) for d in dbs),
+                    '_sort': (cat_codice or '~', (mb.data if mb else v.data) or date.min, omb),
                 })
+                gruppi[key] = True
+            voci.sort(key=lambda it: it['_sort'])
 
     context = {
         'is_super': is_super, 'agenzie': agenzie, 'db_sel': dbn,
-        'nome_agenzia': next((a['nome'] for a in agenzie if a['db'] == dbn), ''),
+        'nome_agenzia': db_nome.get(dbn, ''),
         'anno': anno or oggi.year, 'mese': mese or oggi.month,
         'mesi': MESI_CHOICES, 'anni': list(range(oggi.year, oggi.year - 6, -1)),
         'voci': voci, 'conto': conto, 'sel_ok': sel_ok,
