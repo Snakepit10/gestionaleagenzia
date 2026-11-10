@@ -929,11 +929,19 @@ def conto_economico_consolidato(request):
         tipo_spesa = _spesa_tipo_of()         # conto-spesa -> diretto/comune (override + eredità)
 
         cols = []                 # [{db, nome}] una per agenzia selezionata
-        prod_rows, cat_rows = {}, {}
+        prod_rows = {}
+        cat_rows_dir, cat_rows_com = {}, {}   # conto -> riga (porzione diretta / comune)
         manuali = {}              # db -> ricavi manuali
         tot_ric, tot_cos = {}, {}
-        cos_dir, cos_ind = {}, {}  # db -> costi diretti / indiretti
+        cos_dir, cos_ind = {}, {}  # db -> costi diretti / comuni
         imponibile_col, imposte_col = {}, {}
+
+        def _eff_tipo(v):
+            """Tipo effettivo della voce: override di riga, altrimenti dal conto di costo."""
+            ov = (getattr(v, 'tipo_costo_override', '') or '').strip()
+            if ov in ('diretto', 'comune'):
+                return ov
+            return tipo_spesa.get(v.categoria_codice, 'comune')
 
         for ag in agenzie_sel:
             dbn = AGENZIA_DATABASE_MAP.get(ag.nome.lower())
@@ -957,17 +965,20 @@ def conto_economico_consolidato(request):
                     if not v.categoria_codice:
                         continue
                     tc += v.importo
-                    row = cat_rows.setdefault(v.categoria_codice, {
+                    if v.categoria_codice in cat_deducibili:
+                        ded += v.importo
+                    # Diretto (imputato al PV) vs comune (struttura), a livello di VOCE
+                    # (override di riga, altrimenti dal conto di costo).
+                    if _eff_tipo(v) == 'diretto':
+                        cd += v.importo
+                        bucket = cat_rows_dir
+                    else:
+                        ci += v.importo
+                        bucket = cat_rows_com
+                    row = bucket.setdefault(v.categoria_codice, {
                         'nome': map_cat.get(v.categoria_codice, v.categoria_codice), 'valori': {}, 'totale': Decimal('0')})
                     row['valori'][dbn] = row['valori'].get(dbn, Decimal('0')) + v.importo
                     row['totale'] += v.importo
-                    if v.categoria_codice in cat_deducibili:
-                        ded += v.importo
-                    # Diretto (imputato al PV) vs comune (struttura), a livello di conto di costo
-                    if tipo_spesa.get(v.categoria_codice, 'comune') == 'diretto':
-                        cd += v.importo
-                    else:
-                        ci += v.importo
             manuali[dbn] = man
             tot_ric[dbn] = tr
             tot_cos[dbn] = tc
@@ -978,10 +989,6 @@ def conto_economico_consolidato(request):
 
         def celle(dcol):
             return [dcol.get(c['db'], Decimal('0')) for c in cols]
-
-        for row in list(cat_rows.values()):
-            row['celle'] = [row['valori'].get(c['db'], Decimal('0')) for c in cols]
-        cat_list = sorted(cat_rows.values(), key=lambda x: x['nome'].lower())
 
         # Ricavi: righe prodotto raggruppate per categoria prodotto (subtotale per colonna)
         prod_cat = _prod_categoria_of()
@@ -1006,18 +1013,17 @@ def conto_economico_consolidato(request):
         prod_catlist = [g for g in sorted(prod_catgroups.values(), key=lambda g: (g['ord'], g['nome'].lower())) if g['totale']]
 
         # Costi raggruppati per macro-categoria costo. La classificazione diretto/comune è
-        # a livello di CONTO di costo (override + eredità), quindi uno stesso macro-gruppo può
-        # avere conti diretti e conti comuni: si separano i conti PRIMA, poi si raggruppa.
+        # a livello di VOCE (override di riga, altrimenti dal conto): lo stesso conto può
+        # comparire sia tra i diretti sia tra i comuni, perciò si parte da due bucket distinti.
         catc = _categorie_costo()
         ordine_cc = {c.codice: i for i, c in enumerate(catc)}
         map_catc = _mappa_cat_costo()
 
-        def _gruppi_costo(codici, con_celle):
-            """Raggruppa i conti indicati per macro-categoria. con_celle=False -> solo totali
+        def _gruppi_costo(cat_rows, con_celle):
+            """Raggruppa i conti di un bucket per macro-categoria. con_celle=False -> solo totali
             (celle per PV azzerate: i costi comuni non si imputano al singolo punto vendita)."""
             groups = {}
-            for code in codici:
-                row = cat_rows[code]
+            for code, row in cat_rows.items():
                 cc = spesa_cat.get(code, '') or ''
                 if cc not in ordine_cc:
                     cc = ''
@@ -1033,10 +1039,8 @@ def conto_economico_consolidato(request):
                 g['costi'].sort(key=lambda x: x['nome'].lower())
             return [g for g in sorted(groups.values(), key=lambda g: (g['ord'], g['nome'].lower())) if g['totale']]
 
-        codici_dir = [code for code in cat_rows if tipo_spesa.get(code, 'comune') == 'diretto']
-        codici_com = [code for code in cat_rows if tipo_spesa.get(code, 'comune') != 'diretto']
-        cost_dir_list = _gruppi_costo(codici_dir, con_celle=True)   # imputati ai PV
-        cost_com_list = _gruppi_costo(codici_com, con_celle=False)  # struttura, solo totale
+        cost_dir_list = _gruppi_costo(cat_rows_dir, con_celle=True)   # imputati ai PV
+        cost_com_list = _gruppi_costo(cat_rows_com, con_celle=False)  # struttura, solo totale
 
         # Margine di contribuzione per PV = Ricavi - Costi diretti del PV.
         # I costi comuni NON si imputano ai PV: si sottraggono una sola volta dal totale.
@@ -1082,6 +1086,97 @@ def conto_economico_consolidato(request):
         }
 
     return render(request, 'app/conto_economico_consolidato.html', {'form': form, 'dati': dati})
+
+
+# ---------------------------------------------------------------------------
+# Riclassifica costi di un mese (cambio conto + override diretto/comune per voce)
+# ---------------------------------------------------------------------------
+
+@login_required
+@user_passes_test(is_superadmin)
+def riclassifica_costi(request):
+    """Pagina per riclassificare i costi già inseriti di un mese: per ogni voce si può
+    cambiare il conto di costo e forzare diretto/comune (override di riga)."""
+    is_super = request.user.is_superuser
+    agenzie = _agenzie_db()                       # [{db, nome}]
+    dbs_validi = {a['db'] for a in agenzie}
+
+    def _int(*vals):
+        for x in vals:
+            try:
+                return int(x)
+            except (TypeError, ValueError):
+                continue
+        return 0
+
+    if is_super:
+        dbn = request.POST.get('db') or request.GET.get('db') or ''
+        if dbn not in dbs_validi:
+            dbn = ''
+    else:
+        dbn = DatabaseManager(request.user).user_db
+
+    anno = _int(request.POST.get('anno'), request.GET.get('anno'))
+    mese = _int(request.POST.get('mese'), request.GET.get('mese'))
+    sel_ok = bool(dbn and anno and 1 <= mese <= 12)
+
+    if request.method == 'POST' and request.POST.get('azione') == 'salva' and sel_ok:
+        from django.urls import reverse
+        conto = ContoEconomico.objects.using(dbn).filter(anno=anno, mese=mese).first()
+        cat_valide = {c.codice for c in _categorie_attive()}
+        ovr_valide = {'', 'diretto', 'comune'}
+        n = 0
+        if conto:
+            for v in VoceCosto.objects.using(dbn).filter(conto_economico=conto):
+                campi = []
+                nuovo_cat = request.POST.get(f'cat_{v.pk}', None)
+                if nuovo_cat is not None:
+                    nc = nuovo_cat if nuovo_cat in cat_valide else ''
+                    if nc != (v.categoria_codice or ''):
+                        v.categoria_codice = nc or None
+                        campi.append('categoria_codice')
+                nuovo_ovr = request.POST.get(f'ovr_{v.pk}', None)
+                if nuovo_ovr is not None:
+                    no = nuovo_ovr if nuovo_ovr in ovr_valide else ''
+                    if no != (v.tipo_costo_override or ''):
+                        v.tipo_costo_override = no
+                        campi.append('tipo_costo_override')
+                if campi:
+                    v.save(using=dbn, update_fields=campi)
+                    n += 1
+        messages.success(request, f'{n} voci aggiornate.')
+        return redirect(f"{reverse('riclassifica_costi')}?db={dbn}&anno={anno}&mese={mese}")
+
+    oggi = timezone.localdate()
+    voci = []
+    conto = None
+    if sel_ok:
+        conto = ContoEconomico.objects.using(dbn).filter(anno=anno, mese=mese).first()
+        tipo_spesa = _spesa_tipo_of()
+        map_cat = _mappa_categorie()
+        if conto:
+            qs = VoceCosto.objects.using(dbn).filter(conto_economico=conto)
+            for v in sorted(qs, key=lambda x: ((x.categoria_codice or '~'), x.data or date.min, x.id)):
+                ov = (v.tipo_costo_override or '').strip()
+                eff = ov if ov in ('diretto', 'comune') else tipo_spesa.get(v.categoria_codice or '', 'comune')
+                voci.append({
+                    'v': v,
+                    'cat_nome': map_cat.get(v.categoria_codice or '', '') if v.categoria_codice else '',
+                    'override': ov if ov in ('diretto', 'comune') else '',
+                    'eff': eff,
+                    'da_conto': ov not in ('diretto', 'comune'),
+                    'nonclass': not v.categoria_codice,
+                })
+
+    context = {
+        'is_super': is_super, 'agenzie': agenzie, 'db_sel': dbn,
+        'nome_agenzia': next((a['nome'] for a in agenzie if a['db'] == dbn), ''),
+        'anno': anno or oggi.year, 'mese': mese or oggi.month,
+        'mesi': MESI_CHOICES, 'anni': list(range(oggi.year, oggi.year - 6, -1)),
+        'voci': voci, 'conto': conto, 'sel_ok': sel_ok,
+        'categorie': _categorie_attive(),
+    }
+    return render(request, 'app/riclassifica_costi.html', context)
 
 
 # ---------------------------------------------------------------------------

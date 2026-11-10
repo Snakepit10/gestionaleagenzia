@@ -1839,6 +1839,14 @@ class VoceCosto(MultiDatabaseMixin, models.Model):
     conto_economico = models.ForeignKey(ContoEconomico, on_delete=models.CASCADE, related_name='voci_costo')
     categoria_codice = models.SlugField(max_length=40, blank=True, null=True,
                                         help_text="Codice CategoriaSpesa (vuoto = da classificare)")
+    TIPO_OVERRIDE_CHOICES = [
+        ('', 'Come il conto di costo'),
+        ('diretto', 'Diretto (punto vendita)'),
+        ('comune', 'Comune (struttura)'),
+    ]
+    tipo_costo_override = models.CharField(
+        max_length=10, choices=TIPO_OVERRIDE_CHOICES, blank=True, default='',
+        help_text="Forza diretto/comune su questa singola voce. Vuoto = segue il conto di costo.")
     descrizione = models.CharField(max_length=200, blank=True, default='')
     importo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     data = models.DateField(null=True, blank=True)

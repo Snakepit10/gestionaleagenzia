@@ -81,6 +81,7 @@ urlpatterns = [
     path('conto-economico/apri/', ce.apri_mese, name='conto_economico_apri'),
     path('conto-economico/anno/<int:anno>/', ce.riepilogo_annuale, name='riepilogo_annuale'),
     path('conto-economico/consolidato/', ce.conto_economico_consolidato, name='conto_economico_consolidato'),
+    path('conto-economico/riclassifica/', ce.riclassifica_costi, name='riclassifica_costi'),
     # tassonomia globale (super-admin)
     path('conto-economico/categorie-costo/', ce.categorie_costo, name='categorie_costo'),
     path('conto-economico/categorie-costo/nuova/', ce.nuova_categoria_costo, name='nuova_categoria_costo'),

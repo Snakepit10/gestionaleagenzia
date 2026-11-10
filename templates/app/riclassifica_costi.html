@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Riclassifica costi - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<style>
+    .rc-tbl th, .rc-tbl td { vertical-align: middle; }
+    .rc-tbl td.n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .rc-sel { min-width: 180px; }
+    .rc-ovr { min-width: 150px; }
+    .rc-eff-diretto { }
+</style>
+
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h1 class="h3 mb-0"><i class="fas fa-random me-2"></i>Riclassifica costi</h1>
+        <small class="text-muted">Cambia il conto di costo o forza diretto/comune sulle singole voci di un mese. Vale anche per i mesi già chiusi.</small>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'conto_economico_consolidato' %}" class="btn btn-outline-secondary"><i class="fas fa-layer-group me-1"></i>Consolidato</a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header"><i class="fas fa-filter me-2"></i>Seleziona agenzia e mese</div>
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            {% if is_super %}
+            <div class="col-auto">
+                <label class="form-label">Agenzia (punto vendita)</label>
+                <select name="db" class="form-select">
+                    <option value="">— Scegli —</option>
+                    {% for a in agenzie %}<option value="{{ a.db }}" {% if a.db == db_sel %}selected{% endif %}>{{ a.nome }}</option>{% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-auto">
+                <label class="form-label">Anno</label>
+                <select name="anno" class="form-select">
+                    {% for a in anni %}<option value="{{ a }}" {% if a == anno %}selected{% endif %}>{{ a }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label">Mese</label>
+                <select name="mese" class="form-select">
+                    {% for m in mesi %}<option value="{{ m.0 }}" {% if m.0 == mese %}selected{% endif %}>{{ m.1 }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-search me-1"></i>Mostra costi</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if sel_ok %}
+    {% if voci %}
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="azione" value="salva">
+        <input type="hidden" name="db" value="{{ db_sel }}">
+        <input type="hidden" name="anno" value="{{ anno }}">
+        <input type="hidden" name="mese" value="{{ mese }}">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-list me-2"></i>Costi di {{ nome_agenzia }} — {{ voci|length }} voci</span>
+                <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-save me-1"></i>Salva modifiche</button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0 align-middle rc-tbl">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Descrizione</th>
+                                <th class="text-end">Importo</th>
+                                <th>Conto di costo</th>
+                                <th>Tipo (diretto/comune)</th>
+                                <th class="text-center">Effettivo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in voci %}
+                            <tr {% if r.nonclass %}class="table-warning"{% endif %}>
+                                <td class="small text-nowrap">{{ r.v.data|date:"d/m/Y"|default:"—" }}</td>
+                                <td class="small">{{ r.v.descrizione|default:"(senza descrizione)" }}</td>
+                                <td class="n">{{ r.v.importo|floatformat:2 }}</td>
+                                <td>
+                                    <select name="cat_{{ r.v.pk }}" class="form-select form-select-sm rc-sel">
+                                        <option value="">— Da classificare —</option>
+                                        {% for c in categorie %}
+                                        <option value="{{ c.codice }}" {% if c.codice == r.v.categoria_codice %}selected{% endif %}>{{ c.nome }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td>
+                                    <select name="ovr_{{ r.v.pk }}" class="form-select form-select-sm rc-ovr">
+                                        <option value="" {% if r.override == '' %}selected{% endif %}>Come il conto</option>
+                                        <option value="diretto" {% if r.override == 'diretto' %}selected{% endif %}>Diretto (punto vendita)</option>
+                                        <option value="comune" {% if r.override == 'comune' %}selected{% endif %}>Comune (struttura)</option>
+                                    </select>
+                                </td>
+                                <td class="text-center">
+                                    {% if r.nonclass %}
+                                        <span class="text-muted small">—</span>
+                                    {% elif r.eff == 'diretto' %}
+                                        <span class="badge bg-info text-dark">Diretto</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Comune</span>
+                                    {% endif %}
+                                    {% if r.da_conto and not r.nonclass %}<span class="text-muted small d-block">da conto</span>{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer d-flex justify-content-between align-items-center">
+                <span class="text-muted small">"Effettivo" = tipo usato nel consolidato: l'override di riga vince sul conto di costo. Le righe gialle sono ancora da classificare.</span>
+                <button type="submit" class="btn btn-success"><i class="fas fa-save me-1"></i>Salva modifiche</button>
+            </div>
+        </div>
+    </form>
+    {% elif conto %}
+    <div class="alert alert-info">Nessuna voce di costo per {{ nome_agenzia }} in questo mese.</div>
+    {% else %}
+    <div class="alert alert-warning">Nessun conto economico presente per {{ nome_agenzia }} in questo mese.</div>
+    {% endif %}
+{% endif %}
+{% endblock %}
