@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Regole di classificazione - Gestionale Agenzia{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h1 class="h3 mb-0"><i class="fas fa-wand-magic-sparkles me-2"></i>Regole di classificazione</h1>
+        <small class="text-muted">All'import dell'estratto conto, le righe la cui descrizione contiene la parola indicata vengono classificate (o escluse) automaticamente. Vince la prima regola per ordine.</small>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'conto_economico' %}" class="btn btn-outline-secondary me-2"><i class="fas fa-arrow-left me-1"></i>Conto Economico</a>
+        <a href="{% url 'nuova_regola_classificazione' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nuova regola</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead><tr><th class="text-center">Ordine</th><th>Se la descrizione contiene…</th><th>Tipo</th><th>Destinazione</th><th class="text-center">Attiva</th><th class="text-end">Azioni</th></tr></thead>
+                <tbody>
+                    {% for x in righe %}
+                    <tr>
+                        <td class="text-center">{{ x.r.ordine }}</td>
+                        <td><code>{{ x.r.parola }}</code></td>
+                        <td>
+                            {% if x.r.tipo == 'costo' %}<span class="badge bg-danger">Costo</span>
+                            {% elif x.r.tipo == 'ricavo' %}<span class="badge bg-success">Ricavo</span>
+                            {% else %}<span class="badge bg-secondary">Escludi</span>{% endif %}
+                        </td>
+                        <td>{{ x.dest }}</td>
+                        <td class="text-center">{% if x.r.attiva %}<span class="badge bg-success">Sì</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                        <td class="text-end">
+                            <a href="{% url 'modifica_regola_classificazione' x.r.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+                            <a href="{% url 'elimina_regola_classificazione' x.r.pk %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nessuna regola. Creane una con "Nuova regola" (es. parola <code>COMMISSIONI:</code> → Costo → conto "Commissioni bancarie").</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer text-muted small">Le regole valgono per tutte le agenzie. Una riga classificata da regola finisce già tra le "classificate" (100% all'agenzia che carica l'estratto); puoi sempre correggerla o ripartirla.</div>
+</div>
+{% endblock %}

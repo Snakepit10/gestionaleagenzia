@@ -17,11 +17,12 @@ from django.utils import timezone
 from .models import (
     ContoEconomico, VoceRicavo, VoceCosto, MovimentoBancario,
     ProdottoRicavo, CategoriaSpesa, CategoriaProdotto, CategoriaCosto, Cliente, Movimento, Agenzia,
+    RegolaClassificazione,
 )
 from .database_utils import DatabaseManager, AGENZIA_DATABASE_MAP
 from .forms import (
     ProdottoRicavoForm, CategoriaSpesaForm, CategoriaProdottoForm, CategoriaCostoForm, VoceCostoForm,
-    VoceRicavoManualeForm, UploadEstrattoForm, ConsolidatoForm, MESI_CHOICES,
+    VoceRicavoManualeForm, UploadEstrattoForm, ConsolidatoForm, RegolaClassificazioneForm, MESI_CHOICES,
 )
 from . import estratto_conto
 from .views import is_manager_or_admin  # noqa: F401 (mantenuto per compat)
@@ -245,6 +246,27 @@ def _report(dbname, anno, mese):
         'tot_costi': tot_costi,
         'utile': tot_ricavi - tot_costi,
     }
+
+
+def _regole_attive():
+    """Regole di classificazione automatica attive, in ordine di priorità."""
+    return list(RegolaClassificazione.objects.using('default').filter(attiva=True).order_by('ordine', 'id'))
+
+
+def _match_regola(descrizione, importo, regole):
+    """Prima regola la cui parola è contenuta nella descrizione e compatibile col segno
+    dell'importo (costo = uscita, ricavo = entrata). Ritorna la regola o None."""
+    descr_l = (descrizione or '').lower()
+    for rg in regole:
+        parola = (rg.parola or '').strip().lower()
+        if not parola or parola not in descr_l:
+            continue
+        if rg.tipo == 'costo' and importo >= 0:
+            continue
+        if rg.tipo == 'ricavo' and importo < 0:
+            continue
+        return rg
+    return None
 
 
 def _agenzie_db():
@@ -751,9 +773,12 @@ def carica_estratto(request, anno, mese):
 
             righe = estratto_conto.parse_csv(testo)
             fname = getattr(f, 'name', '')[:200]
+            regole = _regole_attive()
+            cat_valide = {c.codice for c in _categorie_attive()}
+            prod_valide = {p.codice for p in _prodotti_attivi()}
             per_mese = {}          # (anno, mese) -> ContoEconomico (creato on demand)
             conteggi = {}          # (anno, mese) -> nuove righe
-            duplicati = ignorati = senza_data = auto_escluse = 0
+            duplicati = ignorati = senza_data = auto_escluse = auto_classificate = 0
             for r in righe:
                 # Uscite (negativo) = costi; entrate (positivo) = possibili ricavi.
                 if r['importo'] == 0:
@@ -777,14 +802,37 @@ def carica_estratto(request, anno, mese):
                                        descrizione=r['descrizione'], importo=r['importo'],
                                        hash_riga=h, stato='ignorato' if auto_escl else 'da_classificare',
                                        file_nome=fname)
+
+                # Regole di classificazione automatica (solo se non già auto-esclusa).
+                regola = None if auto_escl else _match_regola(r['descrizione'], r['importo'], regole)
+                classificata = False
+                if regola is not None:
+                    if regola.tipo == 'escludi':
+                        mb.stato = 'ignorato'
+                        auto_escl = True
+                    elif regola.tipo == 'costo' and (regola.categoria_codice in cat_valide):
+                        mb.categoria_codice = regola.categoria_codice
+                        mb.allocazioni = [{'db': dbname, 'perc': 100.0}]
+                        mb.stato = 'classificato'
+                        classificata = True
+                    elif regola.tipo == 'ricavo' and (regola.prodotto_codice in prod_valide):
+                        mb.prodotto_codice = regola.prodotto_codice
+                        mb.allocazioni = [{'db': dbname, 'perc': 100.0}]
+                        mb.stato = 'classificato'
+                        classificata = True
+
                 mb.save(using=dbname)
+                if classificata:
+                    _rigenera_voci_da_riga(dbname, mb, ym[0], ym[1], mb.allocazioni, request.user)
+                    auto_classificate += 1
                 conteggi[ym] = conteggi.get(ym, 0) + 1
                 if auto_escl:
                     auto_escluse += 1
 
             nuovi = sum(conteggi.values())
             coda = (f'{duplicati} duplicati saltati'
-                    + (f', {auto_escluse} incassi POS messi tra le escluse' if auto_escluse else '')
+                    + (f', {auto_classificate} classificate da regole' if auto_classificate else '')
+                    + (f', {auto_escluse} messe tra le escluse' if auto_escluse else '')
                     + (f', {senza_data} righe senza data' if senza_data else '') + '.')
             if conteggi:
                 dett = ', '.join(f'{MESI_DICT.get(m, m)} {a} ({n})'
@@ -817,6 +865,39 @@ def classifica_estratto(request, anno, mese):
     is_super = request.user.is_superuser
     agenzie = _agenzie_db()
     dbs_validi = {a['db'] for a in agenzie}
+
+    # Applica le regole automatiche alle righe ancora da classificare di questo mese.
+    if request.method == 'POST' and request.POST.get('azione') == 'applica_regole':
+        regole = _regole_attive()
+        cat_valide = {c.codice for c in _categorie_attive()}
+        prod_valide = {p.codice for p in _prodotti_attivi()}
+        n = 0
+        for riga in MovimentoBancario.objects.using(dbname).filter(conto_economico=conto, stato='da_classificare'):
+            rg = _match_regola(riga.descrizione, riga.importo, regole)
+            if rg is None:
+                continue
+            if rg.tipo == 'escludi':
+                riga.stato = 'ignorato'
+                riga.save(using=dbname, update_fields=['stato'])
+                n += 1
+            elif rg.tipo == 'costo' and rg.categoria_codice in cat_valide:
+                riga.categoria_codice = rg.categoria_codice
+                riga.prodotto_codice = None
+                riga.allocazioni = [{'db': dbname, 'perc': 100.0}]
+                riga.stato = 'classificato'
+                riga.save(using=dbname, update_fields=['categoria_codice', 'prodotto_codice', 'allocazioni', 'stato'])
+                _rigenera_voci_da_riga(dbname, riga, anno, mese, riga.allocazioni, request.user)
+                n += 1
+            elif rg.tipo == 'ricavo' and rg.prodotto_codice in prod_valide:
+                riga.prodotto_codice = rg.prodotto_codice
+                riga.categoria_codice = None
+                riga.allocazioni = [{'db': dbname, 'perc': 100.0}]
+                riga.stato = 'classificato'
+                riga.save(using=dbname, update_fields=['categoria_codice', 'prodotto_codice', 'allocazioni', 'stato'])
+                _rigenera_voci_da_riga(dbname, riga, anno, mese, riga.allocazioni, request.user)
+                n += 1
+        messages.success(request, f'Regole applicate: {n} righe classificate automaticamente.')
+        return redirect('classifica_estratto', anno=anno, mese=mese)
 
     if request.method == 'POST':
         cat_valide = {c.codice for c in _categorie_attive()}
@@ -1425,6 +1506,72 @@ def scomponi_transazione(request):
         'nome_agenzia_origine': db_nome.get(od, od),
     }
     return render(request, 'app/scomponi_transazione.html', context)
+
+
+# ---------------------------------------------------------------------------
+# Regole di classificazione automatica dell'estratto conto — su DB 'default'
+# ---------------------------------------------------------------------------
+
+@login_required
+@user_passes_test(is_superadmin)
+def regole_classificazione(request):
+    regole = list(RegolaClassificazione.objects.using('default').all())
+    map_cat = _mappa_categorie()
+    map_prod = _mappa_prodotti()
+    righe = []
+    for r in regole:
+        if r.tipo == 'costo':
+            dest = map_cat.get(r.categoria_codice or '', r.categoria_codice or '—')
+        elif r.tipo == 'ricavo':
+            dest = map_prod.get(r.prodotto_codice or '', r.prodotto_codice or '—')
+        else:
+            dest = 'Escludi'
+        righe.append({'r': r, 'dest': dest})
+    return render(request, 'app/lista_regole_classificazione.html', {'righe': righe})
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def nuova_regola_classificazione(request):
+    if request.method == 'POST':
+        form = RegolaClassificazioneForm(request.POST)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.save(using='default')
+            messages.success(request, 'Regola creata.')
+            return redirect('regole_classificazione')
+    else:
+        form = RegolaClassificazioneForm()
+    return render(request, 'app/form_regola_classificazione.html', {'form': form, 'titolo': 'Nuova regola'})
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def modifica_regola_classificazione(request, pk):
+    obj = get_object_or_404(RegolaClassificazione.objects.using('default'), pk=pk)
+    if request.method == 'POST':
+        form = RegolaClassificazioneForm(request.POST, instance=obj)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.save(using='default')
+            messages.success(request, 'Regola aggiornata.')
+            return redirect('regole_classificazione')
+    else:
+        form = RegolaClassificazioneForm(instance=obj)
+    return render(request, 'app/form_regola_classificazione.html',
+                  {'form': form, 'oggetto': obj, 'titolo': f'Modifica regola'})
+
+
+@login_required
+@user_passes_test(is_superadmin)
+def elimina_regola_classificazione(request, pk):
+    obj = get_object_or_404(RegolaClassificazione.objects.using('default'), pk=pk)
+    if request.method == 'POST':
+        obj.delete(using='default')
+        messages.success(request, 'Regola eliminata.')
+        return redirect('regole_classificazione')
+    return render(request, 'app/elimina_tassonomia.html',
+                  {'oggetto': obj, 'tipo': 'regola di classificazione', 'annulla_url': 'regole_classificazione'})
 
 
 # ---------------------------------------------------------------------------

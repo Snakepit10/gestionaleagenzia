@@ -3,7 +3,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from .models import (Cliente, Movimento, DistintaCassa, Comunicazione, ContoFinanziario, BilancioPeriodico,
                      ProdottoRicavo, CategoriaSpesa, CategoriaProdotto, CategoriaCosto, VoceCosto, Agenzia,
-                     TaskAgenzia, CategoriaTask)
+                     TaskAgenzia, CategoriaTask, RegolaClassificazione)
 
 
 MESI_CHOICES = [
@@ -410,6 +410,40 @@ class CategoriaSpesaForm(forms.ModelForm):
         if not codice:
             codice = slugify(self.cleaned_data.get('nome', ''))
         return codice
+
+
+class RegolaClassificazioneForm(forms.ModelForm):
+    """Regola di classificazione automatica dell'estratto conto (parola -> conto/prodotto)."""
+    class Meta:
+        model = RegolaClassificazione
+        fields = ['parola', 'tipo', 'categoria_codice', 'prodotto_codice', 'ordine', 'attiva']
+        help_texts = {
+            'parola': 'Testo da cercare nella descrizione del movimento (ignora maiuscole/minuscole).',
+            'ordine': 'Priorità: vince la prima regola (ordine più basso) che combacia.',
+        }
+        labels = {'categoria_codice': 'Conto di costo', 'prodotto_codice': 'Prodotto'}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        cats = CategoriaSpesa.objects.using('default').filter(attivo=True).order_by('ordine', 'nome')
+        prods = ProdottoRicavo.objects.using('default').filter(attivo=True).order_by('ordine', 'nome')
+        self.fields['categoria_codice'] = forms.ChoiceField(
+            choices=[('', '— Nessuno —')] + [(c.codice, c.nome) for c in cats],
+            required=False, label='Conto di costo',
+            initial=(self.instance.categoria_codice if self.instance and self.instance.pk else ''))
+        self.fields['prodotto_codice'] = forms.ChoiceField(
+            choices=[('', '— Nessuno —')] + [(p.codice, p.nome) for p in prods],
+            required=False, label='Prodotto',
+            initial=(self.instance.prodotto_codice if self.instance and self.instance.pk else ''))
+
+    def clean(self):
+        cleaned = super().clean()
+        tipo = cleaned.get('tipo')
+        if tipo == 'costo' and not cleaned.get('categoria_codice'):
+            self.add_error('categoria_codice', 'Scegli il conto di costo per una regola di tipo Costo.')
+        if tipo == 'ricavo' and not cleaned.get('prodotto_codice'):
+            self.add_error('prodotto_codice', 'Scegli il prodotto per una regola di tipo Ricavo.')
+        return cleaned
 
 
 class VoceCostoForm(forms.ModelForm):

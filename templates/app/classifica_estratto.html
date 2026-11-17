@@ -15,6 +15,12 @@
         <small class="text-muted">{{ n_costi_da }} costi + {{ n_entrate_da }} entrate da classificare · {{ n_class }} classificate · {{ n_escl }} escluse.{% if is_super %} Le percentuali ripartiscono ogni voce tra le agenzie (somma consigliata 100%).{% endif %}</small>
     </div>
     <div class="col-auto">
+        <form method="post" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="azione" value="applica_regole">
+            <button type="submit" class="btn btn-outline-success me-2" title="Classifica automaticamente le righe 'da classificare' con le regole"><i class="fas fa-wand-magic-sparkles me-1"></i>Applica regole</button>
+        </form>
+        <a href="{% url 'regole_classificazione' %}" class="btn btn-outline-secondary me-2" title="Gestisci le regole"><i class="fas fa-gear me-1"></i>Regole</a>
         <a href="{% url 'carica_estratto' anno mese %}" class="btn btn-outline-primary me-2"><i class="fas fa-upload me-1"></i>Carica altro CSV</a>
         <a href="{% url 'conto_economico_mese' anno mese %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Torna al mese</a>
     </div>

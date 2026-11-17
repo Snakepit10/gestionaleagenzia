@@ -1909,6 +1909,33 @@ class MovimentoBancario(MultiDatabaseMixin, models.Model):
         return f"{self.data} {self.descrizione[:30]} {self.importo} €"
 
 
+class RegolaClassificazione(models.Model):
+    """Regola per classificare automaticamente le righe dell'estratto conto in base a una
+    parola/frase contenuta nella descrizione. Tassonomia GLOBALE su database 'default'."""
+    TIPO_CHOICES = [
+        ('costo', 'Costo (conto di costo)'),
+        ('ricavo', 'Ricavo (prodotto)'),
+        ('escludi', 'Escludi (non è né costo né ricavo)'),
+    ]
+    parola = models.CharField(max_length=120,
+                              help_text="Testo da cercare nella descrizione (ignora maiuscole/minuscole).")
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='costo')
+    categoria_codice = models.SlugField(max_length=40, blank=True, null=True,
+                                        help_text="Conto di costo (per le regole di tipo Costo).")
+    prodotto_codice = models.SlugField(max_length=40, blank=True, null=True,
+                                       help_text="Prodotto (per le regole di tipo Ricavo).")
+    ordine = models.PositiveIntegerField(default=0, help_text="Priorità: vince la prima regola che combacia.")
+    attiva = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Regola di Classificazione"
+        verbose_name_plural = "Regole di Classificazione"
+        ordering = ['ordine', 'id']
+
+    def __str__(self):
+        return f"{self.parola} → {self.get_tipo_display()}"
+
+
 class RichiestaGiroconto(models.Model):
     """
     Richiesta di giroconto inter-agenzia. Vive sul DB condiviso `default` (come SaldoEsterno),
