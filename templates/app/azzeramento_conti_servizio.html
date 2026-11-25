@@ -186,6 +186,50 @@
         return isNaN(n) ? null : n;
     }
 
+    // Divide una riga CSV rispettando i campi tra virgolette doppie (le virgole al loro
+    // interno NON separano; "" dentro un campo = virgoletta letterale). Serve per il nuovo
+    // formato MuchBetter dove ID e date contengono virgole: "3,125,268", "October 7, 2026, 11:09 AM".
+    function splitCSV(line, delim) {
+        var out = [], cur = '', q = false;
+        for (var i = 0; i < line.length; i++) {
+            var c = line[i];
+            if (q) {
+                if (c === '"') {
+                    if (line[i + 1] === '"') { cur += '"'; i++; }
+                    else { q = false; }
+                } else { cur += c; }
+            } else {
+                if (c === '"') { q = true; }
+                else if (c === delim) { out.push(cur); cur = ''; }
+                else { cur += c; }
+            }
+        }
+        out.push(cur);
+        return out;
+    }
+
+    var MESI_EN = { january: '01', february: '02', march: '03', april: '04', may: '05', june: '06',
+                    july: '07', august: '08', september: '09', october: '10', november: '11', december: '12' };
+    // Normalizza una data in 'YYYY-MM-DD'. Gestisce il nuovo formato MuchBetter
+    // ("October 7, 2026, 11:09 AM"), l'ISO e il formato gg/mm/aaaa.
+    function normalizzaData(s) {
+        s = ('' + (s || '')).trim();
+        if (!s) return '';
+        var iso = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+        if (iso) return iso[1] + '-' + iso[2] + '-' + iso[3];
+        var m = s.match(/([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})/);
+        if (m) {
+            var mm = MESI_EN[m[1].toLowerCase()];
+            if (mm) return m[3] + '-' + mm + '-' + ('0' + m[2]).slice(-2);
+        }
+        var m2 = s.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})/);
+        if (m2) {
+            var y = m2[3].length === 2 ? '20' + m2[3] : m2[3];
+            return y + '-' + ('0' + m2[2]).slice(-2) + '-' + ('0' + m2[1]).slice(-2);
+        }
+        return '';
+    }
+
     function aggiorna() {
         var tot = checks.length;
         var fatti = checks.filter(function(c) { return c.checked; }).length;
@@ -239,15 +283,15 @@
     }
 
     function parseMuchBetter(lines) {
-        var header = lines[0].split(',').map(function(h) { return h.trim().toLowerCase(); });
+        var header = splitCSV(lines[0], ',').map(function(h) { return h.trim().toLowerCase(); });
         var iAmt = header.indexOf('amount'); if (iAmt < 0) iAmt = 18;
         var iDate = header.indexOf('created_date');
         var iStat = header.indexOf('transaction_status');
         var rows = [], contab = 0, scartateRows = [];
         for (var i = 1; i < lines.length; i++) {
-            var cols = lines[i].split(',');
+            var cols = splitCSV(lines[i], ',');
             if (cols.length <= iAmt) continue;
-            var d = iDate >= 0 ? (cols[iDate] || '').trim().slice(0, 10) : '';
+            var d = iDate >= 0 ? normalizzaData(cols[iDate]) : '';
             var imp = parseImporto(cols[iAmt]);
             if (iStat >= 0 && (cols[iStat] || '').trim().toUpperCase() !== 'COMPLETED') {
                 scartateRows.push({ importo: (imp != null ? Math.abs(imp) : null), data: d, riga: i + 1,
@@ -267,14 +311,14 @@
 
     function parsePOS(lines) {
         var delim = (lines[0].split(';').length >= lines[0].split(',').length) ? ';' : ',';
-        var header = lines[0].split(delim).map(function(h) { return h.trim().toLowerCase(); });
+        var header = splitCSV(lines[0], delim).map(function(h) { return h.trim().toLowerCase(); });
         var iImp = header.indexOf('importo');
         if (iImp < 0) iImp = header.findIndex(function(h) { return h.indexOf('importo') >= 0 && h.indexOf('storn') < 0; });
         if (iImp < 0) iImp = 4;
         var iStato = header.findIndex(function(h) { return h.indexOf('stato') >= 0; });
         var rows = [], contab = 0, scartateRows = [];
         for (var i = 1; i < lines.length; i++) {
-            var cols = lines[i].split(delim);
+            var cols = splitCSV(lines[i], delim);
             if (cols.length <= iImp) continue;
             var imp = parseImporto(cols[iImp]);
             if (iStato >= 0 && (cols[iStato] || '').trim().toLowerCase().indexOf('contabilizzat') < 0) {
